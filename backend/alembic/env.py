@@ -7,6 +7,8 @@ from alembic import context
 from app.core.config import settings
 from app.database import Base
 from app.models.user import User  # noqa
+from app.models.test import Test, Question  # noqa
+from app.models.attempt import Attempt, AnswerRecord  # noqa
 
 config = context.config
 

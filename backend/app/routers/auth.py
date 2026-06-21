@@ -1,35 +1,33 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.database import SessionLocal
-from app.models.user import User
 import bcrypt
+
+from app.core.dependencies import get_db
+from app.core.security import create_access_token
+from app.models.user import User
+from app.schemas.auth import RegisterRequest, LoginRequest, TokenResponse
 
 router = APIRouter()
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 @router.post("/register")
-def register(username: str, password: str, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(User.username == username).first()
+def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+    existing_user = db.query(User).filter(User.username == payload.username).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already taken")
-    hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
-    new_user = User(username=username, password=hashed_password.decode("utf-8"))
+    hashed_password = bcrypt.hashpw(payload.password.encode("utf-8"), bcrypt.gensalt())
+    new_user = User(username=payload.username, password=hashed_password.decode("utf-8"))
     db.add(new_user)
     db.commit()
-    return {"message": f"User {username} registered successfully"}
+    return {"message": f"User {payload.username} registered successfully"}
 
 
-@router.post("/login")
-def login(username: str, password: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == username).first()
-    if not user or not bcrypt.checkpw(password.encode("utf-8"), user.password.encode("utf-8")):
+@router.post("/login", response_model=TokenResponse)
+def login(payload: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == payload.username).first()
+    if not user or not bcrypt.checkpw(
+        payload.password.encode("utf-8"), user.password.encode("utf-8")
+    ):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return {"message": "Login successful"}
+    token = create_access_token({"sub": user.username})
+    return {"access_token": token, "token_type": "bearer"}
