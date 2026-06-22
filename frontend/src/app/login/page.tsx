@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import AuthShell from "@/components/auth/AuthShell";
+import { AuthField } from "@/components/auth/AuthField";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -33,46 +32,58 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="mx-auto max-w-sm py-8">
-      <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
-        <p className="mt-1 text-sm text-slate-500">Log in to continue practising.</p>
-      </div>
-      <Card className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">
-              {error}
-            </p>
-          )}
-          <Input
-            label="Username"
-            name="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            autoComplete="username"
-          />
-          <Input
-            label="Password"
-            name="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-          />
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Logging in..." : "Log in"}
-          </Button>
-        </form>
-      </Card>
-      <p className="mt-5 text-center text-sm text-slate-500">
-        No account?{" "}
-        <Link href="/register" className="font-medium text-blue-600 hover:underline">
+    <AuthShell>
+      <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Sign in</h1>
+      <p className="mt-2 text-slate-500">Welcome back — log in to continue practising.</p>
+
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        {error && (
+          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+        )}
+
+        <AuthField
+          label="Email or username"
+          name="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+          autoComplete="username"
+        />
+
+        <AuthField
+          label="Password"
+          name="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoComplete="current-password"
+        />
+
+        <div className="flex justify-end">
+          <Link
+            href="/login"
+            className="text-sm font-medium text-[var(--brand)] hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="h-[54px] w-full rounded-2xl bg-gradient-to-r from-[var(--brand)] to-[var(--brand-dark)] text-base font-semibold text-white shadow-lg shadow-[var(--brand)]/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[var(--brand)]/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+        >
+          {loading ? "Signing in..." : "Sign in"}
+        </button>
+      </form>
+
+      <p className="mt-8 text-center text-sm text-slate-500">
+        Don&apos;t have an account?{" "}
+        <Link href="/register" className="font-semibold text-[var(--brand)] hover:underline">
           Create one
         </Link>
       </p>
-    </div>
+    </AuthShell>
   );
 }
