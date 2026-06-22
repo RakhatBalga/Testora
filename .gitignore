@@ -3,3 +3,6 @@ __pycache__/
 .env
 venv/
 .venv/
+
+# Claude Code — local, machine-specific settings
+.claude/settings.local.json
