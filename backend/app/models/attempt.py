@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Float
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -12,6 +12,7 @@ class Attempt(Base):
     test_id = Column(Integer, ForeignKey("tests.id"), nullable=False)
     score = Column(Integer, nullable=False, default=0)
     total = Column(Integer, nullable=False, default=0)
+    band = Column(Float, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     test = relationship("Test")
