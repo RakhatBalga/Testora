@@ -7,3 +7,5 @@ python-jose[cryptography]
 passlib[bcrypt]
 python-dotenv
 pydantic-settings
+python-multipart
+google-genai

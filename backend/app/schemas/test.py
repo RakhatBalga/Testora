@@ -5,8 +5,22 @@ from pydantic import BaseModel
 class QuestionOut(BaseModel):
     id: int
     text: str
-    options: List[str]
+    question_type: str
+    options: Optional[List[str]] = None  # null for free-text questions
     order: int
+
+    class Config:
+        from_attributes = True
+
+
+class SectionOut(BaseModel):
+    id: int
+    order: int
+    title: str
+    instructions: Optional[str] = None
+    passage: Optional[str] = None
+    audio_url: Optional[str] = None
+    questions: List[QuestionOut]
 
     class Config:
         from_attributes = True
@@ -24,6 +38,4 @@ class TestOut(BaseModel):
 
 
 class TestDetail(TestOut):
-    audio_url: Optional[str] = None
-    content: Optional[str] = None
-    questions: List[QuestionOut]
+    sections: List[SectionOut]

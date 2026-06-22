@@ -3,11 +3,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, get_current_user
-from app.models.test import Test, Question
+from app.models.test import Test, Section, Question
 from app.models.attempt import Attempt, AnswerRecord
 from app.models.user import User
 from app.schemas.result import SubmitIn, AttemptResult, AttemptSummary
-from app.services.scoring import grade_attempt
+from app.services.scoring import grade_attempt, _display
+from app.services.band import band_from_raw
 
 router = APIRouter()
 
@@ -22,16 +23,24 @@ def submit_attempt(
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
 
-    questions = db.query(Question).filter(Question.test_id == test.id).all()
+    questions = (
+        db.query(Question)
+        .join(Section, Question.section_id == Section.id)
+        .filter(Section.test_id == test.id)
+        .all()
+    )
     answers_map = {a.question_id: a.answer for a in payload.answers}
 
     graded, score = grade_attempt(questions, answers_map)
+    total = len(questions)
+    band = band_from_raw(score, total, test.test_type)
 
     attempt = Attempt(
         user_id=current_user.id,
         test_id=test.id,
         score=score,
-        total=len(questions),
+        total=total,
+        band=band,
     )
     db.add(attempt)
     db.flush()  # assigns attempt.id before we create answer records
@@ -51,8 +60,10 @@ def submit_attempt(
         "id": attempt.id,
         "test_id": test.id,
         "test_title": test.title,
+        "test_type": test.test_type,
         "score": score,
-        "total": len(questions),
+        "total": total,
+        "band": band,
         "created_at": attempt.created_at,
         "answers": graded,
     }
@@ -74,8 +85,10 @@ def list_attempts(
             "id": a.id,
             "test_id": a.test_id,
             "test_title": a.test.title,
+            "test_type": a.test.test_type,
             "score": a.score,
             "total": a.total,
+            "band": a.band,
             "created_at": a.created_at,
         }
         for a in attempts
@@ -102,8 +115,9 @@ def get_attempt(
             {
                 "question_id": record.question_id,
                 "text": record.question.text,
+                "question_type": record.question.question_type,
                 "user_answer": record.user_answer,
-                "correct_answer": record.question.correct_answer,
+                "correct_answer": _display(record.question.correct_answer),
                 "is_correct": record.is_correct,
             }
         )
@@ -112,8 +126,10 @@ def get_attempt(
         "id": attempt.id,
         "test_id": attempt.test_id,
         "test_title": attempt.test.title,
+        "test_type": attempt.test.test_type,
         "score": attempt.score,
         "total": attempt.total,
+        "band": attempt.band,
         "created_at": attempt.created_at,
         "answers": answers,
     }

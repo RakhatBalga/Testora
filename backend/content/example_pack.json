@@ -1,0 +1,70 @@
+{
+  "tests": [
+    {
+      "title": "Academic Reading Practice 2",
+      "test_type": "reading",
+      "description": "One passage on urban green spaces with mixed question types.",
+      "duration_minutes": 20,
+      "sections": [
+        {
+          "order": 1,
+          "title": "Section 1 — Urban Green Spaces",
+          "instructions": "Read the passage and answer questions 1-4.",
+          "passage": "Cities around the world are increasingly investing in green spaces such as parks, rooftop gardens and tree-lined streets. Research shows that access to nature in urban areas reduces stress, improves air quality and encourages physical activity. In Singapore, often called a 'city in a garden', more than 40 per cent of the land is covered by greenery. Studies have found that residents living within 300 metres of a park report higher levels of wellbeing than those who live further away.",
+          "questions": [
+            {
+              "order": 1,
+              "text": "What percentage of Singapore is covered by greenery?",
+              "question_type": "single_choice",
+              "options": ["20%", "30%", "more than 40%", "60%"],
+              "correct_answer": ["more than 40%"]
+            },
+            {
+              "order": 2,
+              "text": "Green spaces improve air quality.",
+              "question_type": "true_false_notgiven",
+              "options": ["True", "False", "Not Given"],
+              "correct_answer": ["True"]
+            },
+            {
+              "order": 3,
+              "text": "Residents living within ______ metres of a park report higher wellbeing.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": ["300"]
+            },
+            {
+              "order": 4,
+              "text": "Which TWO benefits of urban nature are mentioned?",
+              "question_type": "multiple_choice",
+              "options": ["Reduced stress", "Lower taxes", "Better air quality", "Faster transport"],
+              "correct_answer": ["Reduced stress", "Better air quality"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "writing_tasks": [
+    {
+      "task_type": 2,
+      "title": "Writing Task 2 — Remote work",
+      "prompt": "Some people think that working from home benefits both employees and employers, while others believe it harms productivity and collaboration. Discuss both views and give your own opinion. Write at least 250 words.",
+      "image_url": null,
+      "min_words": 250,
+      "duration_minutes": 40
+    }
+  ],
+  "speaking_tasks": [
+    {
+      "part": 1,
+      "questions": [
+        "Do you work or are you a student?",
+        "What do you enjoy most about your work or studies?",
+        "Would you like to change anything about your daily routine?"
+      ],
+      "prep_seconds": 15,
+      "speak_seconds": 60
+    }
+  ]
+}
