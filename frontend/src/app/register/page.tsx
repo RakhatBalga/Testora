@@ -34,8 +34,12 @@ export default function RegisterPage() {
 
   return (
     <AuthShell>
-      <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Create account</h1>
-      <p className="mt-2 text-slate-500">Free forever — start practising right away.</p>
+      <h1 className="text-[2rem] font-extrabold tracking-tight text-[var(--text-primary)]">
+        Create account
+      </h1>
+      <p className="mt-2 text-[var(--text-secondary)]">
+        Free forever — start your IELTS preparation today.
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         {error && (
@@ -64,13 +68,13 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="h-[54px] w-full rounded-2xl bg-gradient-to-r from-[var(--brand)] to-[var(--brand-dark)] text-base font-semibold text-white shadow-lg shadow-[var(--brand)]/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[var(--brand)]/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          className="h-[54px] w-full rounded-2xl bg-[var(--brand)] text-base font-semibold text-white shadow-sm shadow-[var(--brand)]/25 transition-all duration-200 hover:bg-[var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Creating account..." : "Create account"}
         </button>
       </form>
 
-      <p className="mt-8 text-center text-sm text-slate-500">
+      <p className="mt-8 text-center text-sm text-[var(--text-secondary)]">
         Already have an account?{" "}
         <Link href="/login" className="font-semibold text-[var(--brand)] hover:underline">
           Sign in

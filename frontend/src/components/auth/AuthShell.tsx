@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import Link from "next/link";
-import { Headphones, BookOpen, PenLine, Mic } from "lucide-react";
+import { Headphones, BookOpen, PenLine, Mic, TrendingUp } from "lucide-react";
 import GuestNavbar from "./GuestNavbar";
-
-const LANGS = ["Eng", "Рус", "Қаз"];
 
 const SKILLS = [
   { label: "Listening", icon: Headphones },
@@ -15,26 +13,25 @@ const SKILLS = [
 ];
 
 export default function AuthShell({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState("Eng");
-
   return (
-    <div className="min-h-screen bg-[#F7F8FA]">
+    <div className="min-h-screen bg-[var(--background)]">
       <GuestNavbar />
 
-      <div className="mx-auto grid max-w-6xl gap-8 px-5 pb-10 pt-[94px] sm:px-8 lg:min-h-screen lg:grid-cols-2 lg:items-center lg:gap-12 lg:pb-12">
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 pb-10 pt-8 sm:px-8 lg:min-h-[calc(100vh-76px)] lg:grid-cols-[1.35fr_1fr] lg:items-stretch lg:gap-12 lg:pb-12">
         {/* Left: brand panel */}
-        <aside className="relative hidden overflow-hidden rounded-[24px] bg-[var(--brand)] p-10 text-white shadow-xl shadow-[var(--brand)]/20 lg:flex lg:h-[calc(100vh-118px)] lg:flex-col lg:justify-between lg:p-14">
-          {/* decorative elements */}
+        <aside className="relative hidden overflow-hidden rounded-[28px] bg-[var(--brand)] p-12 text-white shadow-[0_20px_60px_-20px_rgba(37,99,235,0.45)] lg:flex lg:flex-col lg:justify-between xl:p-14">
+          {/* academic dot grid */}
           <div
-            className="pointer-events-none absolute inset-0 opacity-[0.14]"
+            className="pointer-events-none absolute inset-0 opacity-[0.12]"
             style={{
               backgroundImage:
                 "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
-              backgroundSize: "22px 22px",
+              backgroundSize: "24px 24px",
             }}
           />
-          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
-          <div className="pointer-events-none absolute -bottom-20 -left-10 h-72 w-72 rounded-full bg-black/10 blur-3xl" />
+          {/* soft same-hue highlights (no rainbow gradients) */}
+          <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-[var(--brand-light)]/40 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 -left-16 h-80 w-80 rounded-full bg-[var(--brand-dark)]/50 blur-3xl" />
 
           {/* logo */}
           <Link href="/" className="relative flex items-center gap-3">
@@ -46,23 +43,18 @@ export default function AuthShell({ children }: { children: ReactNode }) {
 
           {/* marketing copy */}
           <div className="relative">
-            <h2 className="text-[2.75rem] font-extrabold leading-[1.05] tracking-tight">
-              Practice with
-              <br />
-              purpose,
-              <br />
-              <span className="text-white/55">score higher</span>
+            <h2 className="max-w-md text-[2.75rem] font-extrabold leading-[1.08] tracking-tight">
+              Practice with purpose, <span className="text-white/60">score higher.</span>
             </h2>
-            <p className="mt-6 max-w-sm text-base leading-relaxed text-white/75">
-              Realistic IELTS practice across every skill, with instant feedback and progress you
-              can measure.
+            <p className="mt-5 max-w-md text-[1.0625rem] leading-relaxed text-white/75">
+              Real IELTS practice with instant feedback and measurable progress.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-2.5">
+            <div className="mt-7 flex flex-wrap gap-2.5">
               {SKILLS.map((s) => (
                 <span
                   key={s.label}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3.5 py-1.5 text-sm font-medium backdrop-blur"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3.5 py-1.5 text-sm font-medium ring-1 ring-white/15 backdrop-blur"
                 >
                   <s.icon className="h-4 w-4" />
                   {s.label}
@@ -70,31 +62,29 @@ export default function AuthShell({ children }: { children: ReactNode }) {
               ))}
             </div>
           </div>
+
+          {/* progress mockup — makes the panel read as a real SaaS marketing block */}
+          <div className="relative rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-white/60">Your target band</p>
+                <p className="mt-0.5 text-3xl font-extrabold tracking-tight">7.5</p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold">
+                <TrendingUp className="h-3.5 w-3.5" />
+                +0.5 this month
+              </span>
+            </div>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/15">
+              <div className="h-full w-[82%] rounded-full bg-white" />
+            </div>
+            <p className="mt-2 text-xs text-white/55">82% toward your goal</p>
+          </div>
         </aside>
 
-        {/* Right: form column */}
-        <main className="flex w-full flex-col">
-          {/* language switcher */}
-          <div className="mb-8 flex justify-center lg:justify-end">
-            <div className="inline-flex rounded-full border border-slate-200 bg-white p-1">
-              {LANGS.map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => setLang(l)}
-                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                    lang === l
-                      ? "bg-slate-900 text-white"
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mx-auto w-full max-w-md">{children}</div>
+        {/* Right: form column — centered, not floating alone */}
+        <main className="flex w-full items-center justify-center">
+          <div className="w-full max-w-[460px] py-6">{children}</div>
         </main>
       </div>
     </div>

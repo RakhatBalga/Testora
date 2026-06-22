@@ -1,16 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f8fc;
+  --background: #f8fafc;
   --foreground: #0f172a;
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
 
   /* Brand accent — single source of truth. Swap these three to recolor the
      auth pages (and, later, the whole site) in one place. */
-  --brand: #4f46e5;
-  --brand-dark: #4338ca;
-  --brand-light: #6366f1;
+  --brand: #2563eb;
+  --brand-dark: #1d4ed8;
+  --brand-light: #3b82f6;
+
+  /* Neutral surface scale — academic EdTech palette */
+  --surface: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --border: #e2e8f0;
 }
 
 @theme inline {
@@ -18,6 +24,12 @@
   --color-foreground: var(--foreground);
   --color-primary: var(--primary);
   --color-primary-dark: var(--primary-dark);
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-light: var(--brand-light);
+  --color-surface: var(--surface);
+  --color-text-secondary: var(--text-secondary);
+  --color-border: var(--border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

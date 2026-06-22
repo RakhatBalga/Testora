@@ -33,8 +33,12 @@ export default function LoginPage() {
 
   return (
     <AuthShell>
-      <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Sign in</h1>
-      <p className="mt-2 text-slate-500">Welcome back — log in to continue practising.</p>
+      <h1 className="text-[2rem] font-extrabold tracking-tight text-[var(--text-primary)]">
+        Sign in
+      </h1>
+      <p className="mt-2 text-[var(--text-secondary)]">
+        Welcome back — continue your IELTS preparation.
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         {error && (
@@ -63,7 +67,7 @@ export default function LoginPage() {
         <div className="flex justify-end">
           <Link
             href="/login"
-            className="text-sm font-medium text-[var(--brand)] hover:underline"
+            className="text-sm font-semibold text-[var(--brand)] hover:underline"
           >
             Forgot password?
           </Link>
@@ -72,13 +76,13 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="h-[54px] w-full rounded-2xl bg-gradient-to-r from-[var(--brand)] to-[var(--brand-dark)] text-base font-semibold text-white shadow-lg shadow-[var(--brand)]/25 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[var(--brand)]/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+          className="h-[54px] w-full rounded-2xl bg-[var(--brand)] text-base font-semibold text-white shadow-sm shadow-[var(--brand)]/25 transition-all duration-200 hover:bg-[var(--brand-dark)] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Signing in..." : "Sign in"}
         </button>
       </form>
 
-      <p className="mt-8 text-center text-sm text-slate-500">
+      <p className="mt-8 text-center text-sm text-[var(--text-secondary)]">
         Don&apos;t have an account?{" "}
         <Link href="/register" className="font-semibold text-[var(--brand)] hover:underline">
           Create one
