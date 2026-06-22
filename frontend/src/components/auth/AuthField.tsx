@@ -24,7 +24,7 @@ export function AuthField({ label, type = "text", className = "", id, ...props }
           id={inputId}
           type={effectiveType}
           placeholder={label}
-          className={`h-[54px] w-full rounded-2xl border border-slate-200 bg-white px-4 text-[15px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/12 ${
+          className={`h-[54px] w-full rounded-2xl border border-[var(--border)] bg-white px-4 text-[15px] text-[var(--text-primary)] outline-none transition placeholder:text-slate-400 focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/12 ${
             isPassword ? "pr-12" : ""
           } ${className}`}
           {...props}
