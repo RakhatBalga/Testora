@@ -2,23 +2,43 @@
 
 import { type ReactNode } from "react";
 import Link from "next/link";
-import { Headphones, BookOpen, PenLine, Mic, TrendingUp } from "lucide-react";
+import { Check, TrendingUp } from "lucide-react";
 import GuestNavbar from "./GuestNavbar";
 
-const SKILLS = [
-  { label: "Listening", icon: Headphones },
-  { label: "Reading", icon: BookOpen },
-  { label: "Writing", icon: PenLine },
-  { label: "Speaking", icon: Mic },
+export type AuthPanel = {
+  eyebrow?: string;
+  title: ReactNode;
+  subtitle: string;
+  features?: string[];
+};
+
+const DEFAULT_FEATURES = [
+  "Personalized study plan",
+  "AI-powered feedback",
+  "Full IELTS simulation",
+  "Progress tracking",
 ];
 
-export default function AuthShell({ children }: { children: ReactNode }) {
+export default function AuthShell({
+  children,
+  panel,
+  progress,
+  stepKey,
+}: {
+  children: ReactNode;
+  panel: AuthPanel;
+  progress?: { step: number; total: number };
+  stepKey?: string | number;
+}) {
+  const features = panel.features ?? DEFAULT_FEATURES;
+  const pct = progress ? Math.round((progress.step / progress.total) * 100) : 0;
+
   return (
     <div className="min-h-screen bg-[var(--background)]">
       <GuestNavbar />
 
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 pb-10 pt-8 sm:px-8 lg:min-h-[calc(100vh-76px)] lg:grid-cols-[1.35fr_1fr] lg:items-stretch lg:gap-12 lg:pb-12">
-        {/* Left: brand panel */}
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 pb-10 pt-8 sm:px-8 lg:min-h-[calc(100vh-76px)] lg:grid-cols-[1.22fr_1fr] lg:items-stretch lg:gap-12 lg:pb-12">
+        {/* Left: brand panel — content changes per step */}
         <aside className="relative hidden overflow-hidden rounded-[28px] bg-[var(--brand)] p-12 text-white shadow-[0_20px_60px_-20px_rgba(37,99,235,0.45)] lg:flex lg:flex-col lg:justify-between xl:p-14">
           {/* academic dot grid */}
           <div
@@ -41,29 +61,33 @@ export default function AuthShell({ children }: { children: ReactNode }) {
             <span className="text-2xl font-bold tracking-tight">Testora</span>
           </Link>
 
-          {/* marketing copy */}
-          <div className="relative">
-            <h2 className="max-w-md text-[2.75rem] font-extrabold leading-[1.08] tracking-tight">
-              Practice with purpose, <span className="text-white/60">score higher.</span>
+          {/* marketing copy — re-animates when the step changes */}
+          <div key={stepKey} className="relative animate-fade-up">
+            {panel.eyebrow && (
+              <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-white/60">
+                {panel.eyebrow}
+              </p>
+            )}
+            <h2 className="max-w-md text-[2.5rem] font-extrabold leading-[1.1] tracking-tight">
+              {panel.title}
             </h2>
-            <p className="mt-5 max-w-md text-[1.0625rem] leading-relaxed text-white/75">
-              Real IELTS practice with instant feedback and measurable progress.
+            <p className="mt-4 max-w-md text-[1.0625rem] leading-relaxed text-white/75">
+              {panel.subtitle}
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-2.5">
-              {SKILLS.map((s) => (
-                <span
-                  key={s.label}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-3.5 py-1.5 text-sm font-medium ring-1 ring-white/15 backdrop-blur"
-                >
-                  <s.icon className="h-4 w-4" />
-                  {s.label}
-                </span>
+            <ul className="mt-8 space-y-3.5">
+              {features.map((f) => (
+                <li key={f} className="flex items-center gap-3 text-[0.975rem] font-medium">
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  </span>
+                  {f}
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
 
-          {/* progress mockup — makes the panel read as a real SaaS marketing block */}
+          {/* progress mockup — reads as a real SaaS marketing block */}
           <div className="relative rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -82,9 +106,27 @@ export default function AuthShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        {/* Right: form column — centered, not floating alone */}
+        {/* Right: form column */}
         <main className="flex w-full items-center justify-center">
-          <div className="w-full max-w-[460px] py-6">{children}</div>
+          <div className="w-full max-w-[560px] py-6">
+            {progress && (
+              <div className="mb-9">
+                <div className="mb-2 flex items-center justify-between text-sm font-medium">
+                  <span className="text-[var(--text-primary)]">
+                    Step {progress.step} of {progress.total}
+                  </span>
+                  <span className="text-[var(--text-secondary)]">{pct}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[var(--border)]">
+                  <div
+                    className="h-full rounded-full bg-[var(--brand)] transition-[width] duration-500 ease-out"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            {children}
+          </div>
         </main>
       </div>
     </div>

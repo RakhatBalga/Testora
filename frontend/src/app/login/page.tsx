@@ -32,7 +32,16 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthShell>
+    <AuthShell
+      panel={{
+        title: (
+          <>
+            Practice with purpose, <span className="text-white/60">score higher.</span>
+          </>
+        ),
+        subtitle: "Real IELTS practice with instant feedback and measurable progress.",
+      }}
+    >
       <h1 className="text-[2rem] font-extrabold tracking-tight text-[var(--text-primary)]">
         Sign in
       </h1>
