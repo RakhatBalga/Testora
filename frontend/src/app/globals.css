@@ -5,6 +5,12 @@
   --foreground: #0f172a;
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
+
+  /* Brand accent — single source of truth. Swap these three to recolor the
+     auth pages (and, later, the whole site) in one place. */
+  --brand: #4f46e5;
+  --brand-dark: #4338ca;
+  --brand-light: #6366f1;
 }
 
 @theme inline {
