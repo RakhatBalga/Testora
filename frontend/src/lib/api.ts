@@ -269,6 +269,18 @@ export type ProgressImpact = {
   blocker?: { from: string | null; to: string | null; changed: boolean };
 };
 
+export type Recommendation = {
+  id: string;
+  title: string;
+  reason: string;
+  source: "blocker" | "band_gap" | "recurring_mistake" | "question_type" | "inactivity" | "cold_start";
+  skill: string | null;
+  priority: number;
+  estimated_impact: "High" | "Medium" | "Low";
+  href: string;
+  estimated_minutes: number;
+};
+
 export type RecurringMistake = {
   skill: string;
   category: string;
@@ -425,4 +437,7 @@ export const api = {
 
   getRecurringMistakes: (limit = 6) =>
     request<{ recurring: RecurringMistake[] }>(`/analytics/recurring-mistakes?limit=${limit}`),
+
+  getRecommendations: (target = 7.5, limit = 5) =>
+    request<{ recommendations: Recommendation[] }>(`/analytics/recommendations?target=${target}&limit=${limit}`),
 };
