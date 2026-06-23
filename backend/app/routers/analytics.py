@@ -16,6 +16,7 @@ from app.services.analytics import (
     compute_daily_plan,
     compute_blocker_history,
     compute_streak,
+    compute_recommendations,
     generate_blockers,
 )
 from app.services.analytics.band_gap import DEFAULT_TARGET
@@ -92,6 +93,16 @@ def progress_impact(
     current_user: User = Depends(get_current_user),
 ):
     return compute_progress_impact(db, current_user.id, skill, submission_id)
+
+
+@router.get("/recommendations")
+def recommendations(
+    target: float = Query(DEFAULT_TARGET, ge=4.0, le=9.0),
+    limit: int = Query(5, ge=1, le=8),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return {"recommendations": compute_recommendations(db, current_user.id, target=target, limit=limit)}
 
 
 @router.get("/recurring-mistakes")
