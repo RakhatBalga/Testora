@@ -9,6 +9,7 @@ from app.services.analytics.progress import compute_progress_impact
 from app.services.analytics.daily_plan import compute_daily_plan
 from app.services.analytics.blocker_history import compute_blocker_history
 from app.services.analytics.streak import compute_streak
+from app.services.analytics.recommendations import compute_recommendations
 
 __all__ = [
     "HALF_LIFE_DAYS",
@@ -21,4 +22,5 @@ __all__ = [
     "compute_daily_plan",
     "compute_blocker_history",
     "compute_streak",
+    "compute_recommendations",
 ]
