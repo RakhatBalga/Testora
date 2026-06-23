@@ -9,6 +9,7 @@ import {
   ClipboardCheck,
   BookMarked,
   BarChart3,
+  History,
   LogOut,
   Menu,
   X,
@@ -22,6 +23,7 @@ const LINKS = [
   { href: "/mock-tests", label: "Mock Tests", icon: ClipboardCheck },
   { href: "/vocabulary", label: "Vocabulary", icon: BookMarked },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/history", label: "History", icon: History },
 ];
 
 export default function Nav() {
