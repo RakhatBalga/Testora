@@ -51,6 +51,15 @@ export type AnswerResult = {
   user_answer: string | null;
   correct_answer: string;
   is_correct: boolean;
+  marked_for_review: boolean;
+};
+
+export type BreakdownItem = {
+  question_type: QuestionType;
+  label: string;
+  correct: number;
+  total: number;
+  accuracy: number;
 };
 
 export type AttemptResult = {
@@ -61,6 +70,11 @@ export type AttemptResult = {
   score: number;
   total: number;
   band: number | null;
+  correct: number;
+  incorrect: number;
+  accuracy: number;
+  duration_seconds: number | null;
+  breakdown: BreakdownItem[];
   created_at: string;
   answers: AnswerResult[];
 };
@@ -177,6 +191,84 @@ export type BandGapResult = {
   has_data: boolean;
 };
 
+export type BandTrajectoryPoint = {
+  label: string;
+  band: number;
+};
+
+export type BandTrajectoryResult = {
+  points: BandTrajectoryPoint[];
+  delta: number | null;
+  has_data: boolean;
+};
+
+export type Streak = {
+  current_streak: number;
+  active_today: boolean;
+};
+
+export type BlockerHistoryPoint = {
+  label: string;
+  blocker: string;
+  skill: string;
+  changed: boolean;
+};
+
+export type BlockerHistory = {
+  has_data: boolean;
+  history: BlockerHistoryPoint[];
+  note: string | null;
+};
+
+export type DailyPlanTask = {
+  id: string;
+  title: string;
+  detail: string;
+  skill: string | null;
+  href: string;
+  source: "blocker" | "band_gap" | "weakness" | "last_activity" | "cold_start";
+  estimated_minutes: number;
+};
+
+export type DailyPlan = {
+  generated_for: string;
+  has_data: boolean;
+  plan: DailyPlanTask[];
+};
+
+export type ProgressCriterion = {
+  name: string;
+  from: number;
+  to: number;
+  delta: number;
+  direction: "up" | "down" | "none";
+};
+
+export type ProgressMistakeItem = {
+  category: string;
+  label: string;
+  from: number;
+  to: number;
+};
+
+export type ProgressImpact = {
+  skill: string;
+  supported: boolean;
+  found?: boolean;
+  has_previous: boolean;
+  previous?: { submission_id: number; band: number | null; created_at: string | null };
+  current?: { submission_id: number; band: number | null; created_at: string | null };
+  band_delta?: number | null;
+  criteria?: ProgressCriterion[];
+  mistakes?: {
+    resolved: ProgressMistakeItem[];
+    improved: ProgressMistakeItem[];
+    worsened: ProgressMistakeItem[];
+    new: ProgressMistakeItem[];
+  };
+  blocker?: { from: string | null; to: string | null; changed: boolean };
+};
+
 export type RecurringMistake = {
   skill: string;
   category: string;
@@ -264,10 +356,14 @@ export const api = {
 
   getTest: (id: number) => request<TestDetail>(`/tests/${id}`),
 
-  submit: (test_id: number, answers: { question_id: number; answer: AnswerValue }[]) =>
+  submit: (
+    test_id: number,
+    answers: { question_id: number; answer: AnswerValue; marked_for_review?: boolean }[],
+    duration_seconds?: number
+  ) =>
     request<AttemptResult>("/results/submit", {
       method: "POST",
-      body: JSON.stringify({ test_id, answers }),
+      body: JSON.stringify({ test_id, answers, duration_seconds }),
     }),
 
   listAttempts: () => request<AttemptSummary[]>("/results"),
@@ -314,6 +410,18 @@ export const api = {
     request<{ blockers: Blocker[] }>(`/analytics/blockers?target=${target}`),
 
   getBandGap: (target = 7.5) => request<BandGapResult>(`/analytics/band-gap?target=${target}`),
+
+  getBandTrajectory: () => request<BandTrajectoryResult>("/analytics/band-trajectory"),
+
+  getProgressImpact: (skill: "writing" | "speaking", submissionId: number) =>
+    request<ProgressImpact>(`/analytics/progress-impact?skill=${skill}&submission_id=${submissionId}`),
+
+  getDailyPlan: (target = 7.5, limit = 3) =>
+    request<DailyPlan>(`/analytics/daily-plan?target=${target}&limit=${limit}`),
+
+  getBlockerHistory: () => request<BlockerHistory>("/analytics/blocker-history"),
+
+  getStreak: () => request<Streak>("/analytics/streak"),
 
   getRecurringMistakes: (limit = 6) =>
     request<{ recurring: RecurringMistake[] }>(`/analytics/recurring-mistakes?limit=${limit}`),
