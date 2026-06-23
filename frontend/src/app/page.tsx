@@ -18,13 +18,14 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import Landing from "@/components/landing/Landing";
-import { api, type Blocker, type Weakness, type BandGapResult, type BandTrajectoryResult, type DailyPlanTask, type BlockerHistory as BlockerHistoryData, type Streak } from "@/lib/api";
+import { api, type Blocker, type Weakness, type BandGapResult, type BandTrajectoryResult, type DailyPlanTask, type BlockerHistory as BlockerHistoryData, type Streak, type Recommendation } from "@/lib/api";
 import { greeting, type ProgressMovement } from "@/lib/coach";
 import { Ring } from "@/components/dashboard/widgets";
 import { BandTrajectory } from "@/components/dashboard/BandTrajectory";
 import { WeaknessCard } from "@/components/dashboard/WeaknessCard";
 import { BlockerCard } from "@/components/dashboard/BlockerCard";
 import { BlockerHistory } from "@/components/dashboard/BlockerHistory";
+import { Recommendations } from "@/components/dashboard/Recommendations";
 
 /** Target band source. Future: profiles/goals.target_band. */
 const TARGET_BAND = 7.5;
@@ -46,6 +47,7 @@ function CoachDashboard({ username }: { username: string | null }) {
   const [todaysPlan, setTodaysPlan] = useState<DailyPlanTask[] | null>(null);
   const [blockerHistory, setBlockerHistory] = useState<BlockerHistoryData | null>(null);
   const [streak, setStreak] = useState<Streak | null>(null);
+  const [recommendations, setRecommendations] = useState<Recommendation[] | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -57,8 +59,9 @@ function CoachDashboard({ username }: { username: string | null }) {
       api.getDailyPlan(TARGET_BAND, 3),
       api.getBlockerHistory(),
       api.getStreak(),
+      api.getRecommendations(TARGET_BAND, 5),
     ])
-      .then(([g, b, w, t, p, h, s]) => {
+      .then(([g, b, w, t, p, h, s, r]) => {
         if (!active) return;
         setBandGap(g);
         setBlockers(b.blockers);
@@ -67,6 +70,7 @@ function CoachDashboard({ username }: { username: string | null }) {
         setTodaysPlan(p.plan);
         setBlockerHistory(h);
         setStreak(s);
+        setRecommendations(r.recommendations);
       })
       .catch(() => {
         if (!active) return;
@@ -77,6 +81,7 @@ function CoachDashboard({ username }: { username: string | null }) {
         setTodaysPlan([]);
         setBlockerHistory({ has_data: false, history: [], note: null });
         setStreak({ current_streak: 0, active_today: false });
+        setRecommendations([]);
       });
 
     // Recent movement = real Before→After of the most recent graded Writing attempt.
@@ -312,6 +317,9 @@ function CoachDashboard({ username }: { username: string | null }) {
       <div className="animate-fade-up [animation-delay:220ms]">
         <BlockerHistory data={blockerHistory} loading={loading} />
       </div>
+
+      {/* SECTION 5.7 — Recommended next (real, Recommendation Engine) */}
+      <Recommendations recommendations={recommendations} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* SECTION 6 — Band trajectory (real) */}

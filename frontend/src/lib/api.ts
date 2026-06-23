@@ -97,6 +97,10 @@ export type Feedback = {
   criteria: Record<string, number>;
   summary: string;
   suggestions: string[];
+  // Richer examiner feedback — present when graded by the Gemini provider.
+  strengths?: string[];
+  weaknesses?: string[];
+  actions?: string[];
 };
 
 export type WritingTask = {
@@ -269,6 +273,91 @@ export type ProgressImpact = {
   blocker?: { from: string | null; to: string | null; changed: boolean };
 };
 
+/* ----------------------------- History ---------------------------------- */
+
+export type HistoryItem = {
+  id: string;
+  skill: "writing" | "speaking" | "reading" | "listening";
+  ref_id: number;
+  title: string;
+  band: number | null;
+  score: number | null;
+  total: number | null;
+  status: string;
+  created_at: string | null;
+  href: string;
+};
+
+export type CompareSide = {
+  id: string;
+  ref_id: number;
+  band: number | null;
+  created_at: string | null;
+  // Writing/Speaking only
+  criteria?: Record<string, number>;
+  summary?: string | null;
+  // Reading/Listening only
+  score?: string | null;
+};
+
+export type CriteriaDiffItem = {
+  name: string;
+  a: number;
+  b: number;
+  delta: number;
+  direction: "up" | "down" | "none";
+};
+
+export type MistakeDiffItem = {
+  category: string;
+  label: string;
+  a: number;
+  b: number;
+};
+
+export type QTypeDiffItem = {
+  question_type: string;
+  label: string;
+  a_accuracy: number;
+  b_accuracy: number;
+  a_correct: number | null;
+  b_correct: number | null;
+  a_total: number | null;
+  b_total: number | null;
+  delta: number;
+  direction: "up" | "down" | "none";
+};
+
+export type CompareResult = {
+  skill: string;
+  a: CompareSide;
+  b: CompareSide;
+  band_delta: number | null;
+  // Writing/Speaking
+  criteria_diff?: CriteriaDiffItem[];
+  mistakes?: {
+    resolved: MistakeDiffItem[];
+    improved: MistakeDiffItem[];
+    worsened: MistakeDiffItem[];
+    new: MistakeDiffItem[];
+  };
+  blocker?: { a: string | null; b: string | null; changed: boolean };
+  // Reading/Listening
+  question_type_diff?: QTypeDiffItem[];
+};
+
+export type Recommendation = {
+  id: string;
+  title: string;
+  reason: string;
+  source: "blocker" | "band_gap" | "recurring_mistake" | "question_type" | "inactivity" | "cold_start";
+  skill: string | null;
+  priority: number;
+  estimated_impact: "High" | "Medium" | "Low";
+  href: string;
+  estimated_minutes: number;
+};
+
 export type RecurringMistake = {
   skill: string;
   category: string;
@@ -425,4 +514,18 @@ export const api = {
 
   getRecurringMistakes: (limit = 6) =>
     request<{ recurring: RecurringMistake[] }>(`/analytics/recurring-mistakes?limit=${limit}`),
+
+  getRecommendations: (target = 7.5, limit = 5) =>
+    request<{ recommendations: Recommendation[] }>(`/analytics/recommendations?target=${target}&limit=${limit}`),
+
+  getHistory: (skill?: string, sort = "newest") => {
+    const params = new URLSearchParams({ sort });
+    if (skill) params.set("skill", skill);
+    return request<{ items: HistoryItem[]; total: number }>(`/history?${params}`);
+  },
+
+  getHistoryItem: (itemId: string) => request<HistoryItem & { feedback?: Feedback | null; breakdown?: BreakdownItem[] }>(`/history/${itemId}`),
+
+  compareHistory: (a: string, b: string) =>
+    request<CompareResult>(`/history/compare?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`),
 };
