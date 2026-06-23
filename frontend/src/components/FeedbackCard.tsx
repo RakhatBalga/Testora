@@ -1,3 +1,4 @@
+import { CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
 import { Feedback } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
 
@@ -16,6 +17,12 @@ function barColor(band: number): string {
 export function FeedbackCard({ feedback }: { feedback: Feedback }) {
   const hasCriteria = Object.keys(feedback.criteria).length > 0;
   const graded = feedback.band > 0 || hasCriteria;
+  const strengths = feedback.strengths ?? [];
+  const weaknesses = feedback.weaknesses ?? [];
+  // Prefer the dedicated actions list; fall back to legacy suggestions.
+  const actions = (feedback.actions && feedback.actions.length > 0)
+    ? feedback.actions
+    : feedback.suggestions;
 
   return (
     <div className="space-y-6">
@@ -61,20 +68,63 @@ export function FeedbackCard({ feedback }: { feedback: Feedback }) {
       <Card className="p-6">
         <h3 className="mb-2 font-semibold text-slate-900">Summary</h3>
         <p className="text-sm leading-relaxed text-slate-600">{feedback.summary}</p>
-        {feedback.suggestions.length > 0 && (
-          <>
-            <h3 className="mb-2 mt-5 font-semibold text-slate-900">Suggestions</h3>
-            <ul className="space-y-2">
-              {feedback.suggestions.map((s, i) => (
-                <li key={i} className="flex gap-2 text-sm text-slate-600">
-                  <span className="mt-0.5 text-blue-500">•</span>
-                  {s}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
       </Card>
+
+      {(strengths.length > 0 || weaknesses.length > 0) && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {strengths.length > 0 && (
+            <Card className="p-6">
+              <h3 className="mb-3 flex items-center gap-2 font-semibold text-slate-900">
+                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                Strengths
+              </h3>
+              <ul className="space-y-2">
+                {strengths.map((s, i) => (
+                  <li key={i} className="flex gap-2 text-sm text-slate-600">
+                    <span className="mt-0.5 text-emerald-500">•</span>
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+          {weaknesses.length > 0 && (
+            <Card className="p-6">
+              <h3 className="mb-3 flex items-center gap-2 font-semibold text-slate-900">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                Areas to improve
+              </h3>
+              <ul className="space-y-2">
+                {weaknesses.map((w, i) => (
+                  <li key={i} className="flex gap-2 text-sm text-slate-600">
+                    <span className="mt-0.5 text-amber-500">•</span>
+                    {w}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {actions.length > 0 && (
+        <Card className="p-6">
+          <h3 className="mb-3 flex items-center gap-2 font-semibold text-slate-900">
+            <ArrowRight className="h-5 w-5 text-blue-500" />
+            What to do next
+          </h3>
+          <ul className="space-y-2">
+            {actions.map((a, i) => (
+              <li key={i} className="flex gap-2 text-sm text-slate-600">
+                <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">
+                  {i + 1}
+                </span>
+                {a}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
     </div>
   );
 }

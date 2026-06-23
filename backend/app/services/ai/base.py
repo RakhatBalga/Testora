@@ -24,16 +24,33 @@ class Feedback:
     summary: str
     suggestions: list[str] = field(default_factory=list)
     mistakes: list[MistakeItem] = field(default_factory=list)
+    # Richer, examiner-style feedback (populated by the Gemini provider). Optional
+    # so mock/heuristic graders can omit them without changing the stored shape.
+    strengths: list[str] = field(default_factory=list)
+    weaknesses: list[str] = field(default_factory=list)
+    actions: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         # Mistakes are persisted separately (mistakes table), not in the stored
         # feedback JSON, so the submission feedback shape stays stable.
-        return {
+        #
+        # band/criteria/summary/suggestions are ALWAYS present — analytics
+        # (Progress Impact, Band Gap, Comparison, ...) read only these, so the
+        # contract never breaks. strengths/weaknesses/actions are additive and
+        # only included when a provider supplies them.
+        data = {
             "band": self.band,
             "criteria": self.criteria,
             "summary": self.summary,
             "suggestions": self.suggestions,
         }
+        if self.strengths:
+            data["strengths"] = self.strengths
+        if self.weaknesses:
+            data["weaknesses"] = self.weaknesses
+        if self.actions:
+            data["actions"] = self.actions
+        return data
 
 
 class WritingGrader(ABC):
