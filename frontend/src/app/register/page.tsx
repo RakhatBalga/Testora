@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import AuthShell, { type AuthPanel } from "@/components/auth/AuthShell";
 import { AuthField } from "@/components/auth/AuthField";
+import AccountExistsModal from "@/components/auth/AccountExistsModal";
 
 const TOTAL_STEPS = 3;
 
@@ -48,6 +49,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [accountExists, setAccountExists] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
 
@@ -72,7 +74,13 @@ export default function RegisterPage() {
       login(res.access_token, username);
       router.push("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      const message = err instanceof Error ? err.message : "Registration failed";
+      // Surface a friendly modal instead of a raw "already taken" error.
+      if (/already (taken|exists|registered)/i.test(message)) {
+        setAccountExists(true);
+      } else {
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -254,6 +262,8 @@ export default function RegisterPage() {
           Sign in
         </Link>
       </p>
+
+      <AccountExistsModal open={accountExists} onClose={() => setAccountExists(false)} />
     </AuthShell>
   );
 }
