@@ -97,6 +97,10 @@ export type Feedback = {
   criteria: Record<string, number>;
   summary: string;
   suggestions: string[];
+  // Richer examiner feedback — present when graded by the Gemini provider.
+  strengths?: string[];
+  weaknesses?: string[];
+  actions?: string[];
 };
 
 export type WritingTask = {
