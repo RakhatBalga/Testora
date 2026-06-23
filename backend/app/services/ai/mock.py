@@ -1,6 +1,18 @@
 import re
+from collections import Counter
 
-from app.services.ai.base import Feedback, WritingGrader, SpeakingGrader
+from app.services.ai.base import Feedback, MistakeItem, WritingGrader, SpeakingGrader
+
+# Small stopword set so vocabulary detectors focus on content words.
+_STOPWORDS = {
+    "the", "a", "an", "and", "or", "but", "of", "to", "in", "on", "for", "with",
+    "is", "are", "was", "were", "be", "been", "it", "this", "that", "these",
+    "those", "as", "at", "by", "from", "we", "i", "you", "they", "he", "she",
+    "their", "our", "my", "your", "its", "not", "can", "will", "would", "have",
+    "has", "had", "do", "does", "did", "so", "if", "than", "then", "there",
+}
+# Basic, non-academic words that cap Lexical Resource when overused.
+_BASIC_WORDS = {"good", "bad", "very", "thing", "things", "important", "big", "nice", "get", "lot"}
 
 
 def _round_half(x: float) -> float:
@@ -87,9 +99,142 @@ class MockWritingGrader(WritingGrader):
             f"connect AI grading for detailed, criterion-level feedback."
         )
 
-        return Feedback(
-            band=overall, criteria=criteria, summary=summary, suggestions=suggestions
+        mistakes = self._extract_mistakes(
+            text=text,
+            words=words,
+            min_words=min_words,
+            paragraphs=paragraphs,
+            avg_sentence_len=avg_sentence_len,
         )
+
+        return Feedback(
+            band=overall,
+            criteria=criteria,
+            summary=summary,
+            suggestions=suggestions,
+            mistakes=mistakes,
+        )
+
+    def _extract_mistakes(
+        self,
+        *,
+        text: str,
+        words: int,
+        min_words: int,
+        paragraphs: list[str],
+        avg_sentence_len: float,
+    ) -> list[MistakeItem]:
+        """Deterministic, text-derived mistakes. No AI — surface features only."""
+        mistakes: list[MistakeItem] = []
+        tokens = [w.lower() for w in re.findall(r"\b[\w'-]+\b", text)]
+        counts = Counter(tokens)
+
+        # Task Response — under-length answer.
+        if words < min_words:
+            mistakes.append(
+                MistakeItem(
+                    category="task_response",
+                    subskill="answer_length",
+                    severity=3 if words < min_words * 0.8 else 2,
+                    snippet=f"{words} / {min_words} words",
+                    correction=f"Develop your ideas to at least {min_words} words.",
+                    explanation="An under-length response cannot fully address the task.",
+                )
+            )
+
+        # Coherence — too few paragraphs.
+        if len(paragraphs) < 3:
+            mistakes.append(
+                MistakeItem(
+                    category="coherence",
+                    subskill="paragraphing",
+                    severity=2,
+                    snippet=f"{len(paragraphs)} paragraph(s)",
+                    correction="Use a clear intro, body paragraphs, and a conclusion.",
+                    explanation="Too few paragraphs weakens organisation.",
+                )
+            )
+
+        # Coherence — missing signposted conclusion.
+        last = paragraphs[-1].lower() if paragraphs else ""
+        if not any(p in last for p in ("conclusion", "to conclude", "overall", "in summary")):
+            mistakes.append(
+                MistakeItem(
+                    category="coherence",
+                    subskill="weak_conclusion",
+                    severity=1,
+                    correction="End with a concluding paragraph using a linking phrase.",
+                    explanation="No clearly signposted conclusion.",
+                )
+            )
+
+        # Vocabulary — overused content word.
+        for word, c in counts.most_common():
+            if word in _STOPWORDS or len(word) <= 2:
+                continue
+            if c >= 4:
+                mistakes.append(
+                    MistakeItem(
+                        category="vocabulary",
+                        subskill="word_repetition",
+                        severity=1,
+                        snippet=word,
+                        correction=f"Use synonyms instead of repeating '{word}' ({c}×).",
+                        explanation="Repetition limits Lexical Resource.",
+                    )
+                )
+            break
+
+        # Vocabulary — basic, non-academic words.
+        found_basic = [w for w in _BASIC_WORDS if w in counts]
+        if found_basic:
+            mistakes.append(
+                MistakeItem(
+                    category="vocabulary",
+                    subskill="basic_word",
+                    severity=1,
+                    snippet=", ".join(sorted(found_basic)[:3]),
+                    correction="Replace basic words with academic alternatives.",
+                    explanation="Simple word choice caps Lexical Resource.",
+                )
+            )
+
+        # Grammar — sentence length extremes.
+        if avg_sentence_len > 25:
+            mistakes.append(
+                MistakeItem(
+                    category="grammar",
+                    subskill="sentence_length",
+                    severity=2,
+                    correction="Break very long sentences; mix simple and complex forms.",
+                    explanation="Overly long sentences hurt grammatical accuracy.",
+                )
+            )
+        elif 0 < avg_sentence_len < 8:
+            mistakes.append(
+                MistakeItem(
+                    category="grammar",
+                    subskill="sentence_variety",
+                    severity=2,
+                    correction="Combine short sentences using complex structures.",
+                    explanation="Mostly short, simple sentences limit grammatical range.",
+                )
+            )
+
+        # Grammar — likely article problems (low article density).
+        article_count = counts.get("a", 0) + counts.get("an", 0) + counts.get("the", 0)
+        if words and article_count / words < 0.03:
+            mistakes.append(
+                MistakeItem(
+                    category="grammar",
+                    subskill="articles",
+                    severity=2,
+                    correction="Check article usage (a / an / the) before nouns.",
+                    explanation="Very low article density often signals missing articles.",
+                )
+            )
+
+        return mistakes
 
 
 class MockSpeakingGrader(SpeakingGrader):

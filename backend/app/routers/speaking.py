@@ -14,6 +14,7 @@ from app.schemas.speaking import (
     SpeakingTaskOut,
 )
 from app.services.ai import get_speaking_grader
+from app.services.mistakes import record_mistakes
 
 router = APIRouter()
 
@@ -88,6 +89,14 @@ def submit(
     submission.feedback = feedback.to_dict()
 
     db.add(submission)
+    db.flush()  # assign submission.id before recording its mistakes
+    record_mistakes(
+        db,
+        user_id=current_user.id,
+        submission_id=submission.id,
+        skill="speaking",
+        mistakes=feedback.mistakes,
+    )
     db.commit()
     db.refresh(submission)
 
