@@ -18,12 +18,13 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import Landing from "@/components/landing/Landing";
-import { api, type Blocker, type Weakness, type BandGapResult } from "@/lib/api";
-import { coachDashboard, daysUntil, greeting, type ProgressMovement } from "@/lib/coach";
+import { api, type Blocker, type Weakness, type BandGapResult, type BandTrajectoryResult, type DailyPlanTask, type BlockerHistory as BlockerHistoryData, type Streak } from "@/lib/api";
+import { greeting, type ProgressMovement } from "@/lib/coach";
 import { Ring } from "@/components/dashboard/widgets";
 import { BandTrajectory } from "@/components/dashboard/BandTrajectory";
 import { WeaknessCard } from "@/components/dashboard/WeaknessCard";
 import { BlockerCard } from "@/components/dashboard/BlockerCard";
+import { BlockerHistory } from "@/components/dashboard/BlockerHistory";
 
 /** Target band source. Future: profiles/goals.target_band. */
 const TARGET_BAND = 7.5;
@@ -36,13 +37,15 @@ export default function HomePage() {
 
 function CoachDashboard({ username }: { username: string | null }) {
   const name = username ?? "there";
-  // Out-of-scope sections stay on mock for now (Phase 1 dashboard).
-  const { todaysPlan, recentMovement, trajectory, streakDays, gap: mockGap } = coachDashboard;
-
   // Real analytics (Mistake Memory + Band Gap engines).
   const [bandGap, setBandGap] = useState<BandGapResult | null>(null);
   const [blockers, setBlockers] = useState<Blocker[] | null>(null);
   const [weaknesses, setWeaknesses] = useState<Weakness[] | null>(null);
+  const [trajectory, setTrajectory] = useState<BandTrajectoryResult | null>(null);
+  const [recentMovement, setRecentMovement] = useState<ProgressMovement[] | null>(null);
+  const [todaysPlan, setTodaysPlan] = useState<DailyPlanTask[] | null>(null);
+  const [blockerHistory, setBlockerHistory] = useState<BlockerHistoryData | null>(null);
+  const [streak, setStreak] = useState<Streak | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -50,19 +53,60 @@ function CoachDashboard({ username }: { username: string | null }) {
       api.getBandGap(TARGET_BAND),
       api.getBlockers(TARGET_BAND),
       api.getWeaknesses(6),
+      api.getBandTrajectory(),
+      api.getDailyPlan(TARGET_BAND, 3),
+      api.getBlockerHistory(),
+      api.getStreak(),
     ])
-      .then(([g, b, w]) => {
+      .then(([g, b, w, t, p, h, s]) => {
         if (!active) return;
         setBandGap(g);
         setBlockers(b.blockers);
         setWeaknesses(w.weaknesses);
+        setTrajectory(t);
+        setTodaysPlan(p.plan);
+        setBlockerHistory(h);
+        setStreak(s);
       })
       .catch(() => {
         if (!active) return;
         setBandGap({ current: null, target: TARGET_BAND, gap: null, per_skill: {}, lowest_skill: null, has_data: false });
         setBlockers([]);
         setWeaknesses([]);
+        setTrajectory({ points: [], delta: null, has_data: false });
+        setTodaysPlan([]);
+        setBlockerHistory({ has_data: false, history: [], note: null });
+        setStreak({ current_streak: 0, active_today: false });
       });
+
+    // Recent movement = real Before→After of the most recent graded Writing attempt.
+    (async () => {
+      try {
+        const subs = await api.listWritingSubmissions();
+        const latest = subs.find((s) => s.status === "graded" && s.band != null);
+        if (!latest) {
+          if (active) setRecentMovement([]);
+          return;
+        }
+        const impact = await api.getProgressImpact("writing", latest.id);
+        if (!active) return;
+        if (!impact.has_previous || !impact.criteria) {
+          setRecentMovement([]);
+          return;
+        }
+        setRecentMovement(
+          impact.criteria.slice(0, 4).map((c) => ({
+            label: `Writing — ${c.name}`,
+            from: c.from,
+            to: c.to,
+            direction: c.direction,
+          }))
+        );
+      } catch {
+        if (active) setRecentMovement([]);
+      }
+    })();
+
     return () => {
       active = false;
     };
@@ -74,7 +118,9 @@ function CoachDashboard({ username }: { username: string | null }) {
   const target = bandGap?.target ?? TARGET_BAND;
   const gapValue = bandGap?.gap ?? null;
   const mainBlocker = blockers?.[0] ?? null;
-  const daysLeft = daysUntil(mockGap.examDate);
+  // No exam date is stored yet (onboarding doesn't persist one) — show an honest
+  // "not set" state rather than a fabricated countdown.
+  const daysLeft: number | null = null;
 
   return (
     <div className="space-y-8">
@@ -83,10 +129,12 @@ function CoachDashboard({ username }: { username: string | null }) {
         <p className="text-sm font-medium text-[var(--text-secondary)]">
           {greeting()}, <span className="text-[var(--text-primary)]">{name}</span>
         </p>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)]">
-          <Flame className="h-3.5 w-3.5 text-amber-500" />
-          {streakDays}-day streak
-        </span>
+        {streak && streak.current_streak > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)]">
+            <Flame className="h-3.5 w-3.5 text-amber-500" />
+            {streak.current_streak}-day streak
+          </span>
+        )}
       </div>
 
       {/* SECTION 1 — Coach hero card */}
@@ -138,7 +186,7 @@ function CoachDashboard({ username }: { username: string | null }) {
             )}
 
             <Link
-              href={mainBlocker?.fix_href ?? todaysPlan[0]?.href ?? "/practice"}
+              href={mainBlocker?.fix_href ?? todaysPlan?.[0]?.href ?? "/practice"}
               className="mt-6 inline-flex h-12 items-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-[var(--brand)] transition-transform duration-200 hover:-translate-y-0.5"
             >
               {hasData ? "Start today's task" : "Start practising"}
@@ -194,30 +242,43 @@ function CoachDashboard({ username }: { username: string | null }) {
             <ListChecks className="h-5 w-5 text-[var(--brand)]" />
             <h2 className="text-base font-semibold text-[var(--text-primary)]">Today&apos;s plan</h2>
           </div>
-          <ol className="space-y-2.5">
-            {todaysPlan.map((task, i) => (
-              <li key={task.id}>
-                <Link
-                  href={task.href}
-                  className="group flex items-start gap-3 rounded-2xl border border-[var(--border)] p-3.5 transition-colors hover:border-slate-300 hover:bg-slate-50"
-                >
-                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[var(--brand)]/[0.1] text-xs font-bold text-[var(--brand)]">
-                    {i + 1}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold text-[var(--text-primary)]">{task.title}</span>
-                    {task.detail && (
-                      <span className="mt-0.5 block text-xs text-[var(--text-secondary)]">
-                        {task.detail}
-                        {task.estimatedMinutes ? ` · ${task.estimatedMinutes} min` : ""}
-                      </span>
-                    )}
-                  </span>
-                  <ArrowUpRight className="h-4 w-4 flex-shrink-0 text-slate-300 transition-colors group-hover:text-[var(--brand)]" />
-                </Link>
-              </li>
-            ))}
-          </ol>
+          {todaysPlan === null ? (
+            <div className="space-y-2.5">
+              <div className="h-16 animate-pulse rounded-2xl bg-slate-50" />
+              <div className="h-16 animate-pulse rounded-2xl bg-slate-50" />
+              <div className="h-16 animate-pulse rounded-2xl bg-slate-50" />
+            </div>
+          ) : todaysPlan.length > 0 ? (
+            <ol className="space-y-2.5">
+              {todaysPlan.map((task, i) => (
+                <li key={task.id}>
+                  <Link
+                    href={task.href}
+                    className="group flex items-start gap-3 rounded-2xl border border-[var(--border)] p-3.5 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                  >
+                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[var(--brand)]/[0.1] text-xs font-bold text-[var(--brand)]">
+                      {i + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold text-[var(--text-primary)]">{task.title}</span>
+                      {task.detail && (
+                        <span className="mt-0.5 block text-xs text-[var(--text-secondary)]">
+                          {task.detail}
+                          {task.estimated_minutes ? ` · ${task.estimated_minutes} min` : ""}
+                        </span>
+                      )}
+                    </span>
+                    <ArrowUpRight className="h-4 w-4 flex-shrink-0 text-slate-300 transition-colors group-hover:text-[var(--brand)]" />
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <EmptyState
+              icon={<ListChecks className="h-5 w-5" />}
+              text="Complete a task and I'll build tomorrow's plan from your weak spots."
+            />
+          )}
         </section>
       </div>
 
@@ -247,28 +308,64 @@ function CoachDashboard({ username }: { username: string | null }) {
         )}
       </section>
 
+      {/* SECTION 5.5 — Blocker history (real) */}
+      <div className="animate-fade-up [animation-delay:220ms]">
+        <BlockerHistory data={blockerHistory} loading={loading} />
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* SECTION 6 — Band trajectory (mock, out of scope) */}
+        {/* SECTION 6 — Band trajectory (real) */}
         <section className="animate-fade-up rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:240ms] sm:p-7 lg:col-span-2">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-[var(--text-primary)]">Band trajectory</h2>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
-              <TrendingUp className="h-3.5 w-3.5" />
-              +{(trajectory[trajectory.length - 1].band - trajectory[0].band).toFixed(1)} since you started
-            </span>
+            {trajectory?.has_data && trajectory.delta != null && (
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
+                  trajectory.delta >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+                }`}
+              >
+                {trajectory.delta >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                {trajectory.delta >= 0 ? "+" : ""}
+                {trajectory.delta.toFixed(1)} since you started
+              </span>
+            )}
           </div>
-          <BandTrajectory points={trajectory} target={target} />
+          {loading ? (
+            <div className="mt-5 h-60 animate-pulse rounded-2xl bg-slate-50" />
+          ) : trajectory && trajectory.points.length > 1 ? (
+            <BandTrajectory points={trajectory.points} target={target} />
+          ) : (
+            <EmptyState
+              icon={<TrendingUp className="h-5 w-5" />}
+              text="Complete a couple of graded tasks and your band trajectory will plot here."
+            />
+          )}
         </section>
 
         {/* SECTION 7 — Recent movement (mock, out of scope) */}
         <section className="animate-fade-up rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:280ms]">
           <h2 className="text-base font-semibold text-[var(--text-primary)]">Recent movement</h2>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">Change since your last attempts</p>
-          <div className="mt-4 space-y-2.5">
-            {recentMovement.map((m) => (
-              <MovementRow key={m.label} movement={m} />
-            ))}
-          </div>
+          <p className="mt-1 text-xs text-[var(--text-secondary)]">Change since your last Writing attempt</p>
+          {recentMovement === null ? (
+            <div className="mt-4 space-y-2.5">
+              <div className="h-11 animate-pulse rounded-xl bg-slate-50" />
+              <div className="h-11 animate-pulse rounded-xl bg-slate-50" />
+              <div className="h-11 animate-pulse rounded-xl bg-slate-50" />
+            </div>
+          ) : recentMovement.length > 0 ? (
+            <div className="mt-4 space-y-2.5">
+              {recentMovement.map((m) => (
+                <MovementRow key={m.label} movement={m} />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4">
+              <EmptyState
+                icon={<Activity className="h-5 w-5" />}
+                text="Submit a second Writing task to see how each criterion moved."
+              />
+            </div>
+          )}
         </section>
       </div>
     </div>

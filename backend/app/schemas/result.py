@@ -6,11 +6,13 @@ from pydantic import BaseModel
 class AnswerIn(BaseModel):
     question_id: int
     answer: Optional[Union[str, List[str]]] = None
+    marked_for_review: bool = False
 
 
 class SubmitIn(BaseModel):
     test_id: int
     answers: List[AnswerIn]
+    duration_seconds: Optional[int] = None
 
 
 class AnswerResult(BaseModel):
@@ -20,6 +22,15 @@ class AnswerResult(BaseModel):
     user_answer: Optional[str] = None
     correct_answer: str
     is_correct: bool
+    marked_for_review: bool = False
+
+
+class BreakdownItem(BaseModel):
+    question_type: str
+    label: str
+    correct: int
+    total: int
+    accuracy: int
 
 
 class AttemptResult(BaseModel):
@@ -30,6 +41,11 @@ class AttemptResult(BaseModel):
     score: int
     total: int
     band: Optional[float] = None
+    correct: int
+    incorrect: int
+    accuracy: int
+    duration_seconds: Optional[int] = None
+    breakdown: List[BreakdownItem] = []
     created_at: datetime
     answers: List[AnswerResult]
 
