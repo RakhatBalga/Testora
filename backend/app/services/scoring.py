@@ -29,6 +29,50 @@ def _check(question, user_answer) -> bool:
     return _normalize(user[0]) in {_normalize(c) for c in correct}
 
 
+# Human labels for the per-question-type result breakdown.
+QUESTION_TYPE_LABELS = {
+    "single_choice": "Multiple Choice",
+    "multiple_choice": "Multiple Answer",
+    "true_false_notgiven": "True / False / Not Given",
+    "matching": "Matching",
+    "fill_blank": "Sentence Completion",
+    "short_answer": "Short Answer",
+}
+
+
+def question_type_label(qtype: str) -> str:
+    return QUESTION_TYPE_LABELS.get(qtype, qtype.replace("_", " ").title())
+
+
+def build_breakdown(graded: list[dict]) -> list[dict]:
+    """Aggregate graded answers into per-question-type performance stats.
+
+    Returns a list of {question_type, label, correct, total, accuracy} sorted by
+    accuracy ascending (weakest type first), so the result screen leads with what
+    needs work.
+    """
+    buckets: dict[str, dict] = {}
+    for item in graded:
+        qtype = item["question_type"]
+        b = buckets.setdefault(qtype, {"correct": 0, "total": 0})
+        b["total"] += 1
+        if item["is_correct"]:
+            b["correct"] += 1
+
+    out = [
+        {
+            "question_type": qtype,
+            "label": question_type_label(qtype),
+            "correct": b["correct"],
+            "total": b["total"],
+            "accuracy": round(b["correct"] / b["total"] * 100) if b["total"] else 0,
+        }
+        for qtype, b in buckets.items()
+    ]
+    out.sort(key=lambda x: (x["accuracy"], x["label"]))
+    return out
+
+
 def grade_attempt(questions, answers_map):
     """Compare user answers against the correct ones across all question types.
 

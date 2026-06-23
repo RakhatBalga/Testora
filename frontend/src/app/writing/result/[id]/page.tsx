@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { api, WritingSubmission } from "@/lib/api";
+import { api, WritingSubmission, type ProgressImpact as ProgressImpactData } from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { FeedbackCard } from "@/components/FeedbackCard";
+import { ProgressImpact } from "@/components/dashboard/ProgressImpact";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { LinkButton } from "@/components/ui/Button";
@@ -16,6 +17,8 @@ export default function WritingResultPage() {
   const submissionId = Number(params.id);
 
   const [submission, setSubmission] = useState<WritingSubmission | null>(null);
+  const [impact, setImpact] = useState<ProgressImpactData | null>(null);
+  const [impactLoading, setImpactLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -26,6 +29,12 @@ export default function WritingResultPage() {
       .then(setSubmission)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+    setImpactLoading(true);
+    api
+      .getProgressImpact("writing", submissionId)
+      .then(setImpact)
+      .catch(() => setImpact(null))
+      .finally(() => setImpactLoading(false));
   }, [token, submissionId]);
 
   if (!ready || !token) return null;
@@ -69,6 +78,8 @@ export default function WritingResultPage() {
           Feedback is not available yet.
         </Card>
       )}
+
+      {impactLoading ? <Skeleton className="h-48 w-full" /> : <ProgressImpact data={impact} />}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-6">

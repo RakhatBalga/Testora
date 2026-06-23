@@ -11,6 +11,11 @@ from app.services.analytics import (
     compute_weaknesses,
     compute_recurring_mistakes,
     compute_band_gap,
+    compute_band_trajectory,
+    compute_progress_impact,
+    compute_daily_plan,
+    compute_blocker_history,
+    compute_streak,
     generate_blockers,
 )
 from app.services.analytics.band_gap import DEFAULT_TARGET
@@ -43,6 +48,50 @@ def band_gap(
     current_user: User = Depends(get_current_user),
 ):
     return compute_band_gap(db, current_user.id, target=target)
+
+
+@router.get("/band-trajectory")
+def band_trajectory(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return compute_band_trajectory(db, current_user.id)
+
+
+@router.get("/streak")
+def streak(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return compute_streak(db, current_user.id)
+
+
+@router.get("/blocker-history")
+def blocker_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return compute_blocker_history(db, current_user.id)
+
+
+@router.get("/daily-plan")
+def daily_plan(
+    target: float = Query(DEFAULT_TARGET, ge=4.0, le=9.0),
+    limit: int = Query(3, ge=1, le=5),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return compute_daily_plan(db, current_user.id, target=target, limit=limit)
+
+
+@router.get("/progress-impact")
+def progress_impact(
+    skill: str = Query(..., pattern="^(writing|speaking)$"),
+    submission_id: int = Query(..., ge=1),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return compute_progress_impact(db, current_user.id, skill, submission_id)
 
 
 @router.get("/recurring-mistakes")
