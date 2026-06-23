@@ -1,197 +1,256 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Flame, Target, Clock, CheckCircle2, Trophy } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Flame,
+  Target,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  CalendarClock,
+  AlertTriangle,
+  CircleCheck,
+  ListChecks,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import Landing from "@/components/landing/Landing";
-import {
-  SKILLS,
-  skillMeta,
-  toneClasses,
-  learner,
-  recentActivity,
-  leaderboard,
-  greeting,
-} from "@/lib/dashboard";
-import { Ring, ProgressBar, SkillRow, StatTile, skillIcons } from "@/components/dashboard/widgets";
+import { coachDashboard, daysUntil, greeting, type ProgressMovement } from "@/lib/coach";
+import { Ring } from "@/components/dashboard/widgets";
+import { BandTrajectory } from "@/components/dashboard/BandTrajectory";
 
 export default function HomePage() {
   const { token, username, ready } = useAuth();
   if (!ready) return null;
-  return token ? <Dashboard username={username} /> : <Landing />;
+  return token ? <CoachDashboard username={username} /> : <Landing />;
 }
 
-function Dashboard({ username }: { username: string | null }) {
+function CoachDashboard({ username }: { username: string | null }) {
   const name = username ?? "there";
+  const { estimate, gap, mainBlocker, blockers, todaysPlan, recentMovement, trajectory, streakDays } =
+    coachDashboard;
+  const daysLeft = daysUntil(gap.examDate);
+  const firstTask = todaysPlan[0];
 
   return (
     <div className="space-y-8">
-      {/* top stat tiles */}
-      <div className="grid animate-fade-up gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile
-          label="Target Band"
-          value={learner.targetBand.toFixed(1)}
-          hint="IELTS Academic"
-          icon={<Target className="h-5 w-5" />}
-        />
-        <StatTile
-          label="Current Level"
-          value={learner.currentBand.toFixed(1)}
-          hint={`+${(learner.currentBand - 5).toFixed(1)} since you started`}
-          icon={<CheckCircle2 className="h-5 w-5" />}
-          accent="text-emerald-500"
-        />
-        <StatTile
-          label="Weekly Goal"
-          value={`${learner.weeklyGoalHours}h`}
-          hint={`${learner.weeklyDoneHours}h done this week`}
-          icon={<Clock className="h-5 w-5" />}
-          accent="text-sky-500"
-        />
-        <StatTile
-          label="Study Streak"
-          value={`${learner.streakDays} days`}
-          hint="Keep it going!"
-          icon={<Flame className="h-5 w-5" />}
-          accent="text-amber-500"
-        />
+      {/* greeting + streak (streak demoted to a small secondary badge) */}
+      <div className="flex animate-fade-up items-center justify-between">
+        <p className="text-sm font-medium text-[var(--text-secondary)]">
+          {greeting()}, <span className="text-[var(--text-primary)]">{name}</span>
+        </p>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)]">
+          <Flame className="h-3.5 w-3.5 text-amber-500" />
+          {streakDays}-day streak
+        </span>
       </div>
 
+      {/* SECTION 1 — Coach hero card */}
+      <section className="relative animate-fade-up overflow-hidden rounded-3xl bg-[var(--brand)] p-7 text-white shadow-[0_20px_60px_-20px_rgba(37,99,235,0.45)] [animation-delay:60ms] sm:p-9">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.12]"
+          style={{
+            backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-[var(--brand-light)]/40 blur-3xl" />
+
+        <div className="relative flex flex-col items-start gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
+              <Target className="h-3.5 w-3.5" />
+              Your coach
+            </span>
+            <p className="mt-4 text-[1.35rem] font-bold leading-snug sm:text-[1.6rem]">
+              {name}, you&apos;re estimated at{" "}
+              <span className="underline decoration-white/40 underline-offset-4">
+                Band {estimate.overall.toFixed(1)}
+              </span>{" "}
+              — your target is Band {estimate.target.toFixed(1)}.
+            </p>
+            <p className="mt-3 text-[0.975rem] leading-relaxed text-white/80">
+              Your biggest blocker is{" "}
+              <strong className="font-semibold text-white">
+                {mainBlocker.criterion} in {mainBlocker.skill}
+              </strong>
+              . {mainBlocker.explanation}
+            </p>
+
+            <Link
+              href={firstTask?.href ?? "/practice"}
+              className="mt-6 inline-flex h-12 items-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-[var(--brand)] transition-transform duration-200 hover:-translate-y-0.5"
+            >
+              Start today&apos;s task
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          <Ring value={Math.min(1, estimate.overall / estimate.target)}>
+            <span className="text-3xl font-extrabold">{estimate.overall.toFixed(1)}</span>
+            <span className="text-xs text-white/70">of {estimate.target.toFixed(1)}</span>
+          </Ring>
+        </div>
+      </section>
+
+      {/* SECTION 2 — Band gap strip */}
+      <section className="grid animate-fade-up gap-4 [animation-delay:100ms] sm:grid-cols-2 lg:grid-cols-4">
+        <GapCard label="Current Band" value={gap.current.toFixed(1)} icon={<CircleCheck className="h-5 w-5" />} hint={`Based on ${estimate.attempts} attempts`} />
+        <GapCard label="Target Band" value={gap.target.toFixed(1)} icon={<Target className="h-5 w-5" />} accent="text-[var(--brand)]" />
+        <GapCard label="Gap Remaining" value={`+${gap.gap.toFixed(1)}`} icon={<TrendingUp className="h-5 w-5" />} accent="text-amber-500" hint="bands to your target" />
+        <GapCard
+          label="Exam Countdown"
+          value={daysLeft != null ? `${daysLeft} days` : "Not set"}
+          icon={<CalendarClock className="h-5 w-5" />}
+          accent="text-sky-500"
+          hint={daysLeft != null ? "until your exam" : "add your exam date"}
+        />
+      </section>
+
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* hero card */}
-        <section className="relative animate-fade-up overflow-hidden rounded-3xl bg-[var(--brand)] p-7 text-white shadow-[0_20px_60px_-20px_rgba(37,99,235,0.45)] [animation-delay:60ms] lg:col-span-2 sm:p-9">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.12]"
-            style={{
-              backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
-              backgroundSize: "24px 24px",
-            }}
-          />
-          <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-[var(--brand-light)]/40 blur-3xl" />
-
-          <div className="relative flex flex-col items-start gap-7 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-medium text-white/70">{greeting()}, {name}</p>
-              <h1 className="mt-2 max-w-md text-[1.75rem] font-extrabold leading-tight tracking-tight sm:text-[2rem]">
-                You&apos;re {Math.round(learner.overallProgress * 100)}% closer to your target IELTS score.
-              </h1>
-              <Link
-                href="/practice"
-                className="mt-6 inline-flex h-12 items-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-[var(--brand)] transition-transform duration-200 hover:-translate-y-0.5"
+        {/* SECTION 3 — What's blocking you */}
+        <section className="animate-fade-up [animation-delay:140ms] lg:col-span-2">
+          <div className="mb-4 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">What&apos;s blocking you</h2>
+          </div>
+          <div className="grid gap-4">
+            {blockers.map((b) => (
+              <div
+                key={b.id}
+                className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm shadow-slate-200/40 sm:flex-row sm:items-center sm:justify-between"
               >
-                Continue practising
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
-            <Ring value={learner.overallProgress}>
-              <span className="text-3xl font-extrabold">
-                {Math.round(learner.overallProgress * 100)}%
-              </span>
-              <span className="text-xs text-white/70">to Band {learner.targetBand}</span>
-            </Ring>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-[var(--text-secondary)]">
+                      {b.skill}
+                    </span>
+                    <h3 className="font-semibold text-[var(--text-primary)]">{b.criterion}</h3>
+                  </div>
+                  <p className="mt-1.5 text-sm text-[var(--text-secondary)]">{b.explanation}</p>
+                  <p className="mt-2 text-xs font-semibold text-amber-600">
+                    Currently capping you at Band {b.bandCap.toFixed(1)}
+                  </p>
+                </div>
+                <Link
+                  href={b.fixHref}
+                  className="inline-flex h-10 flex-shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[var(--brand)] px-4 text-sm font-semibold text-white shadow-sm shadow-[var(--brand)]/30 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-dark)]"
+                >
+                  Fix this
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+            ))}
           </div>
         </section>
 
-        {/* skill progress */}
-        <section className="animate-fade-up rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:120ms]">
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">Skill progress</h2>
-          <div className="mt-5 space-y-5">
-            {SKILLS.map((s) => (
-              <SkillRow key={s} skill={s} />
+        {/* SECTION 4 — Today's plan */}
+        <section className="animate-fade-up rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:180ms]">
+          <div className="mb-4 flex items-center gap-2">
+            <ListChecks className="h-5 w-5 text-[var(--brand)]" />
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">Today&apos;s plan</h2>
+          </div>
+          <ol className="space-y-2.5">
+            {todaysPlan.map((task, i) => (
+              <li key={task.id}>
+                <Link
+                  href={task.href}
+                  className="group flex items-start gap-3 rounded-2xl border border-[var(--border)] p-3.5 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                >
+                  <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[var(--brand)]/[0.1] text-xs font-bold text-[var(--brand)]">
+                    {i + 1}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-[var(--text-primary)]">
+                      {task.title}
+                    </span>
+                    {task.detail && (
+                      <span className="mt-0.5 block text-xs text-[var(--text-secondary)]">
+                        {task.detail}
+                        {task.estimatedMinutes ? ` · ${task.estimatedMinutes} min` : ""}
+                      </span>
+                    )}
+                  </span>
+                  <ArrowUpRight className="h-4 w-4 flex-shrink-0 text-slate-300 transition-colors group-hover:text-[var(--brand)]" />
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* SECTION 6 — Band trajectory */}
+        <section className="animate-fade-up rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:220ms] sm:p-7 lg:col-span-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">Band trajectory</h2>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
+              <TrendingUp className="h-3.5 w-3.5" />
+              +{(trajectory[trajectory.length - 1].band - trajectory[0].band).toFixed(1)} since you started
+            </span>
+          </div>
+          <BandTrajectory points={trajectory} target={gap.target} />
+        </section>
+
+        {/* SECTION 5 — Recent movement */}
+        <section className="animate-fade-up rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:260ms]">
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">Recent movement</h2>
+          <p className="mt-1 text-xs text-[var(--text-secondary)]">Change since your last attempts</p>
+          <div className="mt-4 space-y-2.5">
+            {recentMovement.map((m) => (
+              <MovementRow key={m.label} movement={m} />
             ))}
           </div>
         </section>
       </div>
+    </div>
+  );
+}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* recent activity */}
-        <section className="animate-fade-up rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:160ms] lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">Recent activity</h2>
-            <Link href="/analytics" className="text-sm font-semibold text-[var(--brand)] hover:underline">
-              View all
-            </Link>
-          </div>
-          <div className="mt-4 divide-y divide-[var(--border)]">
-            {recentActivity.map((a, i) => {
-              const m = skillMeta[a.skill];
-              const t = toneClasses[m.tone];
-              const Icon = skillIcons[a.skill];
-              return (
-                <div key={i} className="flex items-center gap-4 py-3.5">
-                  <span className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${t.soft}`}>
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{a.title}</p>
-                    <p className="truncate text-xs text-[var(--text-secondary)]">{a.detail}</p>
-                  </div>
-                  {a.band != null && (
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-[var(--text-primary)]">
-                      {a.band.toFixed(1)}
-                    </span>
-                  )}
-                  <span className="hidden w-20 text-right text-xs text-[var(--text-secondary)] sm:block">
-                    {a.when}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* leaderboard — secondary */}
-        <section className="animate-fade-up rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:200ms]">
-          <div className="flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-amber-500" />
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">Leaderboard</h2>
-          </div>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">Highest streaks this week</p>
-          <div className="mt-4 space-y-2.5">
-            {leaderboard.highestStreaks.map((r, i) => {
-              const you = r.name === "You";
-              return (
-                <div
-                  key={r.name}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${
-                    you ? "bg-[var(--brand)]/[0.06] ring-1 ring-[var(--brand)]/20" : ""
-                  }`}
-                >
-                  <span className="w-5 text-sm font-bold text-[var(--text-secondary)]">{i + 1}</span>
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-[var(--text-primary)]">
-                    {r.name[0]}
-                  </span>
-                  <span className={`flex-1 text-sm font-medium ${you ? "text-[var(--brand)]" : "text-[var(--text-primary)]"}`}>
-                    {r.name}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-sm font-semibold text-amber-500">
-                    <Flame className="h-3.5 w-3.5" />
-                    {r.days}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-          <p className="mt-4 text-center text-xs text-[var(--text-secondary)]">
-            Weekly learners · Top improvements update every Monday
-          </p>
-        </section>
+function GapCard({
+  label,
+  value,
+  icon,
+  hint,
+  accent = "text-[var(--text-secondary)]",
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+  hint?: string;
+  accent?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm shadow-slate-200/40">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-[var(--text-secondary)]">{label}</p>
+        <span className={accent}>{icon}</span>
       </div>
+      <p className="mt-2 text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">{value}</p>
+      {hint && <p className="mt-1 text-xs text-[var(--text-secondary)]">{hint}</p>}
+    </div>
+  );
+}
 
-      {/* weekly goal strip */}
-      <section className="animate-fade-up rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:240ms]">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-semibold text-[var(--text-primary)]">This week&apos;s goal</span>
-          <span className="text-[var(--text-secondary)]">
-            {learner.weeklyDoneHours}h / {learner.weeklyGoalHours}h
-          </span>
-        </div>
-        <ProgressBar
-          value={learner.weeklyDoneHours / learner.weeklyGoalHours}
-          className="mt-3 h-2.5"
-        />
-      </section>
+function MovementRow({ movement }: { movement: ProgressMovement }) {
+  const { label, from, to, direction } = movement;
+  const hasData = from != null && to != null;
+  const tone =
+    direction === "up"
+      ? "text-emerald-600"
+      : direction === "down"
+        ? "text-red-600"
+        : "text-[var(--text-secondary)]";
+  const Icon = direction === "up" ? TrendingUp : direction === "down" ? TrendingDown : Minus;
+
+  return (
+    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3.5 py-2.5">
+      <span className="text-sm font-medium text-[var(--text-primary)]">{label}</span>
+      <span className={`inline-flex items-center gap-1.5 text-sm font-semibold ${tone}`}>
+        <Icon className="h-4 w-4" />
+        {hasData ? `${from!.toFixed(1)} → ${to!.toFixed(1)}` : "No change"}
+      </span>
     </div>
   );
 }
