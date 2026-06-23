@@ -7,10 +7,14 @@ from app.models.test import Test, Section, Question
 from app.models.attempt import Attempt, AnswerRecord
 from app.models.user import User
 from app.schemas.result import SubmitIn, AttemptResult, AttemptSummary
-from app.services.scoring import grade_attempt, _display
+from app.services.scoring import grade_attempt, build_breakdown, _display
 from app.services.band import band_from_raw
 
 router = APIRouter()
+
+
+def _accuracy(correct: int, total: int) -> int:
+    return round(correct / total * 100) if total else 0
 
 
 @router.post("/submit", response_model=AttemptResult)
@@ -30,10 +34,12 @@ def submit_attempt(
         .all()
     )
     answers_map = {a.question_id: a.answer for a in payload.answers}
+    review_map = {a.question_id: a.marked_for_review for a in payload.answers}
 
     graded, score = grade_attempt(questions, answers_map)
     total = len(questions)
     band = band_from_raw(score, total, test.test_type)
+    breakdown = build_breakdown(graded)
 
     attempt = Attempt(
         user_id=current_user.id,
@@ -41,6 +47,8 @@ def submit_attempt(
         score=score,
         total=total,
         band=band,
+        duration_seconds=payload.duration_seconds,
+        breakdown=breakdown,
     )
     db.add(attempt)
     db.flush()  # assigns attempt.id before we create answer records
@@ -52,9 +60,13 @@ def submit_attempt(
                 question_id=item["question_id"],
                 user_answer=item["user_answer"],
                 is_correct=item["is_correct"],
+                marked_for_review=bool(review_map.get(item["question_id"], False)),
             )
         )
     db.commit()
+
+    for item in graded:
+        item["marked_for_review"] = bool(review_map.get(item["question_id"], False))
 
     return {
         "id": attempt.id,
@@ -64,6 +76,11 @@ def submit_attempt(
         "score": score,
         "total": total,
         "band": band,
+        "correct": score,
+        "incorrect": total - score,
+        "accuracy": _accuracy(score, total),
+        "duration_seconds": payload.duration_seconds,
+        "breakdown": breakdown,
         "created_at": attempt.created_at,
         "answers": graded,
     }
@@ -109,18 +126,24 @@ def get_attempt(
     if not attempt:
         raise HTTPException(status_code=404, detail="Attempt not found")
 
-    answers = []
-    for record in attempt.answers:
-        answers.append(
-            {
-                "question_id": record.question_id,
-                "text": record.question.text,
-                "question_type": record.question.question_type,
-                "user_answer": record.user_answer,
-                "correct_answer": _display(record.question.correct_answer),
-                "is_correct": record.is_correct,
-            }
-        )
+    answers = [
+        {
+            "question_id": record.question_id,
+            "text": record.question.text,
+            "question_type": record.question.question_type,
+            "user_answer": record.user_answer,
+            "correct_answer": _display(record.question.correct_answer),
+            "is_correct": record.is_correct,
+            "marked_for_review": bool(record.marked_for_review),
+        }
+        for record in attempt.answers
+    ]
+
+    # Older attempts have no stored breakdown — rebuild it from the answers so the
+    # result screen is consistent regardless of when the attempt was taken.
+    breakdown = attempt.breakdown or build_breakdown(
+        [{"question_type": a["question_type"], "is_correct": a["is_correct"]} for a in answers]
+    )
 
     return {
         "id": attempt.id,
@@ -130,6 +153,11 @@ def get_attempt(
         "score": attempt.score,
         "total": attempt.total,
         "band": attempt.band,
+        "correct": attempt.score,
+        "incorrect": attempt.total - attempt.score,
+        "accuracy": _accuracy(attempt.score, attempt.total),
+        "duration_seconds": attempt.duration_seconds,
+        "breakdown": breakdown,
         "created_at": attempt.created_at,
         "answers": answers,
     }

@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Float, JSON
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -13,6 +13,10 @@ class Attempt(Base):
     score = Column(Integer, nullable=False, default=0)
     total = Column(Integer, nullable=False, default=0)
     band = Column(Float, nullable=True)
+    # Seconds the user spent on the test (null for legacy attempts).
+    duration_seconds = Column(Integer, nullable=True)
+    # Per-question-type performance breakdown, computed at submit time.
+    breakdown = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     test = relationship("Test")
@@ -29,6 +33,7 @@ class AnswerRecord(Base):
     question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
     user_answer = Column(String, nullable=True)
     is_correct = Column(Boolean, nullable=False, default=False)
+    marked_for_review = Column(Boolean, nullable=False, default=False)
 
     attempt = relationship("Attempt", back_populates="answers")
     question = relationship("Question")
