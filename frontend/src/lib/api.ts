@@ -147,6 +147,46 @@ export type SpeakingSubmissionSummary = {
   created_at: string;
 };
 
+/* ----------------------------- Analytics ------------------------------- */
+
+export type Weakness = {
+  skill: string;
+  category: string;
+  subskill: string;
+  label: string;
+  score: number; // 0..1 intensity
+  frequency: number;
+  avg_severity: number;
+  recurring: boolean;
+};
+
+export type Blocker = {
+  skill: string;
+  criterion: string;
+  band_cap: number;
+  explanation: string;
+  fix_href: string;
+};
+
+export type BandGapResult = {
+  current: number | null;
+  target: number;
+  gap: number | null;
+  per_skill: Record<string, number>;
+  lowest_skill: string | null;
+  has_data: boolean;
+};
+
+export type RecurringMistake = {
+  skill: string;
+  category: string;
+  subskill: string;
+  label: string;
+  occurrences: number;
+  window: number;
+  message: string;
+};
+
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("token");
@@ -266,4 +306,15 @@ export const api = {
 
   getSpeakingSubmission: (id: number) =>
     request<SpeakingSubmission>(`/speaking/submissions/${id}`),
+
+  getWeaknesses: (limit = 6) =>
+    request<{ weaknesses: Weakness[] }>(`/analytics/weaknesses?limit=${limit}`),
+
+  getBlockers: (target = 7.5) =>
+    request<{ blockers: Blocker[] }>(`/analytics/blockers?target=${target}`),
+
+  getBandGap: (target = 7.5) => request<BandGapResult>(`/analytics/band-gap?target=${target}`),
+
+  getRecurringMistakes: (limit = 6) =>
+    request<{ recurring: RecurringMistake[] }>(`/analytics/recurring-mistakes?limit=${limit}`),
 };

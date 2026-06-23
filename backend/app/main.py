@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import auth, tests, results, writing, speaking
+from app.routers import auth, tests, results, writing, speaking, analytics
 
 app = FastAPI(title="Testora API")
 
@@ -24,6 +24,7 @@ app.include_router(tests.router, prefix="/tests", tags=["Tests"])
 app.include_router(results.router, prefix="/results", tags=["Results"])
 app.include_router(writing.router, prefix="/writing", tags=["Writing"])
 app.include_router(speaking.router, prefix="/speaking", tags=["Speaking"])
+app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 

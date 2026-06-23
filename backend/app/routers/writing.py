@@ -13,6 +13,7 @@ from app.schemas.writing import (
     WritingSubmissionSummary,
 )
 from app.services.ai import get_writing_grader
+from app.services.mistakes import record_mistakes
 
 router = APIRouter()
 
@@ -73,6 +74,14 @@ def submit(
     submission.status = "graded"
 
     db.add(submission)
+    db.flush()  # assign submission.id before recording its mistakes
+    record_mistakes(
+        db,
+        user_id=current_user.id,
+        submission_id=submission.id,
+        skill="writing",
+        mistakes=feedback.mistakes,
+    )
     db.commit()
     db.refresh(submission)
 
