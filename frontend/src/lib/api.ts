@@ -175,6 +175,14 @@ export type BandGapResult = {
   per_skill: Record<string, number>;
   lowest_skill: string | null;
   has_data: boolean;
+  /** ISO date of the user's exam, from their goal; null if not set */
+  exam_date: string | null;
+};
+
+export type Goal = {
+  target_band: number;
+  current_band: number | null;
+  exam_date: string | null;
 };
 
 export type RecurringMistake = {
@@ -310,11 +318,22 @@ export const api = {
   getWeaknesses: (limit = 6) =>
     request<{ weaknesses: Weakness[] }>(`/analytics/weaknesses?limit=${limit}`),
 
-  getBlockers: (target = 7.5) =>
-    request<{ blockers: Blocker[] }>(`/analytics/blockers?target=${target}`),
+  // target omitted → backend uses the user's saved goal (falls back to 7.5).
+  getBlockers: (target?: number) =>
+    request<{ blockers: Blocker[] }>(
+      `/analytics/blockers${target != null ? `?target=${target}` : ""}`,
+    ),
 
-  getBandGap: (target = 7.5) => request<BandGapResult>(`/analytics/band-gap?target=${target}`),
+  getBandGap: (target?: number) =>
+    request<BandGapResult>(
+      `/analytics/band-gap${target != null ? `?target=${target}` : ""}`,
+    ),
 
   getRecurringMistakes: (limit = 6) =>
     request<{ recurring: RecurringMistake[] }>(`/analytics/recurring-mistakes?limit=${limit}`),
+
+  getGoal: () => request<Goal | null>("/goals"),
+
+  saveGoal: (goal: { target_band: number; exam_date?: string | null; current_band?: number | null }) =>
+    request<Goal>("/goals", { method: "POST", body: JSON.stringify(goal) }),
 };

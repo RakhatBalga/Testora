@@ -12,6 +12,7 @@ from app.models.attempt import Attempt, AnswerRecord  # noqa
 from app.models.writing import WritingTask, WritingSubmission  # noqa
 from app.models.speaking import SpeakingTask, SpeakingSubmission  # noqa
 from app.models.mistake import Mistake  # noqa
+from app.models.goal import Goal  # noqa
 
 config = context.config
 

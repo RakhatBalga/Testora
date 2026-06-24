@@ -33,16 +33,33 @@ def _round_half(x: float) -> float:
     return max(0.0, min(9.0, round(x * 2) / 2))
 
 
-def compute_band_gap(db: Session, user_id: int, target: float = DEFAULT_TARGET) -> dict:
+def compute_band_gap(
+    db: Session,
+    user_id: int,
+    target: float = DEFAULT_TARGET,
+    exam_date=None,
+    current_fallback: float | None = None,
+) -> dict:
+    """Current vs target band.
+
+    Current band comes from real graded attempts. When the user has none yet,
+    ``current_fallback`` (their onboarding self-estimate) keeps the gap meaningful.
+    ``has_data`` reflects real attempts only, so blockers/weaknesses stay honest.
+    """
     bands = skill_bands(db, user_id)
+    exam_iso = exam_date.isoformat() if exam_date else None
+
     if not bands:
+        current = _round_half(current_fallback) if current_fallback else None
+        gap = round(max(0.0, target - current), 1) if current is not None else None
         return {
-            "current": None,
+            "current": current,
             "target": round(target, 1),
-            "gap": None,
+            "gap": gap,
             "per_skill": {},
             "lowest_skill": None,
             "has_data": False,
+            "exam_date": exam_iso,
         }
 
     overall = _round_half(mean(bands.values()))
@@ -56,6 +73,7 @@ def compute_band_gap(db: Session, user_id: int, target: float = DEFAULT_TARGET) 
         "per_skill": {s: round(b, 1) for s, b in bands.items()},
         "lowest_skill": lowest_skill,
         "has_data": True,
+        "exam_date": exam_iso,
     }
 
 

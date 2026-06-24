@@ -25,7 +25,7 @@ import { BandTrajectory } from "@/components/dashboard/BandTrajectory";
 import { WeaknessCard } from "@/components/dashboard/WeaknessCard";
 import { BlockerCard } from "@/components/dashboard/BlockerCard";
 
-/** Target band source. Future: profiles/goals.target_band. */
+/** Fallback target only — the real target comes from the user's goal (band-gap response). */
 const TARGET_BAND = 7.5;
 
 export default function HomePage() {
@@ -37,7 +37,7 @@ export default function HomePage() {
 function CoachDashboard({ username }: { username: string | null }) {
   const name = username ?? "there";
   // Out-of-scope sections stay on mock for now (Phase 1 dashboard).
-  const { todaysPlan, recentMovement, trajectory, streakDays, gap: mockGap } = coachDashboard;
+  const { todaysPlan, recentMovement, trajectory, streakDays } = coachDashboard;
 
   // Real analytics (Mistake Memory + Band Gap engines).
   const [bandGap, setBandGap] = useState<BandGapResult | null>(null);
@@ -47,8 +47,8 @@ function CoachDashboard({ username }: { username: string | null }) {
   useEffect(() => {
     let active = true;
     Promise.all([
-      api.getBandGap(TARGET_BAND),
-      api.getBlockers(TARGET_BAND),
+      api.getBandGap(),
+      api.getBlockers(),
       api.getWeaknesses(6),
     ])
       .then(([g, b, w]) => {
@@ -59,7 +59,7 @@ function CoachDashboard({ username }: { username: string | null }) {
       })
       .catch(() => {
         if (!active) return;
-        setBandGap({ current: null, target: TARGET_BAND, gap: null, per_skill: {}, lowest_skill: null, has_data: false });
+        setBandGap({ current: null, target: TARGET_BAND, gap: null, per_skill: {}, lowest_skill: null, has_data: false, exam_date: null });
         setBlockers([]);
         setWeaknesses([]);
       });
@@ -74,7 +74,7 @@ function CoachDashboard({ username }: { username: string | null }) {
   const target = bandGap?.target ?? TARGET_BAND;
   const gapValue = bandGap?.gap ?? null;
   const mainBlocker = blockers?.[0] ?? null;
-  const daysLeft = daysUntil(mockGap.examDate);
+  const daysLeft = daysUntil(bandGap?.exam_date ?? null);
 
   return (
     <div className="space-y-8">
