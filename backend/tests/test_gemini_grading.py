@@ -38,6 +38,15 @@ _VALID_SPEAKING = {
     "suggestions": [],
 }
 
+_VALID_ESSAY = (
+    "Some people believe that schools should teach children how to contribute to society. "
+    "However, parents also shape behaviour because children copy what they see at home. "
+    "In my view, both sides matter, but family influence is usually stronger in the early years. "
+    "Schools can provide rules, teamwork, and civic knowledge, while parents can model kindness, "
+    "responsibility, and honesty every day. This combination gives children practical guidance "
+    "and a stable set of values."
+)
+
 
 # ----------------------------- parsing / schema -----------------------------
 
@@ -88,7 +97,7 @@ def test_writing_valid_response(monkeypatch):
     # Examiner-only (disable coach so a single stub response suffices).
     monkeypatch.setattr(gemini.settings, "WRITING_COACH_ENABLED", False)
     monkeypatch.setattr(gemini, "_generate", lambda *a, **k: json.dumps(_EXAMINER_T2))
-    fb = gemini.GeminiWritingGrader().grade(task_type=2, prompt="p", text="word " * 300, min_words=250)
+    fb = gemini.GeminiWritingGrader().grade(task_type=2, prompt="p", text=_VALID_ESSAY, min_words=60)
     assert fb.error is False
     assert fb.band == 6.5  # mean(6.5,6.5,7.0,6.5)=6.625 -> 6.5
     assert fb.criteria["Task Response"] == 6.5
@@ -107,7 +116,7 @@ def test_writing_coach_failure_still_returns_examiner_grade(monkeypatch):
 
     monkeypatch.setattr(gemini.settings, "WRITING_COACH_ENABLED", True)
     monkeypatch.setattr(gemini, "_generate", gen)
-    fb = gemini.GeminiWritingGrader().grade(task_type=2, prompt="p", text="word " * 300, min_words=250)
+    fb = gemini.GeminiWritingGrader().grade(task_type=2, prompt="p", text=_VALID_ESSAY, min_words=60)
     assert fb.error is False
     assert fb.band == 6.5
     assert fb.roadmap == []  # no coaching, but grade intact
@@ -115,7 +124,7 @@ def test_writing_coach_failure_still_returns_examiner_grade(monkeypatch):
 
 def test_writing_malformed_json_is_error_not_crash(monkeypatch):
     monkeypatch.setattr(gemini, "_generate", lambda *a, **k: "not json at all {")
-    fb = gemini.GeminiWritingGrader().grade(task_type=2, prompt="p", text="essay", min_words=250)
+    fb = gemini.GeminiWritingGrader().grade(task_type=2, prompt="p", text=_VALID_ESSAY, min_words=60)
     assert fb.error is True
     assert fb.band == 0.0  # sentinel; router must NOT persist this as a real grade
 
@@ -125,7 +134,7 @@ def test_writing_exception_is_error(monkeypatch):
         raise TimeoutError("deadline exceeded")
 
     monkeypatch.setattr(gemini, "_generate", boom)
-    fb = gemini.GeminiWritingGrader().grade(task_type=2, prompt="p", text="essay", min_words=250)
+    fb = gemini.GeminiWritingGrader().grade(task_type=2, prompt="p", text=_VALID_ESSAY, min_words=60)
     assert fb.error is True
     assert "deadline exceeded" in fb.summary
 
@@ -135,7 +144,7 @@ def test_writing_truncated_response_is_error(monkeypatch):
         raise gemini._TruncatedResponse("hit token cap")
 
     monkeypatch.setattr(gemini, "_generate", truncated)
-    fb = gemini.GeminiWritingGrader().grade(task_type=2, prompt="p", text="x", min_words=250)
+    fb = gemini.GeminiWritingGrader().grade(task_type=2, prompt="p", text=_VALID_ESSAY, min_words=60)
     assert fb.error is True
 
 

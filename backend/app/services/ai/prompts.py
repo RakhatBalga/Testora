@@ -53,6 +53,8 @@ native-like perfection.
 
 _SCORING_PROTOCOL = """\
 SCORING PROTOCOL:
+- If the response is primarily not in English, is random/gibberish text, or is
+  not a genuine attempt at the task, assign 0.0 for every criterion.
 - Score each of the four criteria INDEPENDENTLY on the 0-9 scale in 0.5 steps.
 - Prefer full-band criterion scores when the descriptor match is clear. Use a
   half-band only when the script is truly balanced between two adjacent bands.
