@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Headphones, BookOpen, PenLine, Mic } from "lucide-react";
+import { ArrowRight, Sparkles, BookOpen, PenLine, SearchCheck, Brain } from "lucide-react";
 import { fadeUp, EASE } from "./motion";
 
-const SKILLS = [
-  { label: "Listening", band: 7.5, pct: 83, icon: Headphones, color: "from-blue-500 to-blue-600" },
-  { label: "Reading", band: 8.0, pct: 89, icon: BookOpen, color: "from-blue-600 to-blue-700" },
-  { label: "Writing", band: 6.5, pct: 72, icon: PenLine, color: "from-blue-500 to-blue-700" },
-  { label: "Speaking", band: 7.0, pct: 78, icon: Mic, color: "from-blue-400 to-blue-600" },
+const SIGNALS = [
+  { label: "Reading", value: "10 tests", pct: 100, icon: BookOpen, color: "from-blue-600 to-blue-700" },
+  { label: "Questions", value: "400", pct: 100, icon: SearchCheck, color: "from-blue-500 to-blue-700" },
+  { label: "Writing", value: "AI feedback", pct: 72, icon: PenLine, color: "from-blue-500 to-blue-600" },
+  { label: "Coach", value: "Next task", pct: 68, icon: Brain, color: "from-sky-500 to-blue-600" },
 ];
 
 export default function Hero() {
@@ -42,8 +42,8 @@ export default function Hero() {
           </motion.h1>
 
           <motion.p variants={fadeUp} className="mt-6 max-w-lg text-lg leading-relaxed text-slate-600">
-            Practice realistic Reading, Listening, Writing and Speaking tasks, get scored
-            instantly with AI feedback, and watch your progress climb — all in one place.
+            Practice original Academic Reading tests, get AI feedback on Writing, and review
+            every answer with evidence-backed explanations.
           </motion.p>
 
           <motion.div variants={fadeUp} className="mt-9 flex flex-wrap items-center gap-3">
@@ -64,20 +64,20 @@ export default function Hero() {
 
           <motion.div variants={fadeUp} className="mt-8 flex items-center gap-6 text-sm text-slate-500">
             <div>
-              <span className="text-lg font-bold text-slate-900">12k+</span> learners
+              <span className="text-lg font-bold text-slate-900">10</span> reading tests
             </div>
             <div className="h-4 w-px bg-slate-200" />
             <div>
-              <span className="text-lg font-bold text-slate-900">+1.2</span> avg band gain
+              <span className="text-lg font-bold text-slate-900">400</span> questions
             </div>
             <div className="h-4 w-px bg-slate-200" />
             <div>
-              <span className="text-lg font-bold text-slate-900">4.9★</span> rating
+              <span className="text-lg font-bold text-slate-900">AI</span> writing review
             </div>
           </motion.div>
         </motion.div>
 
-        {/* Right: animated dashboard mockup */}
+        {/* Right: animated product preview */}
         <motion.div
           initial={{ opacity: 0, y: 40, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -116,22 +116,22 @@ export default function Hero() {
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Your progress</p>
-                <p className="text-xl font-bold text-slate-900">Mock test #14</p>
+                <p className="text-xl font-bold text-slate-900">Reading Test 07</p>
               </div>
               <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                Academic
+                Evidence-backed
               </span>
             </div>
 
             <div className="space-y-4">
-              {SKILLS.map((s, i) => (
+              {SIGNALS.map((s, i) => (
                 <div key={s.label}>
                   <div className="mb-1.5 flex items-center justify-between text-sm">
                     <span className="flex items-center gap-2 font-medium text-slate-700">
                       <s.icon className="h-4 w-4 text-slate-400" />
                       {s.label}
                     </span>
-                    <span className="font-semibold text-slate-900">{s.band.toFixed(1)}</span>
+                    <span className="font-semibold text-slate-900">{s.value}</span>
                   </div>
                   <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
                     <motion.div

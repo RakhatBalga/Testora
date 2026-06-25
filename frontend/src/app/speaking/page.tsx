@@ -48,7 +48,7 @@ export default function SpeakingPage() {
         </Badge>
         <h1 className="text-2xl font-bold text-slate-900">Speaking practice</h1>
         <p className="mt-1 text-slate-500">
-          Record your answer and save it for mock feedback or later AI grading.
+          Record your answer and save it for AI feedback when grading is enabled.
         </p>
       </div>
 

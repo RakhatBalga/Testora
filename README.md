@@ -2,13 +2,13 @@
 
 Grade → extract mistakes → name the band blocker → tell the user what to do
 today → re-grade → show the band move. FastAPI + PostgreSQL backend, Next.js
-frontend, Gemini grading with a free mock fallback.
+frontend, Gemini grading, with a local-only mock fallback for development.
 
 ## Stack
 - **Frontend:** Next.js 16 (App Router) + TypeScript + Tailwind v4 — `frontend/`
 - **Backend:** FastAPI + SQLAlchemy + Alembic — `backend/`
 - **DB:** PostgreSQL
-- **AI:** Gemini Flash behind `backend/app/services/ai/` (`mock | claude | gemini`)
+- **AI:** Gemini Flash behind `backend/app/services/ai/` (`mock | claude | gemini`; production uses Gemini)
 
 ## Local development
 
@@ -62,8 +62,10 @@ ports 3000 (frontend) and 8000 (API).
 - [ ] `SECRET_KEY` is a fresh random value (not the example)
 - [ ] `CORS_ORIGINS` lists the real frontend domain(s)
 - [ ] `NEXT_PUBLIC_API_URL` points at the public API origin
-- [ ] `AI_PROVIDER=gemini` **and** `GEMINI_API_KEY` set (otherwise grading falls
-      back to mock — the API logs a warning at startup)
+- [ ] `APP_ENV=production`
+- [ ] `AI_PROVIDER=gemini` **and** `GEMINI_API_KEY` set (the API refuses to start
+      in production if grading would fall back to mock)
+- [ ] Reading pack imported and validated: `cd backend && python validate_reading.py`
 - [ ] DB backups configured for the `pgdata` volume
 
 ## Operational notes
@@ -76,6 +78,25 @@ ports 3000 (frontend) and 8000 (API).
   excluded from analytics — never as a Band 0.
 
 ## Tests
-There is no automated test suite yet — this is a known pre-beta gap (see the
-production-readiness notes). Manual smoke test before deploy: register → submit
-a Writing task → confirm a band + blocker appear on the dashboard.
+
+Backend:
+```bash
+cd backend
+python validate_reading.py
+python scripts/check_migration_heads.py
+pytest
+```
+
+Frontend:
+```bash
+cd frontend
+npm run lint
+NEXT_PUBLIC_API_URL=http://localhost:8000 npm run build
+```
+
+Production compose sanity:
+```bash
+POSTGRES_PASSWORD=dummy SECRET_KEY=dummy AI_PROVIDER=gemini GEMINI_API_KEY=dummy \
+CORS_ORIGINS=https://app.testora.com NEXT_PUBLIC_API_URL=https://api.testora.com \
+docker compose -f docker-compose.prod.yml config
+```

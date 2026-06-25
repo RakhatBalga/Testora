@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Dumbbell,
-  ClipboardCheck,
   BarChart3,
   History,
   LogOut,
@@ -19,7 +18,6 @@ import { LinkButton } from "@/components/ui/Button";
 const LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/practice", label: "Practice", icon: Dumbbell },
-  { href: "/mock-tests", label: "Mock Tests", icon: ClipboardCheck },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/history", label: "History", icon: History },
 ];

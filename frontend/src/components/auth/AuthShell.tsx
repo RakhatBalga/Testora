@@ -87,7 +87,7 @@ export default function AuthShell({
             </ul>
           </div>
 
-          {/* progress mockup — reads as a real SaaS marketing block */}
+          {/* progress preview */}
           <div className="relative rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm">
             <div className="flex items-start justify-between gap-4">
               <div>

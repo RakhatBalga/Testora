@@ -1,9 +1,8 @@
-import { type BandTrajectoryPoint } from "@/lib/coach";
+import { type BandTrajectoryPoint } from "@/lib/api";
 
 /**
  * Estimated overall band over time, with the target band drawn as a dashed
- * reference line. Pure SVG, no chart dependency. Mock-fed via props today;
- * pass real `band_estimates` later with no changes.
+ * reference line. Pure SVG, no chart dependency.
  */
 export function BandTrajectory({
   points,

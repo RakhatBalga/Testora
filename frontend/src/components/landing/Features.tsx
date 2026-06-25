@@ -22,32 +22,32 @@ type Feature = {
 const FEATURES: Feature[] = [
   {
     icon: BookOpen,
-    title: "Realistic Tests",
-    body: "Reading and Listening tests modelled on the real IELTS format, complete with a live countdown timer.",
+    title: "Original Reading Tests",
+    body: "Ten full Academic Reading tests with 40 questions each and natural IELTS-style passages.",
     color: "from-blue-500 to-indigo-500",
   },
   {
     icon: Zap,
-    title: "Instant Scoring",
-    body: "Submit and see your score immediately, with a full review of every answer and explanation.",
+    title: "Instant Reading Scoring",
+    body: "Submit a timed Reading attempt and review every answer with a clear explanation.",
     color: "from-indigo-500 to-violet-500",
   },
   {
     icon: Sparkles,
-    title: "AI Feedback",
-    body: "Writing and Speaking are graded by AI against official band descriptors, with actionable tips.",
+    title: "AI Writing Feedback",
+    body: "Task 1 and Task 2 responses are graded with band estimates, strengths, weaknesses and next steps.",
     color: "from-violet-500 to-fuchsia-500",
   },
   {
     icon: TrendingUp,
     title: "Progress Tracking",
-    body: "Every attempt is saved so you can watch your band score climb across all four skills over time.",
+    body: "Every attempt is saved so your band trajectory and recurring weaknesses are based on real work.",
     color: "from-fuchsia-500 to-pink-500",
   },
   {
     icon: Layers,
-    title: "All Four Skills",
-    body: "Listening, Reading, Writing and Speaking — everything you need for test day in a single platform.",
+    title: "Evidence-Based Review",
+    body: "Reading answers carry paragraph and sentence evidence, ready for highlighted review mode.",
     color: "from-sky-500 to-blue-500",
   },
   {
@@ -76,7 +76,7 @@ export default function Features() {
         </h2>
         <p className="mt-4 text-lg text-slate-600">
           Everything you need to prepare smarter, practice realistically, and reach your target
-          band faster.
+          band with evidence you can inspect.
         </p>
       </motion.div>
 

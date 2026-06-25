@@ -4,7 +4,7 @@
 #
 # Required env (put in a .env file next to this one — see .env.example):
 #   POSTGRES_PASSWORD, SECRET_KEY, CORS_ORIGINS, NEXT_PUBLIC_API_URL,
-#   AI_PROVIDER, GEMINI_API_KEY (when AI_PROVIDER=gemini)
+#   AI_PROVIDER=gemini, GEMINI_API_KEY
 #
 # NOTE: terminate TLS for testora.studio at a reverse proxy (nginx/Caddy/Traefik)
 # in front of the `frontend` and `backend` services.
@@ -33,11 +33,12 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/testora
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
+      APP_ENV: production
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
       CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Almaty}
-      AI_PROVIDER: ${AI_PROVIDER:-mock}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      AI_PROVIDER: ${AI_PROVIDER:?set AI_PROVIDER}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?set GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
