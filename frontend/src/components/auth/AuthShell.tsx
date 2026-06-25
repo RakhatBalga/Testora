@@ -39,7 +39,7 @@ export default function AuthShell({
 
       <div className="mx-auto grid max-w-6xl gap-10 px-6 pb-10 pt-8 sm:px-8 lg:min-h-[calc(100vh-76px)] lg:grid-cols-[1.22fr_1fr] lg:items-stretch lg:gap-12 lg:pb-12">
         {/* Left: brand panel — content changes per step */}
-        <aside className="relative hidden overflow-hidden rounded-[28px] bg-[var(--brand)] p-12 text-white shadow-[0_20px_60px_-20px_rgba(37,99,235,0.45)] lg:flex lg:flex-col lg:justify-between xl:p-14">
+        <aside className="relative hidden overflow-hidden rounded-[28px] bg-[var(--brand)] p-12 text-white shadow-[0_20px_60px_-20px_rgba(37,99,235,0.45)] lg:flex lg:flex-col lg:justify-between lg:gap-12 xl:p-14">
           {/* academic dot grid */}
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.12]"
@@ -88,21 +88,23 @@ export default function AuthShell({
           </div>
 
           {/* progress mockup — reads as a real SaaS marketing block */}
-          <div className="relative rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
-            <div className="flex items-center justify-between">
+          <div className="relative rounded-2xl border border-white/15 bg-white/10 p-6 backdrop-blur-sm">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm text-white/60">Your target band</p>
-                <p className="mt-0.5 text-3xl font-extrabold tracking-tight">7.5</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-white/55">
+                  Your target band
+                </p>
+                <p className="mt-1.5 text-4xl font-extrabold leading-none tracking-tight">7.5</p>
               </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold">
+              <span className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold">
                 <TrendingUp className="h-3.5 w-3.5" />
                 +0.5 this month
               </span>
             </div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/15">
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/15">
               <div className="h-full w-[82%] rounded-full bg-white" />
             </div>
-            <p className="mt-2 text-xs text-white/55">82% toward your goal</p>
+            <p className="mt-2.5 text-xs text-white/55">82% toward your goal</p>
           </div>
         </aside>
 

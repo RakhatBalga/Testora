@@ -15,8 +15,8 @@ export default function CTA() {
         variants={fadeUp}
         className="relative overflow-hidden rounded-[32px] bg-slate-900 px-6 py-16 text-center sm:px-12"
       >
-        <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-indigo-500/30 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 -right-10 h-72 w-72 rounded-full bg-violet-500/30 blur-3xl" />
+        <div className="pointer-events-none absolute -left-16 -top-16 h-64 w-64 rounded-full bg-blue-500/30 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -right-10 h-72 w-72 rounded-full bg-blue-400/20 blur-3xl" />
 
         <div className="relative">
           <h2 className="mx-auto max-w-xl text-3xl font-extrabold tracking-tight text-white sm:text-4xl">

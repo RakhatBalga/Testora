@@ -10,7 +10,7 @@ const POINTS = [
   { title: "Full-length tests", body: "Reading and Listening tests with a realistic exam timer." },
   { title: "Writing & Speaking tasks", body: "Authentic prompts graded against IELTS descriptors." },
   { title: "Answer review", body: "Walk through every question with the correct answer." },
-  { title: "Achievements", body: "Streaks and milestones keep your practice consistent." },
+  { title: "AI Coach", body: "Streak tracking and a personalised daily plan keep your practice consistent." },
 ];
 
 export default function Showcase() {
@@ -25,7 +25,7 @@ export default function Showcase() {
           transition={{ duration: 0.6, ease: EASE }}
           className="relative order-2 lg:order-1"
         >
-          <div className="absolute -inset-4 -z-10 rounded-[32px] bg-gradient-to-br from-indigo-100 to-violet-100 blur-2xl" />
+          <div className="absolute -inset-4 -z-10 rounded-[32px] bg-blue-50 blur-2xl" />
           <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-300/40">
             <div className="mb-5 flex items-center justify-between">
               <p className="font-semibold text-slate-900">Performance</p>
@@ -43,7 +43,7 @@ export default function Showcase() {
                   whileInView={{ height: `${h}%` }}
                   viewport={viewport}
                   transition={{ duration: 0.7, ease: EASE, delay: i * 0.1 }}
-                  className="flex-1 rounded-t-lg bg-gradient-to-t from-indigo-500 to-violet-400"
+                  className="flex-1 rounded-t-lg bg-gradient-to-t from-blue-600 to-blue-400"
                 />
               ))}
             </div>
@@ -55,12 +55,12 @@ export default function Showcase() {
 
             <div className="mt-6 grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-slate-50 p-4">
-                <BarChart3 className="h-5 w-5 text-indigo-500" />
+                <BarChart3 className="h-5 w-5 text-blue-500" />
                 <p className="mt-2 text-2xl font-bold text-slate-900">128</p>
                 <p className="text-xs text-slate-500">Tests completed</p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4">
-                <TrendingUp className="h-5 w-5 text-violet-500" />
+                <TrendingUp className="h-5 w-5 text-blue-600" />
                 <p className="mt-2 text-2xl font-bold text-slate-900">7.5</p>
                 <p className="text-xs text-slate-500">Current band</p>
               </div>
@@ -76,7 +76,7 @@ export default function Showcase() {
           variants={stagger}
           className="order-1 lg:order-2"
         >
-          <motion.span variants={fadeUp} className="text-sm font-semibold uppercase tracking-wider text-indigo-600">
+          <motion.span variants={fadeUp} className="text-sm font-semibold uppercase tracking-wider text-blue-600">
             The platform
           </motion.span>
           <motion.h2
@@ -92,7 +92,7 @@ export default function Showcase() {
           <motion.ul variants={stagger} className="mt-8 grid gap-4 sm:grid-cols-2">
             {POINTS.map((p) => (
               <motion.li key={p.title} variants={fadeUp} className="flex gap-3">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-indigo-600" />
+                <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
                 <div>
                   <p className="font-semibold text-slate-900">{p.title}</p>
                   <p className="text-sm text-slate-600">{p.body}</p>
