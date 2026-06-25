@@ -45,6 +45,31 @@ Test a restore into a scratch database at least monthly — an untested backup i
 not a backup. Back up the audio directory separately (e.g. `rsync`/object store)
 since it is not captured by `pg_dump`.
 
+## Reading content import
+
+The production Reading pack is authored in `backend/content/reading/test-01.json`
+through `test-10.json`. Before importing into any persistent database, validate
+the pack:
+
+```bash
+cd backend
+python validate_reading.py
+```
+
+Expected result: 10 reading tests, 400 questions, and all checks passed. Import
+is idempotent by title, so it is safe to repeat:
+
+```bash
+python import_content.py content/reading/test-*.json
+```
+
+Repeat the same import once after the first run; the second run should report
+`added=0` and `skipped=10`. Legacy/demo Reading tests are intentionally hidden
+from the public test catalogue unless their titles match
+`IELTS Academic Reading - Test NN` or `IELTS Academic Reading — Test NN`.
+Do not delete legacy tests directly if they have attempts attached; historical
+attempts and review pages should remain available by id.
+
 ## Monitoring / metrics to watch
 
 Logs are structured (`%(asctime)s %(levelname)s [%(name)s] %(message)s`). Key
