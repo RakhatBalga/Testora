@@ -47,6 +47,8 @@ export default function ReadingPage() {
   const passageScrollRef = useRef<HTMLDivElement>(null);
   const questionsScrollRef = useRef<HTMLDivElement>(null);
   const submittedRef = useRef(false);
+  const remainingRef = useRef<number | null>(null);
+  const clearTimerRef = useRef<(() => void) | null>(null);
 
   const groups = useMemo(() => (test ? buildGroups(test) : []), [test]);
   const flat = useMemo(() => flattenQuestions(groups), [groups]);
@@ -65,12 +67,12 @@ export default function ReadingPage() {
         question_id: q.id,
         answer: answers[q.id] ?? null,
       }));
-      const elapsed = Math.max(0, test.duration_minutes * 60 - (timerRef.current ?? 0));
+      const elapsed = Math.max(0, test.duration_minutes * 60 - (remainingRef.current ?? 0));
       const res = await api.submit(test.id, payload, elapsed);
       localStorage.setItem(`${storeKey}-result`, String(res.id));
       localStorage.removeItem(`${storeKey}-answers`);
       localStorage.removeItem(`${storeKey}-updated`);
-      clearTimer();
+      clearTimerRef.current?.();
       setResult(res);
       window.scrollTo({ top: 0 });
     } catch (err) {
@@ -79,7 +81,6 @@ export default function ReadingPage() {
     } finally {
       setSubmitting(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [test, flat, answers, storeKey]);
 
   const { remaining, paused, pause, resume, clear: clearTimer } = useReadingTimer(
@@ -87,8 +88,14 @@ export default function ReadingPage() {
     (test?.duration_minutes ?? 60) * 60,
     handleSubmit
   );
-  const timerRef = useRef<number | null>(null);
-  timerRef.current = remaining;
+
+  useEffect(() => {
+    remainingRef.current = remaining;
+  }, [remaining]);
+
+  useEffect(() => {
+    clearTimerRef.current = clearTimer;
+  }, [clearTimer]);
 
   // Load test + restore answers + restore a prior submitted result.
   useEffect(() => {

@@ -135,8 +135,10 @@ export default function TestPage() {
   useEffect(() => {
     if (timeLeft === null) return;
     if (timeLeft <= 0) {
-      handleSubmit();
-      return;
+      const submitTimer = window.setTimeout(() => {
+        void handleSubmit();
+      }, 0);
+      return () => window.clearTimeout(submitTimer);
     }
     const timer = setTimeout(() => setTimeLeft((t) => (t ?? 0) - 1), 1000);
     return () => clearTimeout(timer);

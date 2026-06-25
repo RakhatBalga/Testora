@@ -33,7 +33,10 @@ export function useReadingTimer(
   const [paused, setPaused] = useState(false);
   const expiredRef = useRef(false);
   const onExpireRef = useRef(onExpire);
-  onExpireRef.current = onExpire;
+
+  useEffect(() => {
+    onExpireRef.current = onExpire;
+  }, [onExpire]);
 
   const persist = useCallback(
     (state: Persisted) => {
@@ -48,20 +51,22 @@ export function useReadingTimer(
 
   // Initialise from storage or start fresh.
   useEffect(() => {
-    const saved = load(key);
-    const now = Date.now();
-    if (saved?.pausedRemaining != null) {
-      setRemaining(saved.pausedRemaining);
-      setPaused(true);
-    } else if (saved?.deadline != null) {
-      setRemaining(Math.max(0, Math.round((saved.deadline - now) / 1000)));
-    } else {
-      const deadline = now + durationSeconds * 1000;
-      persist({ deadline, pausedRemaining: null });
-      setRemaining(durationSeconds);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+    const timer = window.setTimeout(() => {
+      const saved = load(key);
+      const now = Date.now();
+      if (saved?.pausedRemaining != null) {
+        setRemaining(saved.pausedRemaining);
+        setPaused(true);
+      } else if (saved?.deadline != null) {
+        setRemaining(Math.max(0, Math.round((saved.deadline - now) / 1000)));
+      } else {
+        const deadline = now + durationSeconds * 1000;
+        persist({ deadline, pausedRemaining: null });
+        setRemaining(durationSeconds);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [durationSeconds, key, persist]);
 
   // Tick once per second while running.
   useEffect(() => {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { ListChecks, Loader2 } from "lucide-react";
+import { ListChecks } from "lucide-react";
 import {
   api,
   type AnswerValue,
@@ -45,6 +45,8 @@ export default function ListeningPage() {
   const [error, setError] = useState("");
 
   const submittedRef = useRef(false);
+  const remainingRef = useRef<number | null>(null);
+  const clearTimerRef = useRef<(() => void) | null>(null);
 
   const sections = useMemo(() => (test ? buildGroups(test) : []), [test]);
   const flat = useMemo(() => flattenQuestions(sections), [sections]);
@@ -60,12 +62,12 @@ export default function ListeningPage() {
     setSubmitting(true);
     try {
       const payload = flat.map((q) => ({ question_id: q.id, answer: answers[q.id] ?? null }));
-      const elapsed = Math.max(0, test.duration_minutes * 60 - (timerRef.current ?? 0));
+      const elapsed = Math.max(0, test.duration_minutes * 60 - (remainingRef.current ?? 0));
       const res = await api.submit(test.id, payload, elapsed);
       localStorage.setItem(`${storeKey}-result`, String(res.id));
       localStorage.removeItem(`${storeKey}-answers`);
       localStorage.removeItem(`${storeKey}-updated`);
-      clearTimer();
+      clearTimerRef.current?.();
       setConfirmOpen(false);
       setResult(res);
       window.scrollTo({ top: 0 });
@@ -75,7 +77,6 @@ export default function ListeningPage() {
     } finally {
       setSubmitting(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [test, flat, answers, storeKey]);
 
   const { remaining, paused, pause, resume, clear: clearTimer } = useReadingTimer(
@@ -83,8 +84,14 @@ export default function ListeningPage() {
     (test?.duration_minutes ?? 30) * 60,
     handleSubmit // auto-submit on expiry (skips the confirm dialog)
   );
-  const timerRef = useRef<number | null>(null);
-  timerRef.current = remaining;
+
+  useEffect(() => {
+    remainingRef.current = remaining;
+  }, [remaining]);
+
+  useEffect(() => {
+    clearTimerRef.current = clearTimer;
+  }, [clearTimer]);
 
   useEffect(() => {
     if (!token) return;

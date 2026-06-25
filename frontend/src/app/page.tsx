@@ -18,12 +18,13 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import Landing from "@/components/landing/Landing";
-import { api, type Blocker, type Weakness, type BandGapResult, type BandTrajectoryResult, type DailyPlanTask, type BlockerHistory as BlockerHistoryData, type Streak } from "@/lib/api";
+import { api, type Blocker, type Weakness, type BandGapResult, type BandTrajectoryResult, type DailyPlanTask, type BlockerHistory as BlockerHistoryData, type Streak, type Recommendation } from "@/lib/api";
 import { greeting, type ProgressMovement } from "@/lib/coach";
 import { BandTrajectory } from "@/components/dashboard/BandTrajectory";
 import { WeaknessCard } from "@/components/dashboard/WeaknessCard";
 import { BlockerCard } from "@/components/dashboard/BlockerCard";
 import { BlockerHistory } from "@/components/dashboard/BlockerHistory";
+import { Recommendations } from "@/components/dashboard/Recommendations";
 
 /** Target band source. Future: profiles/goals.target_band. */
 const TARGET_BAND = 7.5;
@@ -45,6 +46,7 @@ function CoachDashboard({ username }: { username: string | null }) {
   const [todaysPlan, setTodaysPlan] = useState<DailyPlanTask[] | null>(null);
   const [blockerHistory, setBlockerHistory] = useState<BlockerHistoryData | null>(null);
   const [streak, setStreak] = useState<Streak | null>(null);
+  const [recommendations, setRecommendations] = useState<Recommendation[] | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -67,6 +69,11 @@ function CoachDashboard({ username }: { username: string | null }) {
     settle(api.getDailyPlan(TARGET_BAND, 3), (p) => setTodaysPlan(p.plan), { generated_for: "", has_data: false, plan: [] });
     settle(api.getBlockerHistory(), setBlockerHistory, { has_data: false, history: [], note: null });
     settle(api.getStreak(), setStreak, { current_streak: 0, active_today: false });
+    settle(
+      api.getRecommendations(TARGET_BAND, 5),
+      (r) => setRecommendations(r.recommendations),
+      { recommendations: [] }
+    );
 
     // Recent movement = real Before→After of the most recent graded Writing attempt.
     (async () => {
@@ -337,6 +344,9 @@ function CoachDashboard({ username }: { username: string | null }) {
       <div className="animate-fade-up [animation-delay:220ms]">
         <BlockerHistory data={blockerHistory} loading={loading} />
       </div>
+
+      {/* SECTION 5.7 — Recommended next (real, Recommendation Engine) */}
+      <Recommendations recommendations={recommendations} />
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* SECTION 6 — Band trajectory (real) */}

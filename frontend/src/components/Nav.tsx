@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Dumbbell,
   ClipboardCheck,
   BarChart3,
+  History,
+  LogOut,
   Menu,
   X,
 } from "lucide-react";
@@ -19,15 +21,37 @@ const LINKS = [
   { href: "/practice", label: "Practice", icon: Dumbbell },
   { href: "/mock-tests", label: "Mock Tests", icon: ClipboardCheck },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/history", label: "History", icon: History },
 ];
 
 export default function Nav() {
-  const { token, username, ready } = useAuth();
+  const { token, username, ready, logout } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setMobileOpen(false), 0);
+    return () => window.clearTimeout(timer);
+  }, [pathname]);
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname?.startsWith(`${href}/`);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   return (
     <nav className="sticky top-0 z-40 border-b border-[var(--border)] bg-white/80 backdrop-blur">
@@ -68,17 +92,38 @@ export default function Nav() {
         <div className="flex items-center gap-2">
           {!ready ? null : token ? (
             <>
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 rounded-full border border-[var(--border)] py-1 pl-1 pr-3 transition hover:border-slate-300 hover:bg-slate-50"
-              >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--brand)] text-xs font-semibold text-white">
-                  {username?.[0]?.toUpperCase() ?? "?"}
-                </span>
-                <span className="hidden text-sm font-medium text-[var(--text-primary)] sm:block">
-                  {username ?? "Profile"}
-                </span>
-              </Link>
+              <div className="relative" ref={menuRef}>
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((v) => !v)}
+                  className="flex items-center gap-2 rounded-full border border-[var(--border)] py-1 pl-1 pr-3 transition hover:border-slate-300 hover:bg-slate-50"
+                >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--brand)] text-xs font-semibold text-white">
+                    {username?.[0]?.toUpperCase() ?? "?"}
+                  </span>
+                  <span className="hidden text-sm font-medium text-[var(--text-primary)] sm:block">
+                    {username ?? "Profile"}
+                  </span>
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 mt-2 w-44 overflow-hidden rounded-xl border border-[var(--border)] bg-white py-1 shadow-lg shadow-slate-200/60">
+                    <Link
+                      href="/profile"
+                      className="block px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-slate-50"
+                    >
+                      Profile
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => setMobileOpen((v) => !v)}
