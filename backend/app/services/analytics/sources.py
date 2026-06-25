@@ -11,12 +11,9 @@ from app.models.writing import WritingSubmission
 from app.models.speaking import SpeakingSubmission
 from app.models.attempt import Attempt
 from app.models.test import Test
+from app.services.band import round_ielts as _round_half
 
 SKILLS = ("writing", "speaking", "reading", "listening")
-
-
-def _round_half(x: float) -> float:
-    return max(0.0, min(9.0, round(x * 2) / 2))
 
 
 def _attempt_query(db: Session, user_id: int, test_type: str):

@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Dumbbell,
   ClipboardCheck,
-  BookMarked,
   BarChart3,
   History,
   LogOut,
@@ -21,7 +20,6 @@ const LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/practice", label: "Practice", icon: Dumbbell },
   { href: "/mock-tests", label: "Mock Tests", icon: ClipboardCheck },
-  { href: "/vocabulary", label: "Vocabulary", icon: BookMarked },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/history", label: "History", icon: History },
 ];
@@ -43,7 +41,8 @@ export default function Nav() {
   }, []);
 
   useEffect(() => {
-    setMobileOpen(false);
+    const timer = window.setTimeout(() => setMobileOpen(false), 0);
+    return () => window.clearTimeout(timer);
   }, [pathname]);
 
   const isActive = (href: string, exact?: boolean) =>
