@@ -6,12 +6,27 @@ export function mediaUrl(path: string | null): string | null {
   return `${API_URL}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
+/**
+ * Like mediaUrl, but appends the auth token as a query param so a private,
+ * ownership-checked media endpoint can be loaded by a plain <audio> element
+ * (which cannot send an Authorization header).
+ */
+export function authedMediaUrl(path: string | null): string | null {
+  const url = mediaUrl(path);
+  if (!url) return null;
+  const token = getToken();
+  if (!token) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+}
+
 export type Test = {
   id: number;
   title: string;
   test_type: string;
   description: string | null;
   duration_minutes: number;
+  difficulty?: string | null;
+  question_count?: number;
 };
 
 export type QuestionType =
@@ -22,12 +37,19 @@ export type QuestionType =
   | "fill_blank"
   | "short_answer";
 
+export type EvidenceSpan = {
+  paragraph: number;
+  text: string;
+};
+
 export type Question = {
   id: number;
   text: string;
   question_type: QuestionType;
   options: string[] | null;
   order: number;
+  /** Where the answer is supported in the passage (Reading Review highlight). */
+  evidence?: EvidenceSpan[] | null;
 };
 
 export type Section = {
@@ -52,6 +74,7 @@ export type AnswerResult = {
   correct_answer: string;
   is_correct: boolean;
   marked_for_review: boolean;
+  explanation?: string | null;
 };
 
 export type BreakdownItem = {
@@ -92,11 +115,21 @@ export type AttemptSummary = {
 
 export type AnswerValue = string | string[] | null;
 
+export type RoadmapStep = {
+  target_band: number;
+  actions: string[];
+};
+
 export type Feedback = {
   band: number;
   criteria: Record<string, number>;
   summary: string;
   suggestions: string[];
+  // Two-stage coaching extras (optional — older submissions omit them).
+  criteria_notes?: Record<string, string>;
+  strengths?: string[];
+  weaknesses?: string[];
+  roadmap?: RoadmapStep[];
 };
 
 export type WritingTask = {
@@ -284,6 +317,22 @@ function getToken(): string | null {
   return localStorage.getItem("token");
 }
 
+/**
+ * Global handler for an expired/invalid session. Clears stored credentials and
+ * bounces the user to /login (preserving where they were) instead of leaving
+ * them stuck on a screen full of failed requests. Safe to call repeatedly.
+ */
+function handleUnauthorized(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("token");
+  localStorage.removeItem("username");
+  const { pathname, search } = window.location;
+  if (pathname !== "/login") {
+    const next = encodeURIComponent(pathname + search);
+    window.location.assign(`/login?next=${next}`);
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -294,6 +343,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   const res = await fetch(`${API_URL}${path}`, { ...options, headers });
 
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error("Your session has expired. Please sign in again.");
+  }
   if (!res.ok) {
     let detail = "Request failed";
     try {
@@ -318,6 +371,10 @@ async function requestForm<T>(path: string, formData: FormData): Promise<T> {
     headers,
   });
 
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error("Your session has expired. Please sign in again.");
+  }
   if (!res.ok) {
     let detail = "Request failed";
     try {

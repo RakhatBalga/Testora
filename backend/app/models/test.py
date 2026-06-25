@@ -11,6 +11,7 @@ class Test(Base):
     test_type = Column(String, nullable=False)  # "reading" or "listening"
     description = Column(Text, nullable=True)
     duration_minutes = Column(Integer, nullable=False, default=30)
+    difficulty = Column(String, nullable=True)  # "Easy" | "Medium" | "Hard"
 
     sections = relationship(
         "Section",
@@ -51,5 +52,10 @@ class Question(Base):
     question_type = Column(String, nullable=False, default="single_choice")
     options = Column(JSON, nullable=True)  # list of choices (null for free-text)
     correct_answer = Column(JSON, nullable=False)  # list of acceptable answers
+    explanation = Column(Text, nullable=True)  # shown in review mode (why the answer is right)
+    # Where the answer is supported in the passage — list of {paragraph, text}
+    # spans, used by Reading Review to highlight evidence. Null for question
+    # types with no passage support (e.g. Not Given) or un-authored content.
+    evidence = Column(JSON, nullable=True)
 
     section = relationship("Section", back_populates="questions")
