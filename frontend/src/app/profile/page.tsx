@@ -140,7 +140,7 @@ export default function ProfilePage() {
           <ResultSection
             title="Reading & Listening"
             empty="No tests taken yet."
-            href="/mock-tests"
+            href="/practice"
             cta="Take a test"
             items={attempts.map((a) => {
               const percent = Math.round((a.score / a.total) * 100);

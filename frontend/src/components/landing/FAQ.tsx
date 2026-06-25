@@ -12,7 +12,7 @@ const FAQS = [
   },
   {
     q: "Which IELTS skills are covered?",
-    a: "All four: Listening, Reading, Writing and Speaking. Reading and Listening are auto-scored, while Writing and Speaking receive AI feedback based on official band descriptors.",
+    a: "The launch focus is Academic Reading and AI-supported Writing. Reading is auto-scored with answer explanations; Writing receives criterion-by-criterion AI feedback.",
   },
   {
     q: "How accurate is the AI band score?",
@@ -20,11 +20,11 @@ const FAQS = [
   },
   {
     q: "Can I track my progress over time?",
-    a: "Absolutely. Every attempt is saved to your profile, so you can watch your band score trend upward across each skill.",
+    a: "Yes. Attempts are saved to your profile, and analytics are generated from your real graded work.",
   },
   {
     q: "Do the tests follow the real exam format?",
-    a: "Yes. Reading and Listening tests mirror the real IELTS structure and include a live countdown timer to build exam-day stamina.",
+    a: "Yes. The Reading tests follow the Academic Reading structure: three passages, 40 questions and a live countdown timer.",
   },
 ];
 
