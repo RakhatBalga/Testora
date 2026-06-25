@@ -97,16 +97,17 @@ def _config(
         system_instruction=system,
         response_mime_type="application/json",
         # Headroom so a full criterion-level rubric + errors never gets truncated
-        # mid-JSON. The examiner prompt is intentionally detailed; 2.5 models can
-        # spend many output tokens on schema fields even when the final JSON is
-        # compact. A truncated body is surfaced as a grading error, never saved as
-        # a bogus grade.
+        # mid-JSON. The examiner prompt is intentionally detailed; Pro models also
+        # spend output tokens on required thinking. A truncated body is surfaced as
+        # a grading error, never saved as a bogus grade.
         max_output_tokens=max_tokens,
         temperature=temperature,
-        # gemini-2.5-* thinking tokens count against max_output_tokens. Disable
-        # them for deterministic structured grading.
-        thinking_config=types.ThinkingConfig(thinking_budget=0),
     )
+    # Gemini Flash supports disabling thinking, which keeps structured grading
+    # cheaper and more deterministic. Gemini Pro requires thinking mode, so do
+    # not send an invalid zero budget for Pro models.
+    if "pro" not in settings.GEMINI_MODEL.lower():
+        kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
     if schema is not None:
         kwargs["response_schema"] = schema
     return types.GenerateContentConfig(**kwargs)
@@ -133,6 +134,8 @@ def _generate(
 ) -> str:
     """Call Gemini with a fresh client, retrying transient failures with backoff."""
     last_exc: Exception | None = None
+    if "pro" in settings.GEMINI_MODEL.lower():
+        max_tokens = max(max_tokens, 8192)
     for attempt in range(1, _MAX_ATTEMPTS + 1):
         try:
             client = _client()
