@@ -1,3 +1,4 @@
+import re
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
@@ -9,6 +10,14 @@ from app.models.user import User
 from app.schemas.test import TestOut, TestDetail
 
 router = APIRouter()
+
+READING_CATALOG_TITLE = re.compile(r"^IELTS Academic Reading\s+(?:—|-)\s+Test\s+\d{2}$")
+
+
+def is_catalog_test(test: Test) -> bool:
+    if test.test_type != "reading":
+        return True
+    return bool(READING_CATALOG_TITLE.match(test.title))
 
 
 @router.get("", response_model=List[TestOut])
@@ -24,7 +33,7 @@ def list_tests(
         .group_by(Section.test_id)
         .all()
     )
-    tests = db.query(Test).all()
+    tests = [t for t in db.query(Test).order_by(Test.id).all() if is_catalog_test(t)]
     return [
         {
             "id": t.id,
