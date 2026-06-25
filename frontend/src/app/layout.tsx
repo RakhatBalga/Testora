@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Testora — IELTS Practice",
-  description: "Practice IELTS Reading and Listening tests",
+  description: "Practice IELTS Academic Reading and get AI Writing feedback",
 };
 
 export default function RootLayout({

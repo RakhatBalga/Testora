@@ -268,7 +268,7 @@ function CoachDashboard({ username }: { username: string | null }) {
           </div>
         </section>
 
-        {/* SECTION 4 — Today's plan (mock, out of scope) */}
+        {/* SECTION 4 — Today's plan */}
         <section className="animate-fade-up rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:180ms]">
           <div className="mb-4 flex items-center gap-2">
             <ListChecks className="h-5 w-5 text-[var(--brand)]" />
@@ -377,7 +377,7 @@ function CoachDashboard({ username }: { username: string | null }) {
           )}
         </section>
 
-        {/* SECTION 7 — Recent movement (mock, out of scope) */}
+        {/* SECTION 7 — Recent movement */}
         <section className="animate-fade-up rounded-3xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:280ms]">
           <h2 className="text-base font-semibold text-[var(--text-primary)]">Recent movement</h2>
           <p className="mt-1 text-xs text-[var(--text-secondary)]">Change since your last Writing attempt</p>

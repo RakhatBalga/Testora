@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
-import { Users, FileText, ListChecks, GraduationCap, type LucideIcon } from "lucide-react";
+import { BookOpen, FileText, ListChecks, SearchCheck, type LucideIcon } from "lucide-react";
 import { fadeUp, stagger, viewport } from "./motion";
 
 type Stat = {
@@ -13,10 +13,10 @@ type Stat = {
 };
 
 const STATS: Stat[] = [
-  { icon: Users, value: 12000, suffix: "+", label: "Active learners" },
-  { icon: FileText, value: 240, suffix: "+", label: "Practice tests" },
-  { icon: ListChecks, value: 18000, suffix: "+", label: "Questions answered" },
-  { icon: GraduationCap, value: 35, suffix: "", label: "Expert examiners" },
+  { icon: BookOpen, value: 10, suffix: "", label: "Academic Reading tests" },
+  { icon: FileText, value: 30, suffix: "", label: "Original passages" },
+  { icon: SearchCheck, value: 400, suffix: "", label: "Evidence-backed questions" },
+  { icon: ListChecks, value: 40, suffix: "", label: "Questions per test" },
 ];
 
 function format(n: number) {
