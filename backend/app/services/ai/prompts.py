@@ -20,11 +20,19 @@ BAND CALIBRATION (apply strictly — most real candidates sit between 5.0 and 6.
   grammatical errors that can impede the reader. Ideas present but underdeveloped
   or poorly organised.
 - Band 6: Addresses the task, though some parts are weaker. Generally relevant
-  ideas, sometimes under-extended. A mix of simple and complex sentences with
-  frequent but non-impeding errors. Adequate but unremarkable vocabulary.
-- Band 7: Covers the task with a clear position/overview and developed ideas.
-  Logical organisation with good cohesion. Flexible vocabulary with some less
-  common items. Frequent error-free sentences; errors are minor.
+  ideas, though some may be inadequately developed, unclear, or repetitive.
+  Organisation is coherent but linking may be mechanical or faulty. Vocabulary is
+  adequate for the task, with some attempts at less common items but noticeable
+  inaccuracy. A mix of simple and complex sentences is used; grammar errors may
+  be frequent but usually do not stop communication.
+- Band 7: Addresses all parts of the task and presents a clear position. Main
+  ideas are extended and supported, though support may be uneven, over-general,
+  or occasionally lack focus. Information is logically organised with clear
+  progression; cohesive devices are generally appropriate though not always
+  effortless. Vocabulary shows enough range and precision for flexibility, with
+  some less common items and only occasional word-choice/collocation errors.
+  There is a variety of complex structures, frequent error-free sentences, and
+  good control; errors are present but normally minor.
 - Band 8: Fully and skilfully handles the task. Well-extended, well-supported
   ideas. Wide, precise, natural vocabulary. Wide grammatical range with the vast
   majority of sentences error-free. Rare slips only.
@@ -33,17 +41,31 @@ BAND CALIBRATION (apply strictly — most real candidates sit between 5.0 and 6.
 
 CONSERVATISM RULE: If a script sits between two bands on a criterion, award the
 LOWER band. Do not reward effort, length, or topic familiarity. Penalise, do not
-overlook, errors. Band 8 and 9 must be genuinely exceptional.
+overlook, errors. However, do not push a script down to Band 6 merely because it
+has minor errors or uneven support if it otherwise matches Band 7 descriptors.
+Band 8 and 9 must be genuinely exceptional.
 """
 
 _SCORING_PROTOCOL = """\
 SCORING PROTOCOL:
 - Score each of the four criteria INDEPENDENTLY on the 0-9 scale in 0.5 steps.
+- Prefer full-band criterion scores when the descriptor match is clear. Use a
+  half-band only when the script is truly balanced between two adjacent bands.
+  If most evidence matches Band 7 and the weaknesses are minor, award 7.0 rather
+  than 6.5.
 - Justify each criterion in 1-2 sentences citing concrete evidence from THIS
   script (quote short snippets). Never give a justification that could apply to
   any essay.
 - Do NOT compute the overall band yourself; report only the four criteria. The
   application computes the overall as the mean rounded to the nearest 0.5.
+- Use 6.5 only for genuinely borderline 6/7 performance. Do not require Band-8
+  polish for Band 7:
+  * clear paragraphing and logical progression can be CC 7 even if some linkers
+    feel mechanical;
+  * enough range and precision for the task can be LR 7 even with occasional
+    repetition or collocation slips;
+  * frequent error-free sentences and good control can be GRA 7 even with minor
+    article, punctuation, or word-form errors that do not impede meaning.
 - Extract concrete errors into the `errors` array. Each error must quote the
   offending text in `snippet` and give a corrected form in `correction`.
 - Put only genuine mistakes in `errors`: the correction must materially change
@@ -51,6 +73,13 @@ SCORING PROTOCOL:
   or already-correct sentences as errors.
 - The `subskill` must match the error type. For comma/full-stop/semicolon issues
   use `punctuation`, not `articles`; for a/an/the issues use `articles`.
+- The `category` must match the criterion area: word_choice, collocation,
+  repetition, spelling, and word_formation are `vocabulary`; punctuation,
+  articles, tense, agreement, and sentence_structure are `grammar`.
+- Do not treat acceptable phrasing as an error just because another version is
+  more concise, more formal, or slightly more natural. Optional refinements
+  belong in coaching, not in examiner `errors`, and must not reduce GRA/LR below
+  Band 7 unless they are repeated enough to affect clarity or naturalness.
 - severity: 1 = minor/local, 2 = noticeable/recurring, 3 = band-limiting.
 - Never invent strengths or errors that are not present in the script.
 """
