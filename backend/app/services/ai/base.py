@@ -29,6 +29,7 @@ class Feedback:
     # Coaching extras (populated by the two-stage Writing engine; empty otherwise).
     strengths: list[str] = field(default_factory=list)
     weaknesses: list[str] = field(default_factory=list)
+    actions: list[str] = field(default_factory=list)
     roadmap: list[dict] = field(default_factory=list)  # [{target_band, actions[]}]
     # True when grading could not be completed (AI error/timeout/malformed
     # output). The caller must NOT persist this as a real Band-0 grade.
@@ -38,16 +39,23 @@ class Feedback:
         # Mistakes are persisted separately (mistakes table), not in the stored
         # feedback JSON. The extra coaching keys are additive and backward
         # compatible — older consumers read band/criteria/summary/suggestions.
-        return {
+        data = {
             "band": self.band,
             "criteria": self.criteria,
             "summary": self.summary,
             "suggestions": self.suggestions,
-            "criteria_notes": self.criteria_notes,
-            "strengths": self.strengths,
-            "weaknesses": self.weaknesses,
-            "roadmap": self.roadmap,
         }
+        if self.criteria_notes:
+            data["criteria_notes"] = self.criteria_notes
+        if self.strengths:
+            data["strengths"] = self.strengths
+        if self.weaknesses:
+            data["weaknesses"] = self.weaknesses
+        if self.actions:
+            data["actions"] = self.actions
+        if self.roadmap:
+            data["roadmap"] = self.roadmap
+        return data
 
 
 class WritingGrader(ABC):
