@@ -1,129 +1,132 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, notFound } from "next/navigation";
-import { api, Test } from "@/lib/api";
+import { api, type AttemptSummary, type Test } from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { LinkButton } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ContinueCard } from "@/components/library/ContinueCard";
+import { TestCard } from "@/components/library/TestCard";
+import { RecentActivity } from "@/components/library/RecentActivity";
+import { accentFor, deriveProgress, type TestProgress } from "@/components/library/library";
 
-const META: Record<
-  string,
-  { title: string; description: string; badge: "blue" | "violet" }
-> = {
+const META: Record<string, { eyebrow: string; title: string; description: string }> = {
   reading: {
-    title: "Reading",
-    description: "Academic passages with a mix of IELTS question types.",
-    badge: "blue",
+    eyebrow: "Reading",
+    title: "Academic IELTS Reading Practice",
+    description: "Improve speed, accuracy and band score through realistic IELTS passages.",
   },
   listening: {
-    title: "Listening",
-    description: "Audio clips with comprehension questions and a live timer.",
-    badge: "violet",
+    eyebrow: "Listening",
+    title: "Academic IELTS Listening Practice",
+    description: "Sharpen comprehension and note-taking with full, timed listening sets.",
   },
 };
 
-export default function TestCategoryPage() {
+function examHref(test: Test): string {
+  if (test.test_type === "reading") return `/reading/${test.id}`;
+  if (test.test_type === "listening") return `/listening/${test.id}`;
+  return `/test/${test.id}`;
+}
+
+export default function TestLibraryPage() {
   const { token, ready } = useRequireAuth();
   const params = useParams();
   const type = String(params.type);
   const meta = META[type];
+  const accent = accentFor(type);
 
   const [tests, setTests] = useState<Test[]>([]);
+  const [attempts, setAttempts] = useState<AttemptSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!token || !meta) return;
-    api
-      .listTests()
-      .then((all) => setTests(all.filter((t) => t.test_type === type)))
+    Promise.all([api.listTests(), api.listAttempts()])
+      .then(([allTests, allAttempts]) => {
+        setTests(allTests.filter((t) => t.test_type === type));
+        setAttempts(allAttempts.filter((a) => a.test_type === type));
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [token, type, meta]);
+
+  // Derive per-test progress once (reads localStorage), keyed by test id.
+  const progressById = useMemo(() => {
+    const map = new Map<number, TestProgress>();
+    for (const t of tests) map.set(t.id, deriveProgress(t, attempts));
+    return map;
+  }, [tests, attempts]);
+
+  // Most recent in-progress test → "Continue last session".
+  const continueTest = useMemo(() => {
+    const inProgress = tests
+      .map((t) => ({ test: t, p: progressById.get(t.id)! }))
+      .filter((x) => x.p?.status === "in_progress");
+    inProgress.sort((a, b) => (b.p.updatedAt ?? 0) - (a.p.updatedAt ?? 0));
+    return inProgress[0] ?? null;
+  }, [tests, progressById]);
 
   if (!meta) return notFound();
   if (!ready || !token) return null;
 
   return (
-    <div className="space-y-8">
-      <div className="animate-fade-up">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-slate-900"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 6l-6 6 6 6" />
-          </svg>
-          All tests
-        </Link>
-        <div className="mt-3">
-          <Badge tone={meta.badge} className="mb-3">
-            IELTS {meta.title}
-          </Badge>
-          <h1 className="text-2xl font-bold text-slate-900">{meta.title} tests</h1>
-          <p className="mt-1 text-slate-500">{meta.description}</p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-6xl space-y-10">
+      {/* SECTION 1 — HERO */}
+      <header className="animate-fade-up">
+        <p className={`text-sm font-semibold uppercase tracking-wider ${accent.text}`}>
+          {meta.eyebrow}
+        </p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">
+          {meta.title}
+        </h1>
+        <p className="mt-2 max-w-2xl text-slate-500">{meta.description}</p>
+      </header>
 
-      {error && (
-        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+      {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
+
+      {/* SECTION 2 — CONTINUE LEARNING */}
+      {!loading && continueTest && (
+        <div className="animate-fade-up">
+          <ContinueCard
+            test={continueTest.test}
+            href={examHref(continueTest.test)}
+            progress={continueTest.p}
+          />
+        </div>
       )}
 
-      {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {[0, 1].map((i) => (
-            <Card key={i} className="p-5">
-              <Skeleton className="h-5 w-16" />
-              <Skeleton className="mt-3 h-6 w-40" />
-              <Skeleton className="mt-3 h-4 w-full" />
-              <Skeleton className="mt-2 h-4 w-20" />
-            </Card>
-          ))}
-        </div>
-      ) : tests.length === 0 && !error ? (
-        <Card className="p-10 text-center">
-          <p className="text-slate-500">No {meta.title.toLowerCase()} tests available yet.</p>
-          <div className="mt-4 flex justify-center">
-            <LinkButton href="/" variant="secondary">
-              Back to tests
-            </LinkButton>
+      {/* SECTION 4 — LIBRARY */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-bold text-slate-900">Test library</h2>
+
+        {loading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-44 w-full rounded-2xl" />
+            ))}
           </div>
-        </Card>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {tests.map((test, i) => (
-            <Link
-              key={test.id}
-              href={`/test/${test.id}`}
-              className="group animate-fade-up"
-              style={{ animationDelay: `${i * 80}ms` }}
-            >
-              <Card className="h-full p-5 transition duration-300 group-hover:-translate-y-1 group-hover:border-blue-300 group-hover:shadow-lg">
-                <Badge tone={meta.badge}>{test.test_type}</Badge>
-                <h3 className="mt-3 text-lg font-semibold text-slate-900">
-                  {test.title}
-                </h3>
-                {test.description && (
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                    {test.description}
-                  </p>
-                )}
-                <div className="mt-4 flex items-center gap-1.5 text-sm text-slate-400">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <circle cx="12" cy="12" r="9" />
-                    <path strokeLinecap="round" d="M12 7v5l3 2" />
-                  </svg>
-                  {test.duration_minutes} min
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
+        ) : tests.length === 0 ? (
+          <div className="rounded-2xl bg-white px-6 py-12 text-center text-slate-500 shadow-sm ring-1 ring-slate-100">
+            No {meta.eyebrow.toLowerCase()} tests available yet.
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {tests.map((t) => (
+              <TestCard
+                key={t.id}
+                test={t}
+                href={examHref(t)}
+                progress={progressById.get(t.id)!}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* SECTION 5 — RECENT ACTIVITY */}
+      {!loading && <RecentActivity attempts={attempts} />}
     </div>
   );
 }
