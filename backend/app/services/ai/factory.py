@@ -12,6 +12,16 @@ def _provider() -> str:
     return "mock"
 
 
+def effective_provider() -> str:
+    """The provider that will actually grade, after key-presence fallback.
+
+    Equals "mock" whenever a real provider is selected but its API key is
+    missing. Startup validation uses this to refuse a production launch on the
+    mock grader.
+    """
+    return _provider()
+
+
 def get_writing_grader() -> WritingGrader:
     provider = _provider()
     if provider == "claude":

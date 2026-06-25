@@ -217,13 +217,16 @@ export default function CompareContent() {
 
   useEffect(() => {
     if (!token || !a || !b) return;
-    setLoading(true);
-    setError(null);
-    api
-      .compareHistory(a, b)
-      .then(setResult)
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    const timer = window.setTimeout(() => {
+      setLoading(true);
+      setError(null);
+      api
+        .compareHistory(a, b)
+        .then(setResult)
+        .catch((e) => setError(e.message))
+        .finally(() => setLoading(false));
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [token, a, b]);
 
   if (!ready || !token) return null;

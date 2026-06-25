@@ -1,11 +1,23 @@
+import logging
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
 
+from app.core.config import settings
+from app.core.logging import configure_logging
+from app.core.errortracking import init_error_tracking
+from app.database import engine
+from app.services.ai.factory import effective_provider
 from app.routers import auth, tests, results, writing, speaking, analytics
 from app.routers import history
+
+configure_logging()
+init_error_tracking()
+logger = logging.getLogger("testora")
 
 app = FastAPI(title="Testora API")
 
@@ -14,11 +26,37 @@ STATIC_DIR.mkdir(exist_ok=True)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def _validate_ai_configuration() -> None:
+    """Guard against shipping the free mock grader to production.
+
+    The grader factory silently falls back to the mock when a real provider is
+    selected without its API key. In production that would mean every user gets
+    fake grades (and Band-0 Speaking) — so we refuse to start. Outside
+    production we only warn, keeping local/dev mock grading frictionless.
+    """
+    provider = effective_provider()
+    if settings.is_production and provider == "mock":
+        raise RuntimeError(
+            "Refusing to start in production with the mock grader. Set "
+            "AI_PROVIDER=gemini and provide GEMINI_API_KEY (current "
+            f"AI_PROVIDER={settings.AI_PROVIDER!r})."
+        )
+    if provider == "mock" and settings.AI_PROVIDER.lower() != "mock":
+        logger.warning(
+            "AI_PROVIDER=%s but its API key is empty — falling back to the free "
+            "mock grader (Speaking returns Band 0). Real grading is DISABLED.",
+            settings.AI_PROVIDER,
+        )
+    else:
+        logger.info("AI grading provider: %s", provider)
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(tests.router, prefix="/tests", tags=["Tests"])
@@ -37,4 +75,41 @@ def root():
 
 @app.get("/health")
 def health_check():
+    # Back-compat alias for the liveness probe.
     return {"status": "ok"}
+
+
+@app.get("/health/live")
+async def health_live():
+    """Liveness: the process is up and the event loop is responsive."""
+    return {"status": "alive"}
+
+
+def _check_db() -> bool:
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True
+    except Exception:  # noqa: BLE001 — readiness must never raise
+        logger.exception("Readiness DB check failed")
+        return False
+
+
+@app.get("/health/ready")
+async def health_ready(response: Response):
+    """Readiness: only route traffic here once dependencies are usable.
+
+    Verifies the database is reachable and reports the effective grader. The DB
+    check runs in the threadpool so it can't block the event loop.
+    """
+    db_ok = await run_in_threadpool(_check_db)
+    provider = effective_provider()
+    grading_ok = not (settings.is_production and provider == "mock")
+    ready = db_ok and grading_ok
+    if not ready:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+    return {
+        "status": "ready" if ready else "not_ready",
+        "database": "ok" if db_ok else "down",
+        "grading_provider": provider,
+    }

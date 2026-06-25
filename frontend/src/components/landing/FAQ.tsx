@@ -44,7 +44,7 @@ function Item({ q, a }: { q: string; a: string }) {
         <motion.span
           animate={{ rotate: open ? 45 : 0 }}
           transition={{ duration: 0.25 }}
-          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600"
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600"
         >
           <Plus className="h-4 w-4" />
         </motion.span>
@@ -75,7 +75,7 @@ export default function FAQ() {
         variants={fadeUp}
         className="text-center"
       >
-        <span className="text-sm font-semibold uppercase tracking-wider text-indigo-600">FAQ</span>
+        <span className="text-sm font-semibold uppercase tracking-wider text-blue-600">FAQ</span>
         <h2 className="mt-3 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
           Frequently asked questions
         </h2>

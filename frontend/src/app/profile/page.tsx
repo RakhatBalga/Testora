@@ -68,6 +68,9 @@ export default function ProfilePage() {
   if (!ready || !token) return null;
 
   const taken = attempts.length;
+  const tasksDone = writing.length + speaking.length;
+  const totalSessions = taken + tasksDone;
+
   // Average/best across every graded item (Reading, Listening, Writing, Speaking)
   // on the IELTS 0–9 band scale, rounded to the nearest half-band.
   const bands = [
@@ -80,7 +83,6 @@ export default function ProfilePage() {
       ? null
       : roundHalf(bands.reduce((sum, b) => sum + b, 0) / bands.length);
   const bestBand = bands.length === 0 ? null : Math.max(...bands);
-  const tasksDone = writing.length + speaking.length;
 
   return (
     <div className="space-y-10">
@@ -88,7 +90,7 @@ export default function ProfilePage() {
       <Card className="animate-fade-up overflow-hidden">
         <div className="bg-hero relative flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-violet-500 text-2xl font-bold text-white shadow-sm">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand)] text-2xl font-bold text-white shadow-sm">
               {username?.[0]?.toUpperCase() ?? "?"}
             </span>
             <div>
@@ -107,7 +109,7 @@ export default function ProfilePage() {
 
       {/* Stats */}
       <div className="grid animate-fade-up gap-4 [animation-delay:80ms] sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Tests taken" value={loading ? null : String(taken)} />
+        <StatCard label="Total sessions" value={loading ? null : String(totalSessions)} />
         <StatCard
           label="Average band"
           value={loading ? null : avgBand === null ? "—" : avgBand.toFixed(1)}
@@ -117,7 +119,7 @@ export default function ProfilePage() {
           value={loading ? null : bestBand === null ? "—" : bestBand.toFixed(1)}
         />
         <StatCard
-          label="Writing & Speaking"
+          label="AI sessions"
           value={loading ? null : String(tasksDone)}
         />
       </div>
@@ -138,7 +140,7 @@ export default function ProfilePage() {
           <ResultSection
             title="Reading & Listening"
             empty="No tests taken yet."
-            href="/"
+            href="/mock-tests"
             cta="Take a test"
             items={attempts.map((a) => {
               const percent = Math.round((a.score / a.total) * 100);

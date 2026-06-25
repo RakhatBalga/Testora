@@ -135,6 +135,7 @@ def get_attempt(
             "correct_answer": _display(record.question.correct_answer),
             "is_correct": record.is_correct,
             "marked_for_review": bool(record.marked_for_review),
+            "explanation": record.question.explanation,
         }
         for record in attempt.answers
     ]

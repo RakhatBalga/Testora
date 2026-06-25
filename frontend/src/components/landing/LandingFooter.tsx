@@ -47,7 +47,7 @@ export default function LandingFooter() {
           {/* Brand */}
           <div>
             <Link href="/" className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white shadow-md">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand)] text-sm font-bold text-white shadow-md">
                 T
               </span>
               <span className="text-lg font-bold tracking-tight text-slate-900">Testora</span>
@@ -58,7 +58,7 @@ export default function LandingFooter() {
             </p>
             <a
               href="mailto:hello@testora.app"
-              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700"
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
             >
               <Mail className="h-4 w-4" />
               hello@testora.app
@@ -74,7 +74,7 @@ export default function LandingFooter() {
                   <li key={l.label}>
                     <a
                       href={l.href}
-                      className="text-sm text-slate-600 transition-colors hover:text-indigo-600"
+                      className="text-sm text-slate-600 transition-colors hover:text-blue-600"
                     >
                       {l.label}
                     </a>
@@ -95,7 +95,7 @@ export default function LandingFooter() {
                 key={s.label}
                 href={s.href}
                 aria-label={s.label}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-all hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-all hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
               >
                 <s.icon className="h-4 w-4" />
               </a>

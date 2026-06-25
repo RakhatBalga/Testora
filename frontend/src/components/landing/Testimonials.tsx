@@ -62,7 +62,7 @@ export default function Testimonials() {
         variants={fadeUp}
         className="mx-auto max-w-2xl text-center"
       >
-        <span className="text-sm font-semibold uppercase tracking-wider text-indigo-600">
+        <span className="text-sm font-semibold uppercase tracking-wider text-blue-600">
           Reviews
         </span>
         <h2 className="mt-3 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">

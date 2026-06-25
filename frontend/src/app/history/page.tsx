@@ -5,9 +5,6 @@ import Link from "next/link";
 import {
   History,
   ArrowUpRight,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   SlidersHorizontal,
   GitCompare,
   X,
@@ -66,13 +63,19 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (!token) return;
-    setItems(null);
-    setError(null);
-    setSelected([]);
-    api
-      .getHistory(skillFilter === "all" ? undefined : skillFilter, sort)
-      .then((r) => setItems(r.items))
-      .catch((e) => { setError(e.message); setItems([]); });
+    const timer = window.setTimeout(() => {
+      setItems(null);
+      setError(null);
+      setSelected([]);
+      api
+        .getHistory(skillFilter === "all" ? undefined : skillFilter, sort)
+        .then((r) => setItems(r.items))
+        .catch((e) => {
+          setError(e.message);
+          setItems([]);
+        });
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [token, skillFilter, sort]);
 
   const toggleSelect = (item: HistoryItem) => {

@@ -1,0 +1,61 @@
+# Production composition for Testora.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Required env (put in a .env file next to this one — see .env.example):
+#   POSTGRES_PASSWORD, SECRET_KEY, CORS_ORIGINS, NEXT_PUBLIC_API_URL,
+#   AI_PROVIDER, GEMINI_API_KEY (when AI_PROVIDER=gemini)
+#
+# NOTE: terminate TLS for testora.studio at a reverse proxy (nginx/Caddy/Traefik)
+# in front of the `frontend` and `backend` services.
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: testora
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d testora"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/testora
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Almaty}
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - audio:/app/private/audio_submissions
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
+  audio:

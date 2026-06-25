@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { api, mediaUrl, SpeakingSubmission } from "@/lib/api";
+import { api, authedMediaUrl, SpeakingSubmission } from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { FeedbackCard } from "@/components/FeedbackCard";
 import { Badge } from "@/components/ui/Badge";
@@ -45,7 +45,7 @@ export default function SpeakingResultPage() {
   }
   if (!submission) return null;
 
-  const audioSrc = mediaUrl(submission.audio_url);
+  const audioSrc = authedMediaUrl(submission.audio_url);
 
   return (
     <div className="space-y-8">

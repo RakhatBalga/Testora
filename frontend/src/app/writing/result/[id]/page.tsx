@@ -29,12 +29,15 @@ export default function WritingResultPage() {
       .then(setSubmission)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-    setImpactLoading(true);
-    api
-      .getProgressImpact("writing", submissionId)
-      .then(setImpact)
-      .catch(() => setImpact(null))
-      .finally(() => setImpactLoading(false));
+    const impactTimer = window.setTimeout(() => {
+      setImpactLoading(true);
+      api
+        .getProgressImpact("writing", submissionId)
+        .then(setImpact)
+        .catch(() => setImpact(null))
+        .finally(() => setImpactLoading(false));
+    }, 0);
+    return () => window.clearTimeout(impactTimer);
   }, [token, submissionId]);
 
   if (!ready || !token) return null;

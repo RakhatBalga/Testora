@@ -1,4 +1,4 @@
-import { CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ArrowRight, TrendingUp } from "lucide-react";
 import { Feedback } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
 
@@ -17,15 +17,18 @@ function barColor(band: number): string {
 export function FeedbackCard({ feedback }: { feedback: Feedback }) {
   const hasCriteria = Object.keys(feedback.criteria).length > 0;
   const graded = feedback.band > 0 || hasCriteria;
+  const notes = feedback.criteria_notes ?? {};
   const strengths = feedback.strengths ?? [];
   const weaknesses = feedback.weaknesses ?? [];
-  // Prefer the dedicated actions list; fall back to legacy suggestions.
-  const actions = (feedback.actions && feedback.actions.length > 0)
-    ? feedback.actions
-    : feedback.suggestions;
+  const actions =
+    feedback.actions && feedback.actions.length > 0
+      ? feedback.actions
+      : feedback.suggestions;
+  const roadmap = feedback.roadmap ?? [];
 
   return (
     <div className="space-y-6">
+      {/* Overall band */}
       <Card className="overflow-hidden">
         <div className="bg-hero p-8 text-center">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -41,6 +44,7 @@ export function FeedbackCard({ feedback }: { feedback: Feedback }) {
         </div>
       </Card>
 
+      {/* Per-criterion scores + examiner notes */}
       {hasCriteria && (
         <Card className="p-6">
           <h3 className="mb-4 font-semibold text-slate-900">By criterion</h3>
@@ -49,9 +53,7 @@ export function FeedbackCard({ feedback }: { feedback: Feedback }) {
               <div key={name}>
                 <div className="mb-1 flex items-center justify-between text-sm">
                   <span className="text-slate-700">{name}</span>
-                  <span className="font-semibold text-slate-900">
-                    {band.toFixed(1)}
-                  </span>
+                  <span className="font-semibold text-slate-900">{band.toFixed(1)}</span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
                   <div
@@ -59,14 +61,18 @@ export function FeedbackCard({ feedback }: { feedback: Feedback }) {
                     style={{ width: `${(band / 9) * 100}%` }}
                   />
                 </div>
+                {notes[name] && (
+                  <p className="mt-1.5 text-xs leading-relaxed text-slate-500">{notes[name]}</p>
+                )}
               </div>
             ))}
           </div>
         </Card>
       )}
 
+      {/* Summary */}
       <Card className="p-6">
-        <h3 className="mb-2 font-semibold text-slate-900">Summary</h3>
+        <h3 className="mb-2 font-semibold text-slate-900">Examiner summary</h3>
         <p className="text-sm leading-relaxed text-slate-600">{feedback.summary}</p>
       </Card>
 
@@ -123,6 +129,32 @@ export function FeedbackCard({ feedback }: { feedback: Feedback }) {
               </li>
             ))}
           </ul>
+        </Card>
+      )}
+
+      {roadmap.length > 0 && (
+        <Card className="p-6">
+          <h3 className="mb-4 flex items-center gap-2 font-semibold text-slate-900">
+            <TrendingUp className="h-5 w-5 text-[var(--brand)]" />
+            Your roadmap
+          </h3>
+          <div className="space-y-4">
+            {roadmap.map((step, i) => (
+              <div key={i} className="rounded-xl border border-[var(--border)] p-4">
+                <p className="mb-2 text-sm font-semibold text-slate-900">
+                  To reach Band {step.target_band.toFixed(1)}
+                </p>
+                <ul className="space-y-1.5">
+                  {step.actions.map((a, j) => (
+                    <li key={j} className="flex gap-2 text-sm text-slate-600">
+                      <span className="mt-0.5 text-[var(--brand)]">→</span>
+                      {a}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </Card>
       )}
     </div>

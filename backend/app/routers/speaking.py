@@ -1,10 +1,24 @@
+import logging
+import mimetypes
 from pathlib import Path
-import shutil
 import uuid
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
+from fastapi.responses import FileResponse
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.dependencies import get_db, get_current_user
 from app.models.speaking import SpeakingTask, SpeakingSubmission
 from app.models.user import User
@@ -14,12 +28,20 @@ from app.schemas.speaking import (
     SpeakingTaskOut,
 )
 from app.services.ai import get_speaking_grader
+from app.services.ai.concurrency import run_grading
 from app.services.mistakes import record_mistakes
 
 router = APIRouter()
+logger = logging.getLogger("testora.speaking")
 
-UPLOAD_DIR = Path(__file__).resolve().parents[2] / "static" / "audio_submissions"
+# Private (NOT publicly served) directory for user recordings — they are PII and
+# must only be reachable through the authenticated audio endpoint below.
+UPLOAD_DIR = Path(__file__).resolve().parents[2] / "private" / "audio_submissions"
+# Legacy location for recordings created before audio was made private.
+_LEGACY_DIR = Path(__file__).resolve().parents[2] / "static" / "audio_submissions"
 ALLOWED_EXTENSIONS = {".webm", ".ogg", ".mp3", ".wav", ".m4a"}
+_MAX_AUDIO_BYTES = settings.MAX_AUDIO_UPLOAD_MB * 1024 * 1024
+_CHUNK = 1024 * 1024  # 1 MiB
 
 
 def _questions(task: SpeakingTask) -> list[str]:
@@ -29,6 +51,11 @@ def _questions(task: SpeakingTask) -> list[str]:
 def _safe_suffix(filename: str | None) -> str:
     suffix = Path(filename or "").suffix.lower()
     return suffix if suffix in ALLOWED_EXTENSIONS else ".webm"
+
+
+def _audio_endpoint(submission_id: int) -> str:
+    """Authenticated URL the client uses to fetch a recording."""
+    return f"/speaking/submissions/{submission_id}/audio"
 
 
 @router.get("/tasks", response_model=list[SpeakingTaskOut])
@@ -52,7 +79,7 @@ def get_task(
 
 
 @router.post("/submit", response_model=SpeakingSubmissionOut)
-def submit(
+async def submit(
     task_id: int = Form(...),
     audio: UploadFile = File(...),
     db: Session = Depends(get_db),
@@ -67,26 +94,61 @@ def submit(
     filename = f"user{current_user.id}_task{task.id}_{uuid.uuid4().hex}{suffix}"
     audio_path = UPLOAD_DIR / filename
 
-    with audio_path.open("wb") as buffer:
-        shutil.copyfileobj(audio.file, buffer)
+    # Stream to disk with a hard size ceiling so a huge upload can't exhaust
+    # memory/disk or blow up the AI request. Abort and clean up if exceeded.
+    written = 0
+    try:
+        with audio_path.open("wb") as buffer:
+            while chunk := audio.file.read(_CHUNK):
+                written += len(chunk)
+                if written > _MAX_AUDIO_BYTES:
+                    buffer.close()
+                    audio_path.unlink(missing_ok=True)
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail=f"Audio exceeds the {settings.MAX_AUDIO_UPLOAD_MB} MB limit.",
+                    )
+                buffer.write(chunk)
+    except HTTPException:
+        raise
+    if written == 0:
+        audio_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail="Empty audio upload.")
 
-    audio_url = f"/static/audio_submissions/{filename}"
     submission = SpeakingSubmission(
         user_id=current_user.id,
         task_id=task.id,
-        audio_url=audio_url,
+        # Store only the filename; the file is private and served via an
+        # authenticated endpoint, not a public static URL.
+        audio_url=filename,
         transcript=None,
     )
 
     grader = get_speaking_grader()
-    feedback = grader.grade(
+    feedback = await run_grading(
+        grader.grade,
         part=task.part,
         questions=_questions(task),
         audio_path=str(audio_path),
         transcript=None,
     )
-    submission.band = feedback.band
     submission.feedback = feedback.to_dict()
+
+    if feedback.error:
+        # Grading failed — keep the recording, but don't store a bogus band or
+        # mistakes. The user can re-submit.
+        submission.band = None
+        logger.warning(
+            "Speaking grading failed for user %s task %s; saved without a band",
+            current_user.id,
+            task.id,
+        )
+        db.add(submission)
+        db.commit()
+        db.refresh(submission)
+        return _to_out(submission, task)
+
+    submission.band = feedback.band
 
     db.add(submission)
     db.flush()  # assign submission.id before recording its mistakes
@@ -101,6 +163,67 @@ def submit(
     db.refresh(submission)
 
     return _to_out(submission, task)
+
+
+def _resolve_media_user(token: str | None, db: Session) -> User:
+    """Authenticate a media request via a bearer header OR a `token` query param.
+
+    The browser <audio> element can't send an Authorization header, so signed
+    playback falls back to a query-string token (the same short-lived JWT).
+    """
+    cred_error = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    if not token:
+        raise cred_error
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username = payload.get("sub")
+        if not username:
+            raise cred_error
+    except JWTError:
+        raise cred_error
+    user = db.query(User).filter(User.username == username).first()
+    if user is None:
+        raise cred_error
+    return user
+
+
+@router.get("/submissions/{submission_id}/audio")
+def get_audio(
+    submission_id: int,
+    token: str | None = Query(None),
+    authorization: str | None = Header(None),
+    db: Session = Depends(get_db),
+):
+    """Stream a recording only to its owner (ownership-checked, private dir)."""
+    bearer = None
+    if authorization and authorization.lower().startswith("bearer "):
+        bearer = authorization[7:]
+    user = _resolve_media_user(token or bearer, db)
+
+    submission = (
+        db.query(SpeakingSubmission)
+        .filter(
+            SpeakingSubmission.id == submission_id,
+            SpeakingSubmission.user_id == user.id,
+        )
+        .first()
+    )
+    if not submission or not submission.audio_url:
+        raise HTTPException(status_code=404, detail="Recording not found")
+
+    name = Path(submission.audio_url).name
+    path = UPLOAD_DIR / name
+    if not path.exists():
+        path = _LEGACY_DIR / name  # recordings from before audio was private
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Recording not found")
+
+    media_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
+    return FileResponse(path, media_type=media_type)
 
 
 @router.get("/submissions", response_model=list[SpeakingSubmissionSummary])
@@ -119,7 +242,7 @@ def list_submissions(
             "id": s.id,
             "task_id": s.task_id,
             "task_part": s.task.part,
-            "audio_url": s.audio_url,
+            "audio_url": _audio_endpoint(s.id),
             "band": s.band,
             "created_at": s.created_at,
         }
@@ -152,7 +275,7 @@ def _to_out(submission: SpeakingSubmission, task: SpeakingTask) -> dict:
         "task_id": submission.task_id,
         "task_part": task.part,
         "questions": _questions(task),
-        "audio_url": submission.audio_url,
+        "audio_url": _audio_endpoint(submission.id),
         "transcript": submission.transcript,
         "band": submission.band,
         "feedback": submission.feedback,
