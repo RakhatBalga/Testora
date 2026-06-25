@@ -1,0 +1,890 @@
+{
+  "tests": [
+    {
+      "title": "IELTS Academic Reading - Test 09",
+      "test_type": "reading",
+      "difficulty": "Medium-Hard",
+      "description": "Original full-length Academic Reading test: 3 passages, 40 questions, 60 minutes.",
+      "duration_minutes": 60,
+      "sections": [
+        {
+          "order": 1,
+          "title": "Passage 1 - The Quiet Return of Repair",
+          "instructions": "You should spend about 20 minutes on Questions 1-13.",
+          "passage": "The Quiet Return of Repair\n\n¶1 For much of the late twentieth century, repairing ordinary household objects came to seem old-fashioned. A cracked toaster, a torn jacket or a chair with a loose leg was more likely to be replaced than mended, especially when new products were cheap and widely available. Manufacturers often made repair difficult by sealing cases with unusual screws, gluing batteries in place or refusing to supply spare parts. Consumers, meanwhile, lost confidence in their own practical skills. What had once been a routine response to damage gradually became an exception, associated with poverty, nostalgia or specialist workshops. In many households, the knowledge of how to open, test and adjust common objects also stopped being passed from older relatives to younger ones.\n\n¶2 In many towns, however, that attitude is beginning to shift. Repair cafes now invite people to bring broken lamps, radios, toys, bicycles and clothing to a community hall, where volunteers help them diagnose the fault and attempt a repair. The service is usually free, though donations are welcome, and the aim is as educational as it is practical. Visitors are not meant simply to hand over a broken item and collect it later. They are encouraged to sit beside the volunteer, ask questions and learn how the problem is being solved. This turns a single repair into a small lesson in materials, tools and patient observation, even when the object itself is not saved.\n\n¶3 The environmental argument is straightforward. Every item repaired is one fewer item thrown away and, at least for a time, one fewer replacement manufactured. This matters because the visible waste in a bin is only the final stage of a much longer chain of extraction, production, shipping and packaging. A small appliance may contain metals mined on one continent, plastic made from oil on another and electronic components assembled in a third. Repair therefore saves more than the object itself; it avoids some of the hidden costs that were already spent before the object reached the shop. When repair becomes normal, those distant processes become easier to notice, because the owner begins to see a simple kettle or coat as the end point of a long industrial journey.\n\n¶4 The social benefits are less obvious but often just as important. A repair cafe gives people permission to admit that they do not know how something works. It also brings together generations that may rarely meet elsewhere: retired engineers, students, parents, tailors, hobbyists and people who simply want to avoid waste. The atmosphere is usually informal, and success is not guaranteed. Sometimes an object cannot be repaired, but even then the owner may leave understanding why it failed, rather than feeling that modern products are mysterious sealed boxes beyond ordinary comprehension. That explanation can be surprisingly empowering, because it replaces vague frustration with a clearer sense of how materials fail and how design choices matter.\n\n¶5 Repair also challenges a particular idea of convenience. Buying a replacement is quick, but it teaches little and makes the owner dependent on a continuous flow of new goods. Repair takes longer and may require patience, yet it can restore a sense of agency. A person who has replaced a plug, stitched a seam or cleaned the contacts inside a radio is less likely to view damage as an automatic ending. The object becomes not a disposable unit but something with a history that can be extended by care.\n\n¶6 There are limits. Some products are too cheaply made to justify the labour of repair, and others are deliberately designed so that opening them safely is difficult. Volunteers may be willing, but they cannot always find parts, diagrams or legal permission to bypass software locks. This has led campaigners to argue for a right to repair: rules requiring manufacturers to make spare parts, manuals and basic diagnostic information available. Without such support, community repair remains valuable but uneven, depending too much on improvisation and goodwill. Even the most skilled volunteer is limited when a manufacturer withholds a circuit diagram or sells a replacement part only as part of a larger expensive unit.\n\n¶7 The renewed interest in repair does not mean a return to a past in which every household was self-sufficient. Modern devices are complex, and few people expect to mend everything they own. What repair cafes offer instead is a modest correction to a culture of immediate replacement. They remind people that objects are not magic, that skills can be shared, and that keeping something in use can be a small act of resistance against waste. In that sense, repair is not merely about broken things. It is about repairing a relationship between people, materials and time. The damaged object becomes an invitation to slow down, look closely and ask whether replacement is really the only sensible response.",
+          "questions": [
+            {
+              "order": 1,
+              "text": "In the late twentieth century, many damaged household objects were more often replaced than repaired.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "True",
+                "False",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "True"
+              ],
+              "explanation": "Paragraph 1 says damaged items were more likely to be replaced than mended.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "sentence": 2,
+                  "quote": "more likely to be replaced than mended"
+                }
+              ]
+            },
+            {
+              "order": 2,
+              "text": "Repair cafes normally charge a fixed fee for every repair.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "True",
+                "False",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "False"
+              ],
+              "explanation": "Paragraph 2 says the service is usually free, though donations are welcome.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 3,
+                  "quote": "usually free, though donations are welcome"
+                }
+              ]
+            },
+            {
+              "order": 3,
+              "text": "Repair cafes are intended partly to teach visitors how repairs are done.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "True",
+                "False",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "True"
+              ],
+              "explanation": "Paragraph 2 says the aim is educational as well as practical and visitors learn beside volunteers.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 3,
+                  "quote": "the aim is as educational as it is practical"
+                }
+              ]
+            },
+            {
+              "order": 4,
+              "text": "The passage says repaired objects usually last longer than new objects.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "True",
+                "False",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "Not Given"
+              ],
+              "explanation": "The passage says repair extends use, but it does not compare the lifespan of repaired and new objects.",
+              "evidence": []
+            },
+            {
+              "order": 5,
+              "text": "Some products are designed in ways that make safe repair difficult.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "True",
+                "False",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "True"
+              ],
+              "explanation": "Paragraph 6 says some products are deliberately designed so that opening them safely is difficult.",
+              "evidence": [
+                {
+                  "paragraph": 6,
+                  "sentence": 2,
+                  "quote": "opening them safely is difficult"
+                }
+              ]
+            },
+            {
+              "order": 6,
+              "text": "Repair cafes may accept broken lamps, radios, toys, bicycles and ______.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "clothing"
+              ],
+              "explanation": "Paragraph 2 lists clothing among the items people bring to repair cafes.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 2,
+                  "quote": "bicycles and clothing"
+                }
+              ]
+            },
+            {
+              "order": 7,
+              "text": "Repair can restore a sense of ______ to the owner.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "agency"
+              ],
+              "explanation": "Paragraph 5 states that repair can restore a sense of agency.",
+              "evidence": [
+                {
+                  "paragraph": 5,
+                  "sentence": 3,
+                  "quote": "restore a sense of agency"
+                }
+              ]
+            },
+            {
+              "order": 8,
+              "text": "Campaigners argue for rules requiring access to spare parts, manuals and diagnostic ______.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "information"
+              ],
+              "explanation": "Paragraph 6 mentions basic diagnostic information as part of right-to-repair rules.",
+              "evidence": [
+                {
+                  "paragraph": 6,
+                  "sentence": 4,
+                  "quote": "basic diagnostic information available"
+                }
+              ]
+            },
+            {
+              "order": 9,
+              "text": "Which paragraph explains hidden environmental costs before a product reaches a shop?",
+              "question_type": "matching",
+              "options": [
+                "Paragraph 1",
+                "Paragraph 2",
+                "Paragraph 3",
+                "Paragraph 4",
+                "Paragraph 5",
+                "Paragraph 6",
+                "Paragraph 7"
+              ],
+              "correct_answer": [
+                "Paragraph 3"
+              ],
+              "explanation": "Paragraph 3 describes extraction, production, shipping and packaging before an object reaches the shop.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 5,
+                  "quote": "before the object reached the shop"
+                }
+              ]
+            },
+            {
+              "order": 10,
+              "text": "Which paragraph describes repair cafes as places where different generations can meet?",
+              "question_type": "matching",
+              "options": [
+                "Paragraph 1",
+                "Paragraph 2",
+                "Paragraph 3",
+                "Paragraph 4",
+                "Paragraph 5",
+                "Paragraph 6",
+                "Paragraph 7"
+              ],
+              "correct_answer": [
+                "Paragraph 4"
+              ],
+              "explanation": "Paragraph 4 says repair cafes bring together generations that may rarely meet elsewhere.",
+              "evidence": [
+                {
+                  "paragraph": 4,
+                  "sentence": 2,
+                  "quote": "brings together generations"
+                }
+              ]
+            },
+            {
+              "order": 11,
+              "text": "Which paragraph defines the wider meaning of repair beyond broken objects?",
+              "question_type": "matching",
+              "options": [
+                "Paragraph 1",
+                "Paragraph 2",
+                "Paragraph 3",
+                "Paragraph 4",
+                "Paragraph 5",
+                "Paragraph 6",
+                "Paragraph 7"
+              ],
+              "correct_answer": [
+                "Paragraph 7"
+              ],
+              "explanation": "Paragraph 7 says repair is about repairing a relationship between people, materials and time.",
+              "evidence": [
+                {
+                  "paragraph": 7,
+                  "sentence": 7,
+                  "quote": "repairing a relationship between people, materials and time"
+                }
+              ]
+            },
+            {
+              "order": 12,
+              "text": "According to Paragraph 6, community repair can be uneven because it depends too much on",
+              "question_type": "single_choice",
+              "options": [
+                "improvisation and goodwill",
+                "expensive advertising",
+                "government ownership",
+                "international shipping"
+              ],
+              "correct_answer": [
+                "improvisation and goodwill"
+              ],
+              "explanation": "Paragraph 6 says community repair depends too much on improvisation and goodwill without right-to-repair support.",
+              "evidence": [
+                {
+                  "paragraph": 6,
+                  "sentence": 5,
+                  "quote": "depending too much on improvisation and goodwill"
+                }
+              ]
+            },
+            {
+              "order": 13,
+              "text": "What does a repair cafe offer as a modest correction to?",
+              "question_type": "short_answer",
+              "options": null,
+              "correct_answer": [
+                "a culture of immediate replacement",
+                "culture of immediate replacement"
+              ],
+              "explanation": "Paragraph 7 says repair cafes offer a modest correction to a culture of immediate replacement.",
+              "evidence": [
+                {
+                  "paragraph": 7,
+                  "sentence": 3,
+                  "quote": "a culture of immediate replacement"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "title": "Passage 2 - Farming with Fewer Chemicals",
+          "instructions": "You should spend about 20 minutes on Questions 14-26.",
+          "passage": "Farming with Fewer Chemicals\n\n¶1 The twentieth century transformed farming with synthetic fertilisers, pesticides and herbicides. These products helped farmers feed growing populations by increasing yields and reducing losses to insects, weeds and disease. They also made farming more predictable, which mattered greatly in a business exposed to weather and fluctuating prices. Yet the success came with side effects. Chemicals applied to fields can move into rivers, reduce insect life, harm soil organisms and encourage the evolution of resistant pests. The question facing many farmers today is not whether chemicals should disappear altogether, but how their use can be reduced without sacrificing reliable harvests. That question is especially urgent because farms must remain productive while also responding to stricter environmental rules and more demanding consumers. It is also made harder by climate instability, which can turn a manageable pest problem into a serious outbreak within a few warm, wet days.\n\n¶2 One answer is integrated pest management, often shortened to IPM. Instead of spraying on a calendar whether pests are present or not, farmers monitor their fields and act only when damage is likely to exceed an economic threshold. They may introduce natural predators, rotate crops, plant pest-resistant varieties or use traps before turning to chemicals. Spraying becomes a last resort rather than the first response. The approach requires more observation and knowledge, but it can lower costs as well as environmental harm, because fewer unnecessary treatments are applied. It also changes the farmer's role from routine applicator to field investigator, making local observation as important as the product label. The method works best when farmers keep records over several seasons, so that decisions are based on patterns rather than isolated alarms.\n\n¶3 Crop rotation is one of the oldest tools in this newer strategy. When the same crop is grown repeatedly in the same field, pests and diseases adapted to that crop can build up in the soil. Changing the crop interrupts their life cycles and can also improve soil structure. Legumes, for instance, add nitrogen through their association with bacteria, reducing the need for fertiliser in the following season. Rotation is not a romantic return to the past; it is a practical use of ecological knowledge within a modern farming system. The challenge is that rotations must still fit machinery, storage facilities, labour patterns and market contracts, so ecological sense alone is rarely enough. A crop that improves the soil may still be unattractive if there is no local buyer or if it leaves expensive equipment unused.\n\n¶4 Technology is also changing what reduced-chemical farming can mean. Sensors, satellite images and drones can identify differences within a field that are invisible from ground level. A farmer may discover that one section needs treatment while another does not, or that poor growth is caused by waterlogging rather than insects. Precision sprayers can then apply chemicals only where they are needed and at the lowest effective dose. This is not chemical-free farming, but it replaces blanket treatment with targeted intervention, reducing waste while preserving the farmer's ability to respond quickly. The data can also reveal whether an expensive chemical application is likely to pay for itself, which makes restraint easier to justify in financial terms. For large farms, even a small reduction in spraying across hundreds of hectares can represent a significant saving.\n\n¶5 Biological controls offer another route, though they require caution. Releasing a predator, parasite or disease that attacks a pest can be highly effective, especially in greenhouses and orchards where conditions are easier to manage. However, history contains examples of introduced species becoming problems in their own right. For this reason, modern biological control involves careful testing before release and close monitoring afterwards. The aim is to work with ecological relationships, not to create a new imbalance in the hope of solving an old one. Biological solutions therefore demand humility, because living agents can behave differently once released into a complex landscape.\n\n¶6 The economics are not simple. Reducing chemical use may save money on inputs, but it can require extra labour, training and equipment. Some farmers fear that even a small fall in yield could threaten their income, particularly when buyers demand uniform produce at low prices. Certification schemes and premium markets can help, but they do not reach every crop or region. Public policy also matters: advice services, insurance systems and subsidies can either support careful reduction or push farmers towards the apparently safer option of routine spraying. A farmer who is penalised for minor cosmetic damage may feel forced to use chemicals even when the biological risk is small.\n\n¶7 A balanced view recognises both the achievements and the limits of chemical farming. Synthetic inputs have prevented crop failures and made food cheaper for many people; pretending otherwise is not helpful. But dependence on them has hidden costs that are becoming harder to ignore. The most promising future is not a single technique but a combination of monitoring, rotation, biological knowledge, precision equipment and market incentives. Farming with fewer chemicals is therefore not simply a technical change. It asks farmers, consumers and governments to share responsibility for how food is produced. Consumers who demand flawless produce at the lowest possible price are part of the system, not distant observers of it. If the market rewards appearance above resilience, farmers will find it harder to take environmental risks, however persuasive the science may be in principle or public policy.",
+          "questions": [
+            {
+              "order": 14,
+              "text": "Heading for Paragraph 1",
+              "question_type": "matching",
+              "options": [
+                "The promise and cost of chemical farming",
+                "Using chemicals only when necessary",
+                "An old practice with modern value",
+                "Mapping variation within a field",
+                "The careful use of living controls",
+                "The economic difficulty of change",
+                "A shared responsibility for food production",
+                "Ending all synthetic inputs"
+              ],
+              "correct_answer": [
+                "The promise and cost of chemical farming"
+              ],
+              "explanation": "Paragraph 1 describes both the yield benefits and environmental side effects of synthetic farm chemicals.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "sentence": 4,
+                  "quote": "the success came with side effects"
+                }
+              ]
+            },
+            {
+              "order": 15,
+              "text": "Heading for Paragraph 2",
+              "question_type": "matching",
+              "options": [
+                "The promise and cost of chemical farming",
+                "Using chemicals only when necessary",
+                "An old practice with modern value",
+                "Mapping variation within a field",
+                "The careful use of living controls",
+                "The economic difficulty of change",
+                "A shared responsibility for food production",
+                "Ending all synthetic inputs"
+              ],
+              "correct_answer": [
+                "Using chemicals only when necessary"
+              ],
+              "explanation": "Paragraph 2 explains IPM, where farmers act only when damage is likely to exceed a threshold.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 2,
+                  "quote": "act only when damage is likely"
+                }
+              ]
+            },
+            {
+              "order": 16,
+              "text": "Heading for Paragraph 3",
+              "question_type": "matching",
+              "options": [
+                "The promise and cost of chemical farming",
+                "Using chemicals only when necessary",
+                "An old practice with modern value",
+                "Mapping variation within a field",
+                "The careful use of living controls",
+                "The economic difficulty of change",
+                "A shared responsibility for food production",
+                "Ending all synthetic inputs"
+              ],
+              "correct_answer": [
+                "An old practice with modern value"
+              ],
+              "explanation": "Paragraph 3 presents crop rotation as an old tool and practical ecological knowledge in modern farming.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 1,
+                  "quote": "one of the oldest tools"
+                }
+              ]
+            },
+            {
+              "order": 17,
+              "text": "Heading for Paragraph 4",
+              "question_type": "matching",
+              "options": [
+                "The promise and cost of chemical farming",
+                "Using chemicals only when necessary",
+                "An old practice with modern value",
+                "Mapping variation within a field",
+                "The careful use of living controls",
+                "The economic difficulty of change",
+                "A shared responsibility for food production",
+                "Ending all synthetic inputs"
+              ],
+              "correct_answer": [
+                "Mapping variation within a field"
+              ],
+              "explanation": "Paragraph 4 explains how sensors, satellite images and drones identify differences within fields.",
+              "evidence": [
+                {
+                  "paragraph": 4,
+                  "sentence": 2,
+                  "quote": "identify differences within a field"
+                }
+              ]
+            },
+            {
+              "order": 18,
+              "text": "Heading for Paragraph 5",
+              "question_type": "matching",
+              "options": [
+                "The promise and cost of chemical farming",
+                "Using chemicals only when necessary",
+                "An old practice with modern value",
+                "Mapping variation within a field",
+                "The careful use of living controls",
+                "The economic difficulty of change",
+                "A shared responsibility for food production",
+                "Ending all synthetic inputs"
+              ],
+              "correct_answer": [
+                "The careful use of living controls"
+              ],
+              "explanation": "Paragraph 5 discusses biological controls and the need for careful testing and monitoring.",
+              "evidence": [
+                {
+                  "paragraph": 5,
+                  "sentence": 5,
+                  "quote": "careful testing before release"
+                }
+              ]
+            },
+            {
+              "order": 19,
+              "text": "Heading for Paragraph 6",
+              "question_type": "matching",
+              "options": [
+                "The promise and cost of chemical farming",
+                "Using chemicals only when necessary",
+                "An old practice with modern value",
+                "Mapping variation within a field",
+                "The careful use of living controls",
+                "The economic difficulty of change",
+                "A shared responsibility for food production",
+                "Ending all synthetic inputs"
+              ],
+              "correct_answer": [
+                "The economic difficulty of change"
+              ],
+              "explanation": "Paragraph 6 says the economics are not simple and outlines costs, risks and market pressures.",
+              "evidence": [
+                {
+                  "paragraph": 6,
+                  "sentence": 1,
+                  "quote": "The economics are not simple"
+                }
+              ]
+            },
+            {
+              "order": 20,
+              "text": "According to Paragraph 1, synthetic chemicals helped farmers by",
+              "question_type": "single_choice",
+              "options": [
+                "increasing yields and reducing losses",
+                "removing all weather risks",
+                "making food more expensive",
+                "eliminating resistant pests"
+              ],
+              "correct_answer": [
+                "increasing yields and reducing losses"
+              ],
+              "explanation": "Paragraph 1 says these products helped by increasing yields and reducing losses to pests and disease.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "sentence": 2,
+                  "quote": "increasing yields and reducing losses"
+                }
+              ]
+            },
+            {
+              "order": 21,
+              "text": "In IPM, spraying should be regarded as",
+              "question_type": "single_choice",
+              "options": [
+                "a last resort",
+                "a daily routine",
+                "the only effective method",
+                "a substitute for monitoring"
+              ],
+              "correct_answer": [
+                "a last resort"
+              ],
+              "explanation": "Paragraph 2 says spraying becomes a last resort rather than the first response.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 4,
+                  "quote": "a last resort rather than the first response"
+                }
+              ]
+            },
+            {
+              "order": 22,
+              "text": "Why can legumes reduce fertiliser needs in the following season?",
+              "question_type": "single_choice",
+              "options": [
+                "they add nitrogen through bacteria",
+                "they prevent all weeds from growing",
+                "they require no water",
+                "they attract more buyers"
+              ],
+              "correct_answer": [
+                "they add nitrogen through bacteria"
+              ],
+              "explanation": "Paragraph 3 says legumes add nitrogen through association with bacteria.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 4,
+                  "quote": "add nitrogen through their association with bacteria"
+                }
+              ]
+            },
+            {
+              "order": 23,
+              "text": "Precision sprayers are used to apply chemicals",
+              "question_type": "single_choice",
+              "options": [
+                "only where they are needed",
+                "across every part of a field",
+                "after every rainfall",
+                "without monitoring"
+              ],
+              "correct_answer": [
+                "only where they are needed"
+              ],
+              "explanation": "Paragraph 4 says precision sprayers apply chemicals only where they are needed.",
+              "evidence": [
+                {
+                  "paragraph": 4,
+                  "sentence": 4,
+                  "quote": "only where they are needed"
+                }
+              ]
+            },
+            {
+              "order": 24,
+              "text": "Farmers using IPM monitor fields and act only when damage exceeds an economic ______.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "threshold"
+              ],
+              "explanation": "Paragraph 2 says farmers act when damage is likely to exceed an economic threshold.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 2,
+                  "quote": "economic threshold"
+                }
+              ]
+            },
+            {
+              "order": 25,
+              "text": "Some farmers fear even a small fall in ______ could threaten their income.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "yield"
+              ],
+              "explanation": "Paragraph 6 says some farmers fear that even a small fall in yield could threaten income.",
+              "evidence": [
+                {
+                  "paragraph": 6,
+                  "sentence": 3,
+                  "quote": "a small fall in yield"
+                }
+              ]
+            },
+            {
+              "order": 26,
+              "text": "Which TWO factors does Paragraph 7 include in the most promising future for farming?",
+              "question_type": "multiple_choice",
+              "options": [
+                "precision equipment",
+                "market incentives",
+                "routine spraying",
+                "single-crop dependence"
+              ],
+              "correct_answer": [
+                "precision equipment",
+                "market incentives"
+              ],
+              "explanation": "Paragraph 7 lists precision equipment and market incentives among the combination of approaches.",
+              "evidence": [
+                {
+                  "paragraph": 7,
+                  "sentence": 4,
+                  "quote": "precision equipment and market incentives"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "title": "Passage 3 - The Problem with Measuring Intelligence",
+          "instructions": "You should spend about 20 minutes on Questions 27-40.",
+          "passage": "The Problem with Measuring Intelligence\n\n¶1 Few concepts in psychology have been as influential, or as controversial, as intelligence. Schools, employers and governments have long wanted a way to identify ability, predict performance and allocate opportunity. Intelligence tests seemed to offer that possibility: a standard set of tasks, a numerical score and an appearance of objectivity. The attraction is obvious. A number looks cleaner than a teacher's impression or an interviewer's intuition. Yet the history of intelligence testing shows that measurement can never be separated from the assumptions built into the test and the purposes for which the score is used. A test may appear technical, but it always sits inside institutions that decide what kind of ability deserves reward. This is why debates about intelligence tests so often become debates about fairness, social mobility and the meaning of merit. The argument is rarely about arithmetic alone; it is about who gets trusted, encouraged and admitted to institutions.\n\n¶2 Early intelligence tests were developed partly to identify children who needed educational support. In that context, testing could be helpful, because it gave schools a reason to provide assistance rather than simply blame a child for struggling. But scores soon travelled beyond that narrow purpose. They were used to rank students, sort workers, justify immigration restrictions and defend social inequalities as if they reflected natural differences alone. A tool designed for diagnosis became a tool of selection, and selection is never politically neutral. Once a score is attached to a person, it can travel into files, decisions and expectations long after the original testing situation has been forgotten.\n\n¶3 One difficulty is that intelligence is not a single, visible substance like height. Tests usually measure performance on selected tasks: vocabulary, pattern recognition, memory, arithmetic, spatial reasoning or speed of processing. People who perform well on one mental task often perform well on others, a pattern sometimes called general intelligence. But the existence of a pattern does not settle what intelligence is. It may reflect reasoning ability, educational experience, familiarity with test formats, motivation, health, anxiety or some combination of all these. The score is real, but what it represents is less simple than the number suggests. Two people may arrive at the same score through different strengths and weaknesses, while two different scores may conceal abilities that the test never asked for. Practical judgement, persistence, collaboration and the ability to learn from failure may matter greatly in life while appearing only indirectly, if at all, in a timed test.\n\n¶4 Culture complicates the issue further. A problem that appears neutral to the test designer may rely on language, examples or habits of thought that are more familiar to some groups than to others. Even abstract puzzles are learned in social settings, because people differ in how often they have been encouraged to solve such puzzles, sit formal examinations or treat speed as proof of competence. Test developers try to reduce bias through careful design and statistical checking, but no test is free from context. A perfectly culture-free test is more aspiration than reality. This does not make every test useless, but it does require caution when scores are compared across languages, schools or social groups. A small difference in familiarity can become a large difference in measured performance when the testing situation is stressful.\n\n¶5 Another problem is what happens after a score is produced. A number can open doors, but it can also close them. Students labelled as low ability may receive a narrower curriculum, fewer challenges and lower expectations from adults. Over time, the label may help create the very performance it claimed merely to measure. Conversely, a high score may bring confidence and opportunity, though it may also encourage a brittle identity in which mistakes feel threatening. Intelligence testing therefore does not simply describe individuals; it can alter the environments in which individuals develop. In this way, a supposedly neutral measurement can become part of the very social process it claims only to observe. This feedback effect is one reason many educators are cautious about using a single score to determine a child's future track.\n\n¶6 Critics sometimes respond by rejecting measurement altogether, but that is too easy. Some form of assessment is necessary if schools are to notice hidden difficulties and if researchers are to study learning. The real question is how to use tests modestly. Scores should be treated as limited evidence, not final verdicts. They should be combined with observation, background information and attention to change over time. A low score on one day should invite questions about support, health, language and opportunity, rather than a permanent conclusion about a person's potential. The most responsible use of testing is therefore diagnostic and provisional, open to revision as circumstances and learning change.\n\n¶7 Intelligence may be better understood as a set of developing capacities than as a fixed amount stored inside the head. People reason, learn and solve problems through bodies, tools, languages, relationships and institutions. A child with access to books, calm sleep and patient teaching may display abilities that remain hidden in a child facing hunger, noise and frequent disruption. This does not mean all differences are environmental, nor that tests tell us nothing. It means that a score is a snapshot taken under particular conditions. To mistake the snapshot for the whole person is the deepest error intelligence testing can make. The danger is not measurement itself, but the temptation to let a clean number silence a more complex human story. The fairest use of testing keeps the number in conversation with context, rather than allowing it to stand alone as destiny. Used well, a test can start a conversation; used badly, it can end one too soon indeed.",
+          "questions": [
+            {
+              "order": 27,
+              "text": "The writer suggests that intelligence tests were attractive partly because they seemed objective.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "Yes",
+                "No",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "Yes"
+              ],
+              "explanation": "Paragraph 1 says tests offered a numerical score and an appearance of objectivity.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "sentence": 3,
+                  "quote": "an appearance of objectivity"
+                }
+              ]
+            },
+            {
+              "order": 28,
+              "text": "Early intelligence tests were designed only to select workers for jobs.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "Yes",
+                "No",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "No"
+              ],
+              "explanation": "Paragraph 2 says early tests were developed partly to identify children needing educational support.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 1,
+                  "quote": "identify children who needed educational support"
+                }
+              ]
+            },
+            {
+              "order": 29,
+              "text": "The passage says general intelligence proves exactly what intelligence is.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "Yes",
+                "No",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "No"
+              ],
+              "explanation": "Paragraph 3 says the existence of a pattern does not settle what intelligence is.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 4,
+                  "quote": "does not settle what intelligence is"
+                }
+              ]
+            },
+            {
+              "order": 30,
+              "text": "A perfectly culture-free test is described as more aspiration than reality.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "Yes",
+                "No",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "Yes"
+              ],
+              "explanation": "Paragraph 4 states this directly.",
+              "evidence": [
+                {
+                  "paragraph": 4,
+                  "sentence": 5,
+                  "quote": "more aspiration than reality"
+                }
+              ]
+            },
+            {
+              "order": 31,
+              "text": "The writer says every child should take an intelligence test every year.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "Yes",
+                "No",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "Not Given"
+              ],
+              "explanation": "The passage discusses how tests should be used but gives no recommendation for annual testing.",
+              "evidence": []
+            },
+            {
+              "order": 32,
+              "text": "A test score can influence the environment in which a person develops.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "Yes",
+                "No",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "Yes"
+              ],
+              "explanation": "Paragraph 5 says intelligence testing can alter the environments in which individuals develop.",
+              "evidence": [
+                {
+                  "paragraph": 5,
+                  "sentence": 6,
+                  "quote": "alter the environments in which individuals develop"
+                }
+              ]
+            },
+            {
+              "order": 33,
+              "text": "According to Paragraph 1, a number may look cleaner than",
+              "question_type": "single_choice",
+              "options": [
+                "a teacher's impression",
+                "a printed test paper",
+                "a school timetable",
+                "a government policy"
+              ],
+              "correct_answer": [
+                "a teacher's impression"
+              ],
+              "explanation": "Paragraph 1 says a number looks cleaner than a teacher's impression or interviewer's intuition.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "sentence": 5,
+                  "quote": "cleaner than a teacher's impression"
+                }
+              ]
+            },
+            {
+              "order": 34,
+              "text": "Paragraph 2 describes a change from diagnosis to",
+              "question_type": "single_choice",
+              "options": [
+                "selection",
+                "play",
+                "translation",
+                "medical treatment"
+              ],
+              "correct_answer": [
+                "selection"
+              ],
+              "explanation": "Paragraph 2 says a tool designed for diagnosis became a tool of selection.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 5,
+                  "quote": "became a tool of selection"
+                }
+              ]
+            },
+            {
+              "order": 35,
+              "text": "What can happen to students labelled as low ability?",
+              "question_type": "single_choice",
+              "options": [
+                "they may receive fewer challenges",
+                "they automatically improve",
+                "they avoid all examinations",
+                "they become test designers"
+              ],
+              "correct_answer": [
+                "they may receive fewer challenges"
+              ],
+              "explanation": "Paragraph 5 says such students may receive a narrower curriculum, fewer challenges and lower expectations.",
+              "evidence": [
+                {
+                  "paragraph": 5,
+                  "sentence": 3,
+                  "quote": "fewer challenges"
+                }
+              ]
+            },
+            {
+              "order": 36,
+              "text": "How should scores be treated, according to Paragraph 6?",
+              "question_type": "single_choice",
+              "options": [
+                "as limited evidence",
+                "as final verdicts",
+                "as proof of character",
+                "as irrelevant numbers"
+              ],
+              "correct_answer": [
+                "as limited evidence"
+              ],
+              "explanation": "Paragraph 6 says scores should be treated as limited evidence, not final verdicts.",
+              "evidence": [
+                {
+                  "paragraph": 6,
+                  "sentence": 4,
+                  "quote": "limited evidence, not final verdicts"
+                }
+              ]
+            },
+            {
+              "order": 37,
+              "text": "A high score may encourage a brittle ______ in which mistakes feel threatening.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "identity"
+              ],
+              "explanation": "Paragraph 5 says a high score may encourage a brittle identity.",
+              "evidence": [
+                {
+                  "paragraph": 5,
+                  "sentence": 5,
+                  "quote": "a brittle identity"
+                }
+              ]
+            },
+            {
+              "order": 38,
+              "text": "A score is described as a ______ taken under particular conditions.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "snapshot"
+              ],
+              "explanation": "Paragraph 7 says a score is a snapshot taken under particular conditions.",
+              "evidence": [
+                {
+                  "paragraph": 7,
+                  "sentence": 7,
+                  "quote": "a snapshot taken under particular conditions"
+                }
+              ]
+            },
+            {
+              "order": 39,
+              "text": "The belief that labels can shape later performance is discussed in",
+              "question_type": "matching",
+              "options": [
+                "Paragraph 3",
+                "Paragraph 4",
+                "Paragraph 5",
+                "Paragraph 7"
+              ],
+              "correct_answer": [
+                "Paragraph 5"
+              ],
+              "explanation": "Paragraph 5 says the label may help create the performance it claimed merely to measure.",
+              "evidence": [
+                {
+                  "paragraph": 5,
+                  "sentence": 4,
+                  "quote": "help create the very performance"
+                }
+              ]
+            },
+            {
+              "order": 40,
+              "text": "Which TWO factors does Paragraph 7 mention as affecting how a child may display ability?",
+              "question_type": "multiple_choice",
+              "options": [
+                "calm sleep",
+                "patient teaching",
+                "shoe size",
+                "musical taste"
+              ],
+              "correct_answer": [
+                "calm sleep",
+                "patient teaching"
+              ],
+              "explanation": "Paragraph 7 says a child with books, calm sleep and patient teaching may display abilities hidden in harsher conditions.",
+              "evidence": [
+                {
+                  "paragraph": 7,
+                  "sentence": 3,
+                  "quote": "calm sleep and patient teaching"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
