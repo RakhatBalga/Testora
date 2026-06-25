@@ -1,0 +1,896 @@
+{
+  "tests": [
+    {
+      "title": "IELTS Academic Reading - Test 10",
+      "test_type": "reading",
+      "difficulty": "Medium-Hard",
+      "description": "Original full-length Academic Reading test: 3 passages, 40 questions, 60 minutes.",
+      "duration_minutes": 60,
+      "sections": [
+        {
+          "order": 1,
+          "title": "Passage 1 - Public Clocks and Shared Time",
+          "instructions": "You should spend about 20 minutes on Questions 1-13.",
+          "passage": "Public Clocks and Shared Time\n\n¶1 Before clocks were common in homes and pockets, time in many towns was a public matter. People listened for church bells, factory whistles or the calls of watchmen, and they looked to clock towers above markets and railway stations. These signals did more than announce the hour. They helped coordinate trade, worship, schooling and work in communities where few individuals owned an accurate timepiece. Time was not yet a private stream of numbers carried on a wrist or phone; it was something sounded and displayed for everyone at once. Because the signal was shared, it also reduced argument: the bell or tower provided a common reference even when individuals disagreed about how much of the day had passed.\n\n¶2 The spread of public clocks changed the rhythm of urban life. A market that opened at sunrise could now open at seven. A meeting could be arranged for a precise hour rather than for a vague part of the day. Employers could measure lateness more strictly, and transport companies could publish timetables that required passengers to adjust their habits. Public clocks therefore brought convenience, but also discipline. The clock in the square belonged to the whole town, yet it also reminded each person that the town had expectations about punctuality. For workers paid by the hour, and for children expected at school, this new precision could feel less like freedom than supervision. It also created a new kind of fairness, because disputes about whether someone was early or late could be settled by reference to a visible authority.\n\n¶3 Railways made accurate shared time especially important. When journeys were short and local, each town could keep time according to the position of the sun. But trains connected distant towns, and even a few minutes' difference could cause confusion in timetables or danger on single-track lines. Railway companies therefore pushed for standard time, replacing local solar time with a common system over larger regions. The change was not merely technical. It asked people to accept that the time shown in their town might no longer match the sun exactly overhead. Some communities resisted the change at first, because it seemed to replace familiar local experience with an abstract authority imposed from elsewhere. Gradually, however, the practical advantages of coordination outweighed the discomfort of losing local noon.\n\n¶4 Public clocks also carried civic meaning. A large clock on a town hall or station suggested order, reliability and modernity. It told visitors that this was a place where business could be done and promises could be kept. Some clocks became local landmarks, used not only for telling time but for arranging meetings: people would wait beneath them or say goodbye beside them. In this way, a machine for measuring hours became part of the emotional geography of a city. Photographs, postcards and local stories often fixed the clock in memory, so that its face came to stand for departures, reunions and ordinary daily routines.\n\n¶5 Accuracy was not automatic. Mechanical clocks needed winding, cleaning and adjustment, and a clock visible to everyone could become a public embarrassment if it stopped or ran slow. Towns appointed keepers to maintain important clocks, while newspapers occasionally mocked authorities for neglecting them. The more people depended on a public clock, the more its failure mattered, especially in places where wages, trains and meetings were tied to it. A silent or incorrect clock did not simply inconvenience individuals; it damaged trust in the institution that displayed it. Accuracy became a public service, and maintaining it was a quiet form of civic responsibility.\n\n¶6 Today, public clocks seem less necessary because accurate time is available on phones, computers and watches. Yet they have not disappeared. Some survive because they are beautiful, historic or woven into local memory. Others still serve practical purposes in stations, hospitals and schools, where a visible shared reference can be quicker than checking a personal device. In busy public spaces, a clock can quietly reduce uncertainty by giving strangers the same point of orientation. A public clock also avoids the small social awkwardness of pulling out a phone in solemn or crowded settings.\n\n¶7 The public clock therefore reveals something about time itself. Although time can be measured privately, much of its value is social. A deadline, a train departure, a lesson, a performance or a lunch appointment depends on more than one person recognising the same moment. The old clock tower may no longer be the chief source of accuracy, but it remains a symbol of agreement. It reminds us that society runs not only on hours and minutes, but on the shared confidence that those hours and minutes mean the same thing to us all. Shared time is therefore both a measurement and a social promise, renewed every ordinary working day together in public.",
+          "questions": [
+            {
+              "order": 1,
+              "text": "Before private clocks were common, many people relied on public signals for the time.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "True",
+                "False",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "True"
+              ],
+              "explanation": "Paragraph 1 says people listened for bells, whistles and watchmen and looked to clock towers.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "sentence": 2,
+                  "quote": "People listened for church bells, factory whistles or the calls of watchmen"
+                }
+              ]
+            },
+            {
+              "order": 2,
+              "text": "Public clocks made punctuality less important in towns.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "True",
+                "False",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "False"
+              ],
+              "explanation": "Paragraph 2 says public clocks reminded people that the town expected punctuality.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 6,
+                  "quote": "expectations about punctuality"
+                }
+              ]
+            },
+            {
+              "order": 3,
+              "text": "Railway companies supported standard time.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "True",
+                "False",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "True"
+              ],
+              "explanation": "Paragraph 3 states that railway companies pushed for standard time.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 4,
+                  "quote": "Railway companies therefore pushed for standard time"
+                }
+              ]
+            },
+            {
+              "order": 4,
+              "text": "The passage says all public clocks are now maintained by railway companies.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "True",
+                "False",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "Not Given"
+              ],
+              "explanation": "The passage discusses maintenance and railways separately but gives no claim that all public clocks are maintained by railway companies.",
+              "evidence": []
+            },
+            {
+              "order": 5,
+              "text": "Public clocks helped coordinate trade, worship, schooling and ______.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "work"
+              ],
+              "explanation": "Paragraph 1 lists trade, worship, schooling and work as activities coordinated by public time signals.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "sentence": 4,
+                  "quote": "trade, worship, schooling and work"
+                }
+              ]
+            },
+            {
+              "order": 6,
+              "text": "Railways replaced local solar time with a ______ system.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "common"
+              ],
+              "explanation": "Paragraph 3 says standard time replaced local solar time with a common system.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 4,
+                  "quote": "a common system"
+                }
+              ]
+            },
+            {
+              "order": 7,
+              "text": "A stopped or slow public clock could damage public ______.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "trust"
+              ],
+              "explanation": "Paragraph 5 says an incorrect clock damaged trust in the institution displaying it.",
+              "evidence": [
+                {
+                  "paragraph": 5,
+                  "sentence": 6,
+                  "quote": "damaged trust"
+                }
+              ]
+            },
+            {
+              "order": 8,
+              "text": "Which paragraph explains why transport made a shared time system necessary?",
+              "question_type": "matching",
+              "options": [
+                "Paragraph 1",
+                "Paragraph 2",
+                "Paragraph 3",
+                "Paragraph 4",
+                "Paragraph 5",
+                "Paragraph 6",
+                "Paragraph 7"
+              ],
+              "correct_answer": [
+                "Paragraph 3"
+              ],
+              "explanation": "Paragraph 3 explains that trains connected distant towns and required standard time.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 2,
+                  "quote": "trains connected distant towns"
+                }
+              ]
+            },
+            {
+              "order": 9,
+              "text": "Which paragraph describes clocks as civic symbols and meeting places?",
+              "question_type": "matching",
+              "options": [
+                "Paragraph 1",
+                "Paragraph 2",
+                "Paragraph 3",
+                "Paragraph 4",
+                "Paragraph 5",
+                "Paragraph 6",
+                "Paragraph 7"
+              ],
+              "correct_answer": [
+                "Paragraph 4"
+              ],
+              "explanation": "Paragraph 4 discusses clocks as signs of order and as landmarks for meetings.",
+              "evidence": [
+                {
+                  "paragraph": 4,
+                  "sentence": 4,
+                  "quote": "used not only for telling time but for arranging meetings"
+                }
+              ]
+            },
+            {
+              "order": 10,
+              "text": "Which paragraph explains why public clocks may still be useful today?",
+              "question_type": "matching",
+              "options": [
+                "Paragraph 1",
+                "Paragraph 2",
+                "Paragraph 3",
+                "Paragraph 4",
+                "Paragraph 5",
+                "Paragraph 6",
+                "Paragraph 7"
+              ],
+              "correct_answer": [
+                "Paragraph 6"
+              ],
+              "explanation": "Paragraph 6 says public clocks still serve practical purposes in stations, hospitals and schools.",
+              "evidence": [
+                {
+                  "paragraph": 6,
+                  "sentence": 4,
+                  "quote": "still serve practical purposes"
+                }
+              ]
+            },
+            {
+              "order": 11,
+              "text": "According to Paragraph 4, a large town-hall clock suggested",
+              "question_type": "single_choice",
+              "options": [
+                "order and reliability",
+                "rural tradition",
+                "private ownership",
+                "religious authority only"
+              ],
+              "correct_answer": [
+                "order and reliability"
+              ],
+              "explanation": "Paragraph 4 says such a clock suggested order, reliability and modernity.",
+              "evidence": [
+                {
+                  "paragraph": 4,
+                  "sentence": 2,
+                  "quote": "order, reliability and modernity"
+                }
+              ]
+            },
+            {
+              "order": 12,
+              "text": "What kind of time did standard time replace?",
+              "question_type": "short_answer",
+              "options": null,
+              "correct_answer": [
+                "local solar time"
+              ],
+              "explanation": "Paragraph 3 says standard time replaced local solar time.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 4,
+                  "quote": "replacing local solar time"
+                }
+              ]
+            },
+            {
+              "order": 13,
+              "text": "Which TWO settings does Paragraph 6 mention where visible public clocks still serve practical purposes?",
+              "question_type": "multiple_choice",
+              "options": [
+                "stations",
+                "hospitals",
+                "private bedrooms",
+                "farm fields"
+              ],
+              "correct_answer": [
+                "stations",
+                "hospitals"
+              ],
+              "explanation": "Paragraph 6 names stations, hospitals and schools as places where public clocks remain useful.",
+              "evidence": [
+                {
+                  "paragraph": 6,
+                  "sentence": 4,
+                  "quote": "stations, hospitals and schools"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "title": "Passage 2 - Restoring the Night",
+          "instructions": "You should spend about 20 minutes on Questions 14-26.",
+          "passage": "Restoring the Night\n\n¶1 Artificial light is one of the quiet triumphs of modern life. Streets, homes, shops and sports grounds remain usable long after sunset, and many people associate bright lighting with safety, prosperity and convenience. Yet the spread of light has also changed the night itself. In many urban areas, stars have disappeared behind a permanent glow, and the boundary between day and night has softened. What was once a predictable daily darkness has become, for much of the world, an illuminated background against which human activity continues almost without pause. The change has happened gradually, so many residents notice the loss of darkness only when they travel far from the city and see a sky dense with stars. That surprise is revealing: it shows that darkness, like silence, can disappear without a single dramatic moment of loss.\n\n¶2 The ecological effects are increasingly clear. Many animals use darkness as a signal for feeding, migration, reproduction or rest. Sea turtles, for example, may move towards artificial lights instead of the moonlit sea after hatching. Migrating birds can become disoriented by lit buildings, while insects circle lamps until they are exhausted or eaten. Even plants may be affected when night-time light alters the timing of flowering or leaf fall. Light pollution is therefore not merely an astronomical problem; it is a disturbance of biological rhythms. The problem is especially serious because many species evolved with reliable cycles of daylight and darkness, and artificial lighting can confuse cues that once required no interpretation. Because these effects occur across many species at once, they can alter food webs rather than merely inconvenience individual animals.\n\n¶3 Human health is also involved. The body uses light to regulate circadian rhythms, including the release of hormones associated with sleep and alertness. Exposure to bright light late at night can make it harder to fall asleep and may reduce sleep quality. The issue is not only the brightness of screens in bedrooms, but the wider environment of illuminated streets, advertising panels and commercial buildings. A city that never becomes dark may be convenient, but it can also make rest more difficult to protect. Poor sleep then affects concentration, mood and long-term health, so the cost of excessive lighting may appear in clinics rather than on electricity bills. This makes the issue harder to measure, because the harm is dispersed through many tired mornings rather than one visible incident.\n\n¶4 Reducing light pollution does not require a return to unsafe darkness. Much waste comes from poor design rather than genuine need. Lamps often shine sideways or upwards, lighting the sky and the windows of nearby homes instead of the ground below. Better fixtures direct light downward, while warmer colours reduce some effects on wildlife and human sleep. Timers, motion sensors and dimming systems can keep light available when it is needed and lower it when streets are empty. The aim is not less safety, but more intelligent lighting. In many cases, better design saves energy at the same time, because light that goes into the sky is paid for but unused. The economic argument can persuade councils that might otherwise treat dark-sky policies as a luxury for environmental groups.\n\n¶5 Several towns have begun to treat darkness as a resource worth managing. Some switch off decorative lights after midnight; others create dark-sky reserves where outdoor lighting is tightly controlled. These policies can support tourism, allowing visitors to see stars that are invisible in larger cities. They can also strengthen local identity, because a clear night sky becomes something a community protects together. In such places, darkness is not treated as absence but as a shared environmental quality. This shift in language matters, because what is named as a resource can be planned, measured and defended.\n\n¶6 Opposition is common. Residents may fear that dimmer lighting will increase crime or make older people feel unsafe, even when evidence for a simple link between brightness and safety is weak. Businesses may prefer visible signs throughout the night, and sports clubs may need evening lighting to use facilities fully. Good policy therefore requires consultation rather than technical rules alone. People are more willing to accept darker streets when they understand where light is being reduced, why it is being reduced and how safety will be maintained. Pilot schemes, temporary dimming and clear maps can help residents judge the real effect before permanent changes are made. Such experiments also reveal where lighting is genuinely needed, for example at crossings, steps and transport stops.\n\n¶7 Restoring the night is ultimately a question of balance. Artificial light will remain essential, but it does not have to spill everywhere at all hours. The most effective solutions distinguish between useful light and wasted light, between illumination that helps people see and glare that merely announces human presence. As cities think more carefully about energy, health and biodiversity, darkness may come to be valued in a new way. The night is not an empty space waiting to be filled with light. It is part of the environment, and like clean air or quiet, it can be damaged by excess. Protecting it asks cities to think of darkness not as failure, but as a condition that supports life. The best lighting policy is therefore selective, careful and willing to leave some places properly dark for long uninterrupted hours, especially in parks, shorelines and residential streets, gardens and riversides too.",
+          "questions": [
+            {
+              "order": 14,
+              "text": "Heading for Paragraph 1",
+              "question_type": "matching",
+              "options": [
+                "A modern benefit with hidden consequences",
+                "Effects on animal and plant rhythms",
+                "The link between light and sleep",
+                "Designing better lighting",
+                "Protecting darkness as a local asset",
+                "Public concerns about darker streets",
+                "Finding a balance between use and waste",
+                "The cost of astronomical research"
+              ],
+              "correct_answer": [
+                "A modern benefit with hidden consequences"
+              ],
+              "explanation": "Paragraph 1 presents artificial light as a triumph but says it has changed the night itself.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "sentence": 3,
+                  "quote": "changed the night itself"
+                }
+              ]
+            },
+            {
+              "order": 15,
+              "text": "Heading for Paragraph 2",
+              "question_type": "matching",
+              "options": [
+                "A modern benefit with hidden consequences",
+                "Effects on animal and plant rhythms",
+                "The link between light and sleep",
+                "Designing better lighting",
+                "Protecting darkness as a local asset",
+                "Public concerns about darker streets",
+                "Finding a balance between use and waste",
+                "The cost of astronomical research"
+              ],
+              "correct_answer": [
+                "Effects on animal and plant rhythms"
+              ],
+              "explanation": "Paragraph 2 describes effects on turtles, birds, insects and plants, calling light a disturbance of biological rhythms.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 6,
+                  "quote": "a disturbance of biological rhythms"
+                }
+              ]
+            },
+            {
+              "order": 16,
+              "text": "Heading for Paragraph 3",
+              "question_type": "matching",
+              "options": [
+                "A modern benefit with hidden consequences",
+                "Effects on animal and plant rhythms",
+                "The link between light and sleep",
+                "Designing better lighting",
+                "Protecting darkness as a local asset",
+                "Public concerns about darker streets",
+                "Finding a balance between use and waste",
+                "The cost of astronomical research"
+              ],
+              "correct_answer": [
+                "The link between light and sleep"
+              ],
+              "explanation": "Paragraph 3 explains circadian rhythms and how late-night light can reduce sleep quality.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 3,
+                  "quote": "reduce sleep quality"
+                }
+              ]
+            },
+            {
+              "order": 17,
+              "text": "Heading for Paragraph 4",
+              "question_type": "matching",
+              "options": [
+                "A modern benefit with hidden consequences",
+                "Effects on animal and plant rhythms",
+                "The link between light and sleep",
+                "Designing better lighting",
+                "Protecting darkness as a local asset",
+                "Public concerns about darker streets",
+                "Finding a balance between use and waste",
+                "The cost of astronomical research"
+              ],
+              "correct_answer": [
+                "Designing better lighting"
+              ],
+              "explanation": "Paragraph 4 discusses better fixtures, warmer colours, timers and sensors.",
+              "evidence": [
+                {
+                  "paragraph": 4,
+                  "sentence": 5,
+                  "quote": "Better fixtures direct light downward"
+                }
+              ]
+            },
+            {
+              "order": 18,
+              "text": "Heading for Paragraph 5",
+              "question_type": "matching",
+              "options": [
+                "A modern benefit with hidden consequences",
+                "Effects on animal and plant rhythms",
+                "The link between light and sleep",
+                "Designing better lighting",
+                "Protecting darkness as a local asset",
+                "Public concerns about darker streets",
+                "Finding a balance between use and waste",
+                "The cost of astronomical research"
+              ],
+              "correct_answer": [
+                "Protecting darkness as a local asset"
+              ],
+              "explanation": "Paragraph 5 says towns treat darkness as a resource and protect the night sky.",
+              "evidence": [
+                {
+                  "paragraph": 5,
+                  "sentence": 1,
+                  "quote": "darkness as a resource worth managing"
+                }
+              ]
+            },
+            {
+              "order": 19,
+              "text": "Heading for Paragraph 6",
+              "question_type": "matching",
+              "options": [
+                "A modern benefit with hidden consequences",
+                "Effects on animal and plant rhythms",
+                "The link between light and sleep",
+                "Designing better lighting",
+                "Protecting darkness as a local asset",
+                "Public concerns about darker streets",
+                "Finding a balance between use and waste",
+                "The cost of astronomical research"
+              ],
+              "correct_answer": [
+                "Public concerns about darker streets"
+              ],
+              "explanation": "Paragraph 6 focuses on residents' fears, business needs and the importance of consultation.",
+              "evidence": [
+                {
+                  "paragraph": 6,
+                  "sentence": 1,
+                  "quote": "Residents may fear"
+                }
+              ]
+            },
+            {
+              "order": 20,
+              "text": "According to Paragraph 2, newly hatched sea turtles may move towards",
+              "question_type": "single_choice",
+              "options": [
+                "artificial lights",
+                "migrating birds",
+                "sports grounds",
+                "dark-sky reserves"
+              ],
+              "correct_answer": [
+                "artificial lights"
+              ],
+              "explanation": "Paragraph 2 says sea turtles may move towards artificial lights instead of the moonlit sea.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 3,
+                  "quote": "move towards artificial lights"
+                }
+              ]
+            },
+            {
+              "order": 21,
+              "text": "The body uses light to regulate",
+              "question_type": "single_choice",
+              "options": [
+                "circadian rhythms",
+                "road traffic",
+                "building height",
+                "tourist numbers"
+              ],
+              "correct_answer": [
+                "circadian rhythms"
+              ],
+              "explanation": "Paragraph 3 says the body uses light to regulate circadian rhythms.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 2,
+                  "quote": "regulate circadian rhythms"
+                }
+              ]
+            },
+            {
+              "order": 22,
+              "text": "Much light pollution is said to come from",
+              "question_type": "single_choice",
+              "options": [
+                "poor design",
+                "moonlight",
+                "dark-sky reserves",
+                "plant growth"
+              ],
+              "correct_answer": [
+                "poor design"
+              ],
+              "explanation": "Paragraph 4 says much waste comes from poor design rather than genuine need.",
+              "evidence": [
+                {
+                  "paragraph": 4,
+                  "sentence": 2,
+                  "quote": "poor design rather than genuine need"
+                }
+              ]
+            },
+            {
+              "order": 23,
+              "text": "Dark-sky policies may support tourism because visitors can see",
+              "question_type": "single_choice",
+              "options": [
+                "stars invisible in larger cities",
+                "brighter advertising signs",
+                "new sports facilities",
+                "more street crime"
+              ],
+              "correct_answer": [
+                "stars invisible in larger cities"
+              ],
+              "explanation": "Paragraph 5 says such policies allow visitors to see stars invisible in larger cities.",
+              "evidence": [
+                {
+                  "paragraph": 5,
+                  "sentence": 3,
+                  "quote": "stars that are invisible in larger cities"
+                }
+              ]
+            },
+            {
+              "order": 24,
+              "text": "Timers, motion sensors and dimming systems can lower lighting when streets are ______.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "empty"
+              ],
+              "explanation": "Paragraph 4 says these systems can lower light when streets are empty.",
+              "evidence": [
+                {
+                  "paragraph": 4,
+                  "sentence": 6,
+                  "quote": "when streets are empty"
+                }
+              ]
+            },
+            {
+              "order": 25,
+              "text": "Good policy requires ______ rather than technical rules alone.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "consultation"
+              ],
+              "explanation": "Paragraph 6 says good policy requires consultation rather than technical rules alone.",
+              "evidence": [
+                {
+                  "paragraph": 6,
+                  "sentence": 4,
+                  "quote": "requires consultation"
+                }
+              ]
+            },
+            {
+              "order": 26,
+              "text": "Which TWO things does the final paragraph say cities are thinking more carefully about?",
+              "question_type": "multiple_choice",
+              "options": [
+                "energy",
+                "biodiversity",
+                "fashion",
+                "private clocks"
+              ],
+              "correct_answer": [
+                "energy",
+                "biodiversity"
+              ],
+              "explanation": "Paragraph 7 says cities are thinking more carefully about energy, health and biodiversity.",
+              "evidence": [
+                {
+                  "paragraph": 7,
+                  "sentence": 4,
+                  "quote": "energy, health and biodiversity"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "title": "Passage 3 - Why Prediction Fails",
+          "instructions": "You should spend about 20 minutes on Questions 27-40.",
+          "passage": "Why Prediction Fails\n\n¶1 Modern societies are surrounded by predictions. Economists forecast growth, meteorologists forecast storms, epidemiologists forecast infections, and companies forecast what customers will buy next month. Some predictions are impressively accurate; others fail so badly that they seem foolish in retrospect. The difficulty is not simply that experts lack intelligence or data. Prediction is hard because many systems people most want to foresee are complex, adaptive and sensitive to changing conditions. The future is not always a hidden answer waiting to be calculated. Sometimes it is partly created by the very actions people take in response to forecasts. This is why a prediction that was reasonable when issued can look wrong later, even if the warning helped people avoid the danger it described. Judging a forecast only by whether the event occurred can therefore be unfair.\n\n¶2 Weather forecasting shows both the power and the limits of prediction. Short-term forecasts have improved enormously because satellites, sensors and mathematical models now track the atmosphere in great detail. Yet small uncertainties in the starting conditions can grow over time, making a forecast less reliable as it stretches further ahead. This is not a failure of effort but a property of the system being studied. The atmosphere follows physical laws, but it is also chaotic, meaning that tiny differences can eventually produce large effects. A prediction may be excellent for tomorrow and almost useless for a particular town three weeks from now. The public often interprets this decline as incompetence, but it is better understood as a widening range of possible atmospheric paths. A responsible forecast narrows that range where it can, but it cannot remove the uncertainty built into the system.\n\n¶3 Social predictions are harder still because people react to them. If a bank predicts a shortage and customers believe it, they may withdraw money, causing the shortage the prediction described. If a city predicts heavy traffic on one road, drivers may avoid it, making the forecast wrong because the warning succeeded. This reflexive quality makes society different from planets or tides. People hear predictions, interpret them, argue with them and change their behaviour. A forecast can therefore be not only a description of the future but one of the forces that shapes it. The success of the forecast may erase the evidence that it was useful, because the predicted event becomes smaller or never occurs. Public-health warnings often face this paradox: if they work, some observers later claim they were unnecessary.\n\n¶4 Data can create a false sense of security. Large datasets may seem to contain everything needed for accurate prediction, but they are always records of the past. If the conditions that produced the data change, the model may continue to find old patterns that no longer apply. A system trained on stable years may fail during a crisis; a retail model built around past customers may misunderstand a new generation; a crime model may repeat earlier policing biases and call them risk. More data can improve a model, but it cannot by itself guarantee wisdom about a changed world. Models are strongest when the future resembles the past closely enough for old relationships to remain informative. When behaviour, technology or climate shifts quickly, yesterday's regularities can become traps.\n\n¶5 Another problem is that prediction is often confused with explanation. A model may predict that a student is likely to drop out, or that a machine is likely to fail, without revealing the cause. This can be useful if it prompts timely support or maintenance. But if decision-makers treat the prediction as an explanation, they may respond badly. A student labelled as high risk may need financial help, a better timetable, medical support or simply encouragement; the score alone does not say which. Without human inquiry, the model may identify vulnerability while leaving the real obstacle untouched. Prediction points to where attention may be needed, but it does not remove the need for judgment. Human decision-makers must still ask what kind of action would help, who might be harmed, and what the model cannot see.\n\n¶6 Good forecasters therefore think in probabilities rather than certainties. They ask not whether an event will happen, but how likely it is under stated assumptions. They update their views when new evidence arrives and keep track of past errors. They also communicate uncertainty clearly, because a forecast without uncertainty can be more misleading than no forecast at all. Saying there is a 30 percent chance of flooding is not the same as saying there will be no flood. The number should invite preparation, not complacency. Communicating uncertainty is difficult because people often want a simple yes or no, while the evidence supports only degrees of risk. The language of probability is less satisfying, but often more honest, especially when the costs of being unprepared are high for communities and institutions that must act under real pressure together.\n\n¶7 The failure of prediction should not lead to cynicism. Forecasts can save lives, guide investment, allocate resources and reveal risks that would otherwise remain invisible. The mistake is to expect them to abolish uncertainty. In complex systems, a prediction is best understood as a disciplined guess about a range of possible futures, made from evidence but limited by assumptions. Its value lies less in being perfectly right than in helping people ask better questions and prepare for more than one outcome. Prediction is not a crystal ball. At its best, it is a tool for thinking responsibly under uncertainty. Its discipline lies in making assumptions visible, testing them against evidence and remaining willing to revise them. Used in that spirit, a failed forecast can still teach something about the system and about the limits of knowledge.",
+          "questions": [
+            {
+              "order": 27,
+              "text": "The writer says prediction is difficult partly because some systems are complex and adaptive.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "Yes",
+                "No",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "Yes"
+              ],
+              "explanation": "Paragraph 1 says prediction is hard because many systems are complex, adaptive and sensitive to changing conditions.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "sentence": 4,
+                  "quote": "complex, adaptive and sensitive to changing conditions"
+                }
+              ]
+            },
+            {
+              "order": 28,
+              "text": "Weather forecasts are now perfectly accurate for several months ahead.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "Yes",
+                "No",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "No"
+              ],
+              "explanation": "Paragraph 2 says forecasts become less reliable further ahead and may be useless for a town three weeks ahead.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 3,
+                  "quote": "less reliable as it stretches further ahead"
+                }
+              ]
+            },
+            {
+              "order": 29,
+              "text": "People can change their behaviour after hearing a prediction.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "Yes",
+                "No",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "Yes"
+              ],
+              "explanation": "Paragraph 3 says people hear predictions and change their behaviour.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 5,
+                  "quote": "change their behaviour"
+                }
+              ]
+            },
+            {
+              "order": 30,
+              "text": "The passage says all large datasets are deliberately dishonest.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "Yes",
+                "No",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "Not Given"
+              ],
+              "explanation": "The passage warns that datasets record the past and may mislead, but it does not say they are deliberately dishonest.",
+              "evidence": []
+            },
+            {
+              "order": 31,
+              "text": "A prediction can be useful even if it does not explain the cause.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "Yes",
+                "No",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "Yes"
+              ],
+              "explanation": "Paragraph 5 says prediction without explanation can be useful if it prompts timely support or maintenance.",
+              "evidence": [
+                {
+                  "paragraph": 5,
+                  "sentence": 3,
+                  "quote": "This can be useful"
+                }
+              ]
+            },
+            {
+              "order": 32,
+              "text": "Good forecasters update their views when new evidence arrives.",
+              "question_type": "true_false_notgiven",
+              "options": [
+                "Yes",
+                "No",
+                "Not Given"
+              ],
+              "correct_answer": [
+                "Yes"
+              ],
+              "explanation": "Paragraph 6 says good forecasters update their views when new evidence arrives.",
+              "evidence": [
+                {
+                  "paragraph": 6,
+                  "sentence": 3,
+                  "quote": "update their views when new evidence arrives"
+                }
+              ]
+            },
+            {
+              "order": 33,
+              "text": "According to Paragraph 2, tiny differences in the atmosphere can eventually produce",
+              "question_type": "single_choice",
+              "options": [
+                "large effects",
+                "fixed timetables",
+                "perfect forecasts",
+                "social reactions"
+              ],
+              "correct_answer": [
+                "large effects"
+              ],
+              "explanation": "Paragraph 2 says tiny differences can eventually produce large effects.",
+              "evidence": [
+                {
+                  "paragraph": 2,
+                  "sentence": 5,
+                  "quote": "tiny differences can eventually produce large effects"
+                }
+              ]
+            },
+            {
+              "order": 34,
+              "text": "The bank example in Paragraph 3 illustrates a prediction that can",
+              "question_type": "single_choice",
+              "options": [
+                "help cause the event it describes",
+                "ignore customer behaviour",
+                "follow physical laws",
+                "remove uncertainty"
+              ],
+              "correct_answer": [
+                "help cause the event it describes"
+              ],
+              "explanation": "Paragraph 3 says customers may withdraw money, causing the shortage predicted.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 2,
+                  "quote": "causing the shortage the prediction described"
+                }
+              ]
+            },
+            {
+              "order": 35,
+              "text": "Why can a model trained on past data fail?",
+              "question_type": "single_choice",
+              "options": [
+                "conditions may change",
+                "all past records are empty",
+                "mathematics cannot be used",
+                "people stop needing forecasts"
+              ],
+              "correct_answer": [
+                "conditions may change"
+              ],
+              "explanation": "Paragraph 4 says if conditions change, old patterns may no longer apply.",
+              "evidence": [
+                {
+                  "paragraph": 4,
+                  "sentence": 3,
+                  "quote": "If the conditions that produced the data change"
+                }
+              ]
+            },
+            {
+              "order": 36,
+              "text": "The writer says a forecast without uncertainty can be",
+              "question_type": "single_choice",
+              "options": [
+                "more misleading than no forecast",
+                "a perfect explanation",
+                "a physical law",
+                "a form of weather"
+              ],
+              "correct_answer": [
+                "more misleading than no forecast"
+              ],
+              "explanation": "Paragraph 6 says a forecast without uncertainty can be more misleading than no forecast.",
+              "evidence": [
+                {
+                  "paragraph": 6,
+                  "sentence": 4,
+                  "quote": "more misleading than no forecast at all"
+                }
+              ]
+            },
+            {
+              "order": 37,
+              "text": "Large datasets are always records of the ______.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "past"
+              ],
+              "explanation": "Paragraph 4 says large datasets are always records of the past.",
+              "evidence": [
+                {
+                  "paragraph": 4,
+                  "sentence": 2,
+                  "quote": "records of the past"
+                }
+              ]
+            },
+            {
+              "order": 38,
+              "text": "A prediction should not remove the need for ______.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "judgment"
+              ],
+              "explanation": "Paragraph 5 says prediction does not remove the need for judgment.",
+              "evidence": [
+                {
+                  "paragraph": 5,
+                  "sentence": 7,
+                  "quote": "does not remove the need for judgment"
+                }
+              ]
+            },
+            {
+              "order": 39,
+              "text": "The idea that forecasts can shape the future they describe is discussed in",
+              "question_type": "matching",
+              "options": [
+                "Paragraph 2",
+                "Paragraph 3",
+                "Paragraph 4",
+                "Paragraph 6"
+              ],
+              "correct_answer": [
+                "Paragraph 3"
+              ],
+              "explanation": "Paragraph 3 says a forecast can be one of the forces that shapes the future.",
+              "evidence": [
+                {
+                  "paragraph": 3,
+                  "sentence": 6,
+                  "quote": "one of the forces that shapes it"
+                }
+              ]
+            },
+            {
+              "order": 40,
+              "text": "Which TWO benefits of forecasts are mentioned in the final paragraph?",
+              "question_type": "multiple_choice",
+              "options": [
+                "they can save lives",
+                "they can reveal risks",
+                "they can abolish uncertainty",
+                "they can guarantee investment returns"
+              ],
+              "correct_answer": [
+                "they can save lives",
+                "they can reveal risks"
+              ],
+              "explanation": "Paragraph 7 says forecasts can save lives and reveal risks that would otherwise remain invisible.",
+              "evidence": [
+                {
+                  "paragraph": 7,
+                  "sentence": 2,
+                  "quote": "save lives"
+                },
+                {
+                  "paragraph": 7,
+                  "sentence": 2,
+                  "quote": "reveal risks"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
