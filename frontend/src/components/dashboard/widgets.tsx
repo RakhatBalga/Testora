@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { Headphones, BookOpen, PenLine, Mic, type LucideIcon } from "lucide-react";
-import { type Skill, toneClasses, skillMeta } from "@/lib/dashboard";
+import { type Skill } from "@/lib/dashboard";
 
 export const skillIcons: Record<Skill, LucideIcon> = {
   listening: Headphones,
@@ -110,28 +110,6 @@ export function Ring({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
-    </div>
-  );
-}
-
-export function SkillRow({ skill }: { skill: Skill }) {
-  const m = skillMeta[skill];
-  const Icon = skillIcons[skill];
-  const t = toneClasses[m.tone];
-  return (
-    <div className="flex items-center gap-3">
-      <span className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${t.soft}`}>
-        <Icon className="h-5 w-5" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center justify-between text-sm">
-          <span className="font-medium text-[var(--text-primary)]">{m.label}</span>
-          <span className="font-semibold text-[var(--text-secondary)]">
-            {Math.round(m.progress * 100)}%
-          </span>
-        </div>
-        <ProgressBar value={m.progress} barClass={t.bar} />
-      </div>
     </div>
   );
 }

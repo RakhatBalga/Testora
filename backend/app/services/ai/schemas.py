@@ -182,17 +182,61 @@ def normalize_examiner(result: BaseModel, *, task_type: int, word_count: int, mi
 
 
 def _errors_to_mistakes(errors: list[WritingError]) -> list[MistakeItem]:
-    return [
-        MistakeItem(
-            category=e.category,
-            subskill=e.subskill,
-            severity=max(1, min(3, e.severity)),
-            snippet=e.snippet,
-            correction=e.correction,
-            explanation=e.explanation,
+    mistakes: list[MistakeItem] = []
+    for e in errors:
+        snippet = (e.snippet or "").strip()
+        correction = (e.correction or "").strip()
+        if snippet and correction and snippet == correction:
+            continue
+        if _is_optional_refinement(e):
+            continue
+        subskill = _normalize_error_subskill(e)
+        category = _normalize_error_category(e.category, subskill)
+        mistakes.append(
+            MistakeItem(
+                category=category,
+                subskill=subskill,
+                severity=max(1, min(3, e.severity)),
+                snippet=e.snippet,
+                correction=e.correction,
+                explanation=e.explanation,
+            )
         )
-        for e in errors
-    ]
+    return mistakes
+
+
+def _is_optional_refinement(error: WritingError) -> bool:
+    if error.severity > 1:
+        return False
+    explanation = (error.explanation or "").lower()
+    optional_markers = (
+        "not strictly incorrect",
+        "more concise",
+        "more formal",
+        "slightly more natural",
+        "would be more natural",
+        "could be more natural",
+        "would also be acceptable",
+    )
+    return any(marker in explanation for marker in optional_markers)
+
+
+def _normalize_error_subskill(error: WritingError) -> str | None:
+    """Correct common model taxonomy slips before storing Mistake Memory rows."""
+    haystack = " ".join(
+        p for p in [error.subskill, error.explanation, error.correction] if p
+    ).lower()
+    if any(word in haystack for word in ("comma", "semicolon", "full stop", "punctuation")):
+        return "punctuation"
+    return error.subskill
+
+
+def _normalize_error_category(category: ErrorCategory, subskill: str | None) -> ErrorCategory:
+    if subskill in {"word_choice", "collocation", "repetition", "spelling", "word_formation"}:
+        return "vocabulary"
+    if subskill in {"punctuation", "articles", "prepositions", "tense", "agreement", "sentence_structure"}:
+        return "grammar"
+    return category
 
 
 def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type: int) -> Feedback:
@@ -201,6 +245,7 @@ def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type:
     overall = normalized["overall"]
     notes = normalized["notes"]
     errors = normalized["errors"]
+    mistakes = _errors_to_mistakes(errors)
 
     lowest = min(criteria, key=lambda k: criteria[k])
     if coaching is not None:
@@ -212,7 +257,7 @@ def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type:
     else:
         # Coach stage unavailable — still return a useful, examiner-grounded result.
         summary = f"Estimated Band {overall}. Your lowest criterion is {lowest} ({criteria[lowest]})."
-        suggestions = [e.correction for e in errors if e.correction][:3] or [
+        suggestions = [m.correction for m in mistakes if m.correction][:3] or [
             f"Focus on {lowest} to lift your band."
         ]
         strengths = []
@@ -224,7 +269,7 @@ def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type:
         criteria=criteria,
         summary=summary,
         suggestions=suggestions,
-        mistakes=_errors_to_mistakes(errors),
+        mistakes=mistakes,
         criteria_notes=notes,
         strengths=strengths,
         weaknesses=weaknesses,

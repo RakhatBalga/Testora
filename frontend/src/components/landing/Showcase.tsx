@@ -7,8 +7,8 @@ import { fadeUp, stagger, viewport, EASE } from "./motion";
 const POINTS = [
   { title: "Detailed analytics", body: "See exactly where you lose marks across every skill." },
   { title: "Progress tracking", body: "Band scores saved after every attempt, charted over time." },
-  { title: "Full-length tests", body: "Reading and Listening tests with a realistic exam timer." },
-  { title: "Writing & Speaking tasks", body: "Authentic prompts graded against IELTS descriptors." },
+  { title: "Full-length Reading", body: "Timed Academic Reading tests with three passages and 40 questions." },
+  { title: "Writing feedback", body: "Task 1 and Task 2 prompts graded against IELTS descriptors." },
   { title: "Answer review", body: "Walk through every question with the correct answer." },
   { title: "AI Coach", body: "Streak tracking and a personalised daily plan keep your practice consistent." },
 ];
@@ -17,7 +17,7 @@ export default function Showcase() {
   return (
     <section id="showcase" className="relative scroll-mt-24 overflow-hidden bg-white py-20 lg:py-28">
       <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 lg:grid-cols-2">
-        {/* Left: mock interface */}
+        {/* Left: product interface preview */}
         <motion.div
           initial={{ opacity: 0, x: -40 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -34,7 +34,7 @@ export default function Showcase() {
               </span>
             </div>
 
-            {/* fake bar chart */}
+            {/* compact progress chart */}
             <div className="flex h-40 items-end gap-3">
               {[55, 70, 60, 82, 75, 92].map((h, i) => (
                 <motion.div
@@ -56,13 +56,13 @@ export default function Showcase() {
             <div className="mt-6 grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-slate-50 p-4">
                 <BarChart3 className="h-5 w-5 text-blue-500" />
-                <p className="mt-2 text-2xl font-bold text-slate-900">128</p>
-                <p className="text-xs text-slate-500">Tests completed</p>
+                <p className="mt-2 text-2xl font-bold text-slate-900">400</p>
+                <p className="text-xs text-slate-500">Reading questions</p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4">
                 <TrendingUp className="h-5 w-5 text-blue-600" />
-                <p className="mt-2 text-2xl font-bold text-slate-900">7.5</p>
-                <p className="text-xs text-slate-500">Current band</p>
+                <p className="mt-2 text-2xl font-bold text-slate-900">10</p>
+                <p className="text-xs text-slate-500">Reading tests</p>
               </div>
             </div>
           </div>
