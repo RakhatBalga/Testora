@@ -182,17 +182,34 @@ def normalize_examiner(result: BaseModel, *, task_type: int, word_count: int, mi
 
 
 def _errors_to_mistakes(errors: list[WritingError]) -> list[MistakeItem]:
-    return [
-        MistakeItem(
-            category=e.category,
-            subskill=e.subskill,
-            severity=max(1, min(3, e.severity)),
-            snippet=e.snippet,
-            correction=e.correction,
-            explanation=e.explanation,
+    mistakes: list[MistakeItem] = []
+    for e in errors:
+        snippet = (e.snippet or "").strip()
+        correction = (e.correction or "").strip()
+        if snippet and correction and snippet == correction:
+            continue
+        subskill = _normalize_error_subskill(e)
+        mistakes.append(
+            MistakeItem(
+                category=e.category,
+                subskill=subskill,
+                severity=max(1, min(3, e.severity)),
+                snippet=e.snippet,
+                correction=e.correction,
+                explanation=e.explanation,
+            )
         )
-        for e in errors
-    ]
+    return mistakes
+
+
+def _normalize_error_subskill(error: WritingError) -> str | None:
+    """Correct common model taxonomy slips before storing Mistake Memory rows."""
+    haystack = " ".join(
+        p for p in [error.subskill, error.explanation, error.correction] if p
+    ).lower()
+    if any(word in haystack for word in ("comma", "semicolon", "full stop", "punctuation")):
+        return "punctuation"
+    return error.subskill
 
 
 def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type: int) -> Feedback:
@@ -201,6 +218,7 @@ def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type:
     overall = normalized["overall"]
     notes = normalized["notes"]
     errors = normalized["errors"]
+    mistakes = _errors_to_mistakes(errors)
 
     lowest = min(criteria, key=lambda k: criteria[k])
     if coaching is not None:
@@ -212,7 +230,7 @@ def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type:
     else:
         # Coach stage unavailable — still return a useful, examiner-grounded result.
         summary = f"Estimated Band {overall}. Your lowest criterion is {lowest} ({criteria[lowest]})."
-        suggestions = [e.correction for e in errors if e.correction][:3] or [
+        suggestions = [m.correction for m in mistakes if m.correction][:3] or [
             f"Focus on {lowest} to lift your band."
         ]
         strengths = []
@@ -224,7 +242,7 @@ def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type:
         criteria=criteria,
         summary=summary,
         suggestions=suggestions,
-        mistakes=_errors_to_mistakes(errors),
+        mistakes=mistakes,
         criteria_notes=notes,
         strengths=strengths,
         weaknesses=weaknesses,

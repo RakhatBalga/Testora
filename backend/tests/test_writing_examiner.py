@@ -162,6 +162,40 @@ def test_errors_become_mistakes_with_clamped_severity():
     assert all(1 <= m.severity <= 3 for m in fb.mistakes)
 
 
+def test_identical_correction_errors_are_not_persisted_as_mistakes():
+    ex = Task2Examiner.model_validate({
+        "task_response": _crit(7), "coherence_cohesion": _crit(7),
+        "lexical_resource": _crit(7), "grammatical_range_accuracy": _crit(7),
+        "errors": [
+            {"category": "grammar", "subskill": "style", "severity": 1,
+             "snippet": "This sentence is already correct.",
+             "correction": "This sentence is already correct.",
+             "explanation": "Optional style note, not a real correction."},
+            {"category": "grammar", "subskill": "articles", "severity": 1,
+             "snippet": "in the society", "correction": "in society",
+             "explanation": "No article with general nouns."},
+        ],
+    })
+    fb = build_feedback(_norm2(ex), None, task_type=2)
+    assert len(fb.mistakes) == 1
+    assert fb.mistakes[0].subskill == "articles"
+
+
+def test_punctuation_subskill_is_normalized_from_model_slips():
+    ex = Task2Examiner.model_validate({
+        "task_response": _crit(7), "coherence_cohesion": _crit(7),
+        "lexical_resource": _crit(7), "grammatical_range_accuracy": _crit(7),
+        "errors": [
+            {"category": "grammar", "subskill": "articles", "severity": 1,
+             "snippet": "In the modern world many students",
+             "correction": "In the modern world, many students",
+             "explanation": "A comma is needed after an introductory phrase."},
+        ],
+    })
+    fb = build_feedback(_norm2(ex), None, task_type=2)
+    assert fb.mistakes[0].subskill == "punctuation"
+
+
 # ----------------------------- feedback assembly ---------------------------- #
 
 def test_build_feedback_with_coaching():

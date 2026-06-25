@@ -46,6 +46,11 @@ SCORING PROTOCOL:
   application computes the overall as the mean rounded to the nearest 0.5.
 - Extract concrete errors into the `errors` array. Each error must quote the
   offending text in `snippet` and give a corrected form in `correction`.
+- Put only genuine mistakes in `errors`: the correction must materially change
+  the snippet. Do not list optional style improvements, acceptable phrasing,
+  or already-correct sentences as errors.
+- The `subskill` must match the error type. For comma/full-stop/semicolon issues
+  use `punctuation`, not `articles`; for a/an/the issues use `articles`.
 - severity: 1 = minor/local, 2 = noticeable/recurring, 3 = band-limiting.
 - Never invent strengths or errors that are not present in the script.
 """
@@ -161,7 +166,10 @@ Return ONLY a JSON object matching the provided schema, containing:
   checkable actions specific to this candidate's gaps.
 - summary: 2-3 sentences naming the single biggest blocker and what to do next.
 
-Be specific and actionable. Do not restate the scores as advice."""
+Be specific and actionable. Do not restate the scores as advice. Do not invent
+new language errors that are not present in the examiner's `errors` list. If the
+examiner gives only a general criterion note without a concrete error, describe
+the issue generally; do not quote a new phrase and label it wrong."""
 
 
 def coach_user_prompt(*, task_type: int, prompt: str, text: str, examiner_json: str) -> str:
