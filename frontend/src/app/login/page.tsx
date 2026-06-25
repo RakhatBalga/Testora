@@ -23,7 +23,9 @@ export default function LoginPage() {
     try {
       const res = await api.login(username, password);
       login(res.access_token, username);
-      router.push("/");
+      const next = new URLSearchParams(window.location.search).get("next");
+      // Only honour same-site relative paths to avoid open-redirect abuse.
+      router.push(next && next.startsWith("/") ? next : "/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

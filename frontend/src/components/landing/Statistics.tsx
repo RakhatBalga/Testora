@@ -60,7 +60,7 @@ export default function Statistics() {
         whileInView="show"
         viewport={viewport}
         variants={stagger}
-        className="overflow-hidden rounded-[32px] bg-gradient-to-br from-indigo-600 to-violet-600 px-6 py-12 shadow-2xl shadow-indigo-500/25 sm:px-12"
+        className="overflow-hidden rounded-[32px] bg-[var(--brand)] px-6 py-12 shadow-2xl shadow-blue-500/25 sm:px-12"
       >
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {STATS.map((s) => (

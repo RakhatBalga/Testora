@@ -20,7 +20,6 @@ import { useAuth } from "@/lib/auth";
 import Landing from "@/components/landing/Landing";
 import { api, type Blocker, type Weakness, type BandGapResult, type BandTrajectoryResult, type DailyPlanTask, type BlockerHistory as BlockerHistoryData, type Streak } from "@/lib/api";
 import { greeting, type ProgressMovement } from "@/lib/coach";
-import { Ring } from "@/components/dashboard/widgets";
 import { BandTrajectory } from "@/components/dashboard/BandTrajectory";
 import { WeaknessCard } from "@/components/dashboard/WeaknessCard";
 import { BlockerCard } from "@/components/dashboard/BlockerCard";
@@ -49,35 +48,25 @@ function CoachDashboard({ username }: { username: string | null }) {
 
   useEffect(() => {
     let active = true;
-    Promise.all([
+
+    // Each widget resolves independently: one failing endpoint must not blank
+    // out the whole dashboard (which would falsely show a "no data" state to a
+    // user who actually has data).
+    const settle = <T,>(p: Promise<T>, apply: (v: T) => void, fallback: T) => {
+      p.then((v) => active && apply(v)).catch(() => active && apply(fallback));
+    };
+
+    settle(
       api.getBandGap(TARGET_BAND),
-      api.getBlockers(TARGET_BAND),
-      api.getWeaknesses(6),
-      api.getBandTrajectory(),
-      api.getDailyPlan(TARGET_BAND, 3),
-      api.getBlockerHistory(),
-      api.getStreak(),
-    ])
-      .then(([g, b, w, t, p, h, s]) => {
-        if (!active) return;
-        setBandGap(g);
-        setBlockers(b.blockers);
-        setWeaknesses(w.weaknesses);
-        setTrajectory(t);
-        setTodaysPlan(p.plan);
-        setBlockerHistory(h);
-        setStreak(s);
-      })
-      .catch(() => {
-        if (!active) return;
-        setBandGap({ current: null, target: TARGET_BAND, gap: null, per_skill: {}, lowest_skill: null, has_data: false });
-        setBlockers([]);
-        setWeaknesses([]);
-        setTrajectory({ points: [], delta: null, has_data: false });
-        setTodaysPlan([]);
-        setBlockerHistory({ has_data: false, history: [], note: null });
-        setStreak({ current_streak: 0, active_today: false });
-      });
+      setBandGap,
+      { current: null, target: TARGET_BAND, gap: null, per_skill: {}, lowest_skill: null, has_data: false }
+    );
+    settle(api.getBlockers(TARGET_BAND), (b) => setBlockers(b.blockers), { blockers: [] });
+    settle(api.getWeaknesses(6), (w) => setWeaknesses(w.weaknesses), { weaknesses: [] });
+    settle(api.getBandTrajectory(), setTrajectory, { points: [], delta: null, has_data: false });
+    settle(api.getDailyPlan(TARGET_BAND, 3), (p) => setTodaysPlan(p.plan), { generated_for: "", has_data: false, plan: [] });
+    settle(api.getBlockerHistory(), setBlockerHistory, { has_data: false, history: [], note: null });
+    settle(api.getStreak(), setStreak, { current_streak: 0, active_today: false });
 
     // Recent movement = real Before→After of the most recent graded Writing attempt.
     (async () => {
@@ -194,10 +183,46 @@ function CoachDashboard({ username }: { username: string | null }) {
             </Link>
           </div>
 
-          <Ring value={hasData && current != null ? Math.min(1, current / target) : 0}>
-            <span className="text-3xl font-extrabold">{current != null ? current.toFixed(1) : "—"}</span>
-            <span className="text-xs text-white/70">of {target.toFixed(1)}</span>
-          </Ring>
+          <div className="w-full flex-shrink-0 rounded-2xl bg-white/10 p-5 ring-1 ring-white/15 backdrop-blur-sm lg:w-72">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-white/55">
+                  Current band
+                </p>
+                <p className="mt-1 text-5xl font-extrabold leading-none tracking-tight">
+                  {current != null ? current.toFixed(1) : "—"}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-white/55">
+                  Target
+                </p>
+                <p className="mt-1 text-2xl font-bold leading-none text-white/80">
+                  {target.toFixed(1)}
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-white/15">
+              <div
+                className="h-full rounded-full bg-white transition-[width] duration-700 ease-out"
+                style={{
+                  width: `${hasData && current != null ? Math.min(100, (current / target) * 100) : 0}%`,
+                }}
+              />
+            </div>
+            <p className="mt-2.5 text-xs text-white/70">
+              {hasData && gapValue != null && gapValue > 0 ? (
+                <>
+                  <strong className="font-semibold text-white">+{gapValue.toFixed(1)}</strong> bands to
+                  your goal
+                </>
+              ) : hasData && current != null ? (
+                "You've reached your target band"
+              ) : (
+                "Take a test to see your progress"
+              )}
+            </p>
+          </div>
         </div>
       </section>
 

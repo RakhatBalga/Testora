@@ -2,10 +2,9 @@
  * Mock IELTS learner data.
  *
  * This is a single, swappable source for the dashboard product surfaces
- * (Dashboard / Practice / Mock Tests / Analytics / Vocabulary). When the
- * backend grows the matching entities (Profile, Goal, PracticeSession,
- * MockTest, VocabularyProgress, Analytics) these exports become API calls
- * with the same shapes — the UI does not need to change.
+ * (Dashboard / Practice / Mock Tests / Analytics). When the backend grows the
+ * matching entities (Profile, Goal, PracticeSession, MockTest, Analytics) these
+ * exports become API calls with the same shapes — the UI does not need to change.
  */
 
 export const SKILLS = ["listening", "reading", "writing", "speaking"] as const;
@@ -29,7 +28,7 @@ export const skillMeta: Record<
   listening: {
     label: "Listening",
     tone: "sky",
-    href: "/practice/listening",
+    href: "/tests/listening",
     progress: 0.65,
     exercises: 24,
     avgBand: 6.5,
@@ -38,7 +37,7 @@ export const skillMeta: Record<
   reading: {
     label: "Reading",
     tone: "violet",
-    href: "/practice/reading",
+    href: "/tests/reading",
     progress: 0.72,
     exercises: 18,
     avgBand: 7.0,
@@ -47,7 +46,7 @@ export const skillMeta: Record<
   writing: {
     label: "Writing",
     tone: "emerald",
-    href: "/practice/writing",
+    href: "/writing",
     progress: 0.48,
     exercises: 12,
     avgBand: 6.0,
@@ -56,7 +55,7 @@ export const skillMeta: Record<
   speaking: {
     label: "Speaking",
     tone: "amber",
-    href: "/practice/speaking",
+    href: "/speaking",
     progress: 0.41,
     exercises: 9,
     avgBand: 5.5,
@@ -222,23 +221,6 @@ export const skillSeries: Record<Skill, number[]> = {
   reading: [0.5, 0.55, 0.6, 0.66, 0.7, 0.72],
   writing: [0.3, 0.34, 0.38, 0.42, 0.45, 0.48],
   speaking: [0.25, 0.3, 0.33, 0.36, 0.39, 0.41],
-};
-
-export const vocabulary = {
-  learned: 482,
-  inProgress: 73,
-  weak: 19,
-  dailyReviewDue: 12,
-  words: [
-    { word: "ubiquitous", status: "known", meaning: "present everywhere", topic: "Technology" },
-    { word: "mitigate", status: "known", meaning: "make less severe", topic: "Environment" },
-    { word: "proliferate", status: "learning", meaning: "increase rapidly", topic: "Society" },
-    { word: "discrepancy", status: "learning", meaning: "a lack of consistency", topic: "Academic" },
-    { word: "cumbersome", status: "weak", meaning: "large or heavy; awkward", topic: "Daily life" },
-    { word: "advocate", status: "weak", meaning: "publicly recommend", topic: "Society" },
-    { word: "feasible", status: "known", meaning: "possible to do easily", topic: "Work" },
-    { word: "deteriorate", status: "learning", meaning: "become progressively worse", topic: "Health" },
-  ] as { word: string; status: "known" | "learning" | "weak"; meaning: string; topic: string }[],
 };
 
 export const leaderboard = {

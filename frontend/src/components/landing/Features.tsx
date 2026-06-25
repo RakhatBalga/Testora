@@ -7,7 +7,7 @@ import {
   Sparkles,
   TrendingUp,
   Layers,
-  Award,
+  Brain,
   type LucideIcon,
 } from "lucide-react";
 import { fadeUp, stagger, viewport } from "./motion";
@@ -51,9 +51,9 @@ const FEATURES: Feature[] = [
     color: "from-sky-500 to-blue-500",
   },
   {
-    icon: Award,
-    title: "Achievements",
-    body: "Stay motivated with streaks and milestones that reward consistent, focused practice.",
+    icon: Brain,
+    title: "AI Coach",
+    body: "After each session, see your band blockers, recurring mistake patterns, and a personalised improvement plan for today.",
     color: "from-amber-500 to-orange-500",
   },
 ];
@@ -68,7 +68,7 @@ export default function Features() {
         variants={fadeUp}
         className="mx-auto max-w-2xl text-center"
       >
-        <span className="text-sm font-semibold uppercase tracking-wider text-indigo-600">
+        <span className="text-sm font-semibold uppercase tracking-wider text-blue-600">
           Features
         </span>
         <h2 className="mt-3 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">

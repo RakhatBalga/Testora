@@ -34,7 +34,7 @@ export default function LandingNavbar() {
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
         {/* Logo */}
         <Link href="/" className="group flex items-center gap-2.5" onClick={() => setOpen(false)}>
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-bold text-white shadow-md shadow-indigo-500/25 transition-transform duration-300 group-hover:scale-105">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand)] text-sm font-bold text-white shadow-md shadow-blue-500/25 transition-transform duration-300 group-hover:scale-105">
             T
           </span>
           <span className="text-lg font-bold tracking-tight text-slate-900">Testora</span>
@@ -63,7 +63,7 @@ export default function LandingNavbar() {
           </Link>
           <Link
             href="/register"
-            className="rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:bg-slate-800 hover:shadow-md"
+            className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-500/20 transition-all duration-300 hover:bg-[var(--brand-dark)] hover:shadow-md hover:shadow-blue-500/30"
           >
             Register
           </Link>
@@ -112,7 +112,7 @@ export default function LandingNavbar() {
                 <Link
                   href="/register"
                   onClick={() => setOpen(false)}
-                  className="flex-1 rounded-xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white"
+                  className="flex-1 rounded-xl bg-[var(--brand)] px-4 py-3 text-center text-sm font-semibold text-white"
                 >
                   Register
                 </Link>
