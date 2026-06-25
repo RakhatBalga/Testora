@@ -24,15 +24,29 @@ class Feedback:
     summary: str
     suggestions: list[str] = field(default_factory=list)
     mistakes: list[MistakeItem] = field(default_factory=list)
+    # Per-criterion examiner justification (criterion name -> 1-2 sentence note).
+    criteria_notes: dict[str, str] = field(default_factory=dict)
+    # Coaching extras (populated by the two-stage Writing engine; empty otherwise).
+    strengths: list[str] = field(default_factory=list)
+    weaknesses: list[str] = field(default_factory=list)
+    roadmap: list[dict] = field(default_factory=list)  # [{target_band, actions[]}]
+    # True when grading could not be completed (AI error/timeout/malformed
+    # output). The caller must NOT persist this as a real Band-0 grade.
+    error: bool = False
 
     def to_dict(self) -> dict:
         # Mistakes are persisted separately (mistakes table), not in the stored
-        # feedback JSON, so the submission feedback shape stays stable.
+        # feedback JSON. The extra coaching keys are additive and backward
+        # compatible — older consumers read band/criteria/summary/suggestions.
         return {
             "band": self.band,
             "criteria": self.criteria,
             "summary": self.summary,
             "suggestions": self.suggestions,
+            "criteria_notes": self.criteria_notes,
+            "strengths": self.strengths,
+            "weaknesses": self.weaknesses,
+            "roadmap": self.roadmap,
         }
 
 

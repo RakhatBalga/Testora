@@ -97,6 +97,7 @@ def grade_attempt(questions, answers_map):
                 "user_answer": _display(user_answer) or None,
                 "correct_answer": _display(question.correct_answer),
                 "is_correct": is_correct,
+                "explanation": getattr(question, "explanation", None),
             }
         )
     return graded, score

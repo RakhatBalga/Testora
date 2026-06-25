@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Float, Index
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -27,3 +27,7 @@ class SpeakingSubmission(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     task = relationship("SpeakingTask")
+
+    __table_args__ = (
+        Index("ix_speaking_submissions_user_created", "user_id", "created_at"),
+    )

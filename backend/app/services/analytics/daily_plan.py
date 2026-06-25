@@ -10,6 +10,7 @@ from datetime import datetime
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.time import local_today, to_local_date
 from app.models.writing import WritingSubmission
 from app.models.speaking import SpeakingSubmission
 from app.models.attempt import Attempt
@@ -59,7 +60,7 @@ def _task(id_: str, title: str, detail: str, skill: str | None, href: str, sourc
 
 def compute_daily_plan(db: Session, user_id: int, target: float = DEFAULT_TARGET, limit: int = 3) -> dict:
     band_gap = compute_band_gap(db, user_id, target=target)
-    today = datetime.utcnow().date()
+    today = local_today()
 
     # Cold start — no graded data yet. Give a concrete first move, not a mock.
     if not band_gap.get("has_data"):
@@ -148,7 +149,7 @@ def compute_daily_plan(db: Session, user_id: int, target: float = DEFAULT_TARGET
             if skill in used_skills:
                 continue
             ts = last.get(skill)
-            age = (today - ts.date()).days if ts else 999
+            age = (today - to_local_date(ts)).days if ts else 999
             if age >= _STALE_DAYS:
                 stale_candidates.append((age, skill))
         stale_candidates.sort(reverse=True)  # most neglected first
