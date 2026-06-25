@@ -188,10 +188,13 @@ def _errors_to_mistakes(errors: list[WritingError]) -> list[MistakeItem]:
         correction = (e.correction or "").strip()
         if snippet and correction and snippet == correction:
             continue
+        if _is_optional_refinement(e):
+            continue
         subskill = _normalize_error_subskill(e)
+        category = _normalize_error_category(e.category, subskill)
         mistakes.append(
             MistakeItem(
-                category=e.category,
+                category=category,
                 subskill=subskill,
                 severity=max(1, min(3, e.severity)),
                 snippet=e.snippet,
@@ -202,6 +205,22 @@ def _errors_to_mistakes(errors: list[WritingError]) -> list[MistakeItem]:
     return mistakes
 
 
+def _is_optional_refinement(error: WritingError) -> bool:
+    if error.severity > 1:
+        return False
+    explanation = (error.explanation or "").lower()
+    optional_markers = (
+        "not strictly incorrect",
+        "more concise",
+        "more formal",
+        "slightly more natural",
+        "would be more natural",
+        "could be more natural",
+        "would also be acceptable",
+    )
+    return any(marker in explanation for marker in optional_markers)
+
+
 def _normalize_error_subskill(error: WritingError) -> str | None:
     """Correct common model taxonomy slips before storing Mistake Memory rows."""
     haystack = " ".join(
@@ -210,6 +229,14 @@ def _normalize_error_subskill(error: WritingError) -> str | None:
     if any(word in haystack for word in ("comma", "semicolon", "full stop", "punctuation")):
         return "punctuation"
     return error.subskill
+
+
+def _normalize_error_category(category: ErrorCategory, subskill: str | None) -> ErrorCategory:
+    if subskill in {"word_choice", "collocation", "repetition", "spelling", "word_formation"}:
+        return "vocabulary"
+    if subskill in {"punctuation", "articles", "prepositions", "tense", "agreement", "sentence_structure"}:
+        return "grammar"
+    return category
 
 
 def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type: int) -> Feedback:
