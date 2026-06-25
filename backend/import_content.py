@@ -114,6 +114,7 @@ def _build_test(data: dict) -> Test:
         test_type=test_type,
         description=data.get("description"),
         duration_minutes=int(data.get("duration_minutes", 30)),
+        difficulty=data.get("difficulty"),
     )
 
     sections = _require(data, "sections", f"test '{title}'")
@@ -155,7 +156,26 @@ def _build_question(data: dict, where: str, default_order: int) -> Question:
         question_type=q_type,
         options=data.get("options"),
         correct_answer=correct,
+        explanation=data.get("explanation"),
+        evidence=_normalize_evidence(data.get("evidence")),
     )
+
+
+def _normalize_evidence(raw):
+    """Accept a single span or a list of {paragraph, sentence, quote} and store
+    the frontend-compatible shape [{paragraph, sentence, text}] (text = quote)."""
+    if not raw:
+        return None
+    spans = raw if isinstance(raw, list) else [raw]
+    out = []
+    for e in spans:
+        quote = e.get("quote", e.get("text"))
+        if e.get("paragraph") is None or not quote:
+            continue
+        out.append(
+            {"paragraph": e["paragraph"], "sentence": e.get("sentence"), "text": quote}
+        )
+    return out or None
 
 
 def _build_writing(data: dict) -> WritingTask:
