@@ -12,10 +12,10 @@ Two stages:
 """
 
 # --------------------------------------------------------------------------- #
-# Shared calibration: what each band *means*. Forces Band 8-9 to be rare.
+# Shared calibration: what each band *means*. Keeps the full band range usable.
 # --------------------------------------------------------------------------- #
 _BAND_CALIBRATION = """\
-BAND CALIBRATION (apply strictly — most real candidates sit between 5.0 and 6.5):
+BAND CALIBRATION (apply strictly — use the full 0-9 range when warranted):
 - Band 5: Partially addresses the task. Limited, repetitive vocabulary. Frequent
   grammatical errors that can impede the reader. Ideas present but underdeveloped
   or poorly organised.
@@ -33,9 +33,11 @@ BAND CALIBRATION (apply strictly — most real candidates sit between 5.0 and 6.
   some less common items and only occasional word-choice/collocation errors.
   There is a variety of complex structures, frequent error-free sentences, and
   good control; errors are present but normally minor.
-- Band 8: Fully and skilfully handles the task. Well-extended, well-supported
-  ideas. Wide, precise, natural vocabulary. Wide grammatical range with the vast
-  majority of sentences error-free. Rare slips only.
+- Band 8: Handles the task very well, with a clear sustained position and ideas
+  that are well extended and well supported. Organisation is easy to follow and
+  paragraphing is effective. Vocabulary is wide, precise, and flexible with only
+  occasional awkwardness or inappropriate choice. Grammar shows wide range and
+  strong control; occasional non-systematic slips can still occur.
 - Band 9: Expert, fully native-like control across all four criteria. Award only
   when there is essentially nothing to improve.
 
@@ -43,7 +45,10 @@ CONSERVATISM RULE: If a script sits between two bands on a criterion, award the
 LOWER band. Do not reward effort, length, or topic familiarity. Penalise, do not
 overlook, errors. However, do not push a script down to Band 6 merely because it
 has minor errors or uneven support if it otherwise matches Band 7 descriptors.
-Band 8 and 9 must be genuinely exceptional.
+Likewise, do not push a script down to Band 6 merely because it has some spelling,
+word-choice, punctuation, or paragraphing lapses if the overall criterion evidence
+matches Band 7 or Band 8. Band 8 and 9 must be strong, but Band 8 does not require
+native-like perfection.
 """
 
 _SCORING_PROTOCOL = """\
@@ -66,6 +71,14 @@ SCORING PROTOCOL:
     repetition or collocation slips;
   * frequent error-free sentences and good control can be GRA 7 even with minor
     article, punctuation, or word-form errors that do not impede meaning.
+- Do not over-anchor at Band 6. If a script has a clear sustained position,
+  relevant developed ideas, effective progression, flexible vocabulary, and good
+  grammatical control, scores of 7.0, 7.5, or 8.0 should be available even when
+  there are visible but non-impeding errors.
+- Award Band 8-level criterion scores when the criterion is very strong overall,
+  even if there is an occasional lapse, over-generalisation, awkward collocation,
+  spelling slip, or minor punctuation error. Reserve Band 9 for near-perfect
+  control, not Band 8.
 - Extract concrete errors into the `errors` array. Each error must quote the
   offending text in `snippet` and give a corrected form in `correction`.
 - Put only genuine mistakes in `errors`: the correction must materially change
@@ -137,6 +150,16 @@ criteria, applying Task-2 priorities:
 TASK RESPONSE (most important for Task 2):
 - Are ALL parts of the prompt addressed (e.g. both views AND an opinion; causes
   AND solutions)? A partial answer cannot exceed Band 5 on this criterion.
+- For "to what extent do you agree or disagree" prompts, the candidate may take
+  a one-sided or nuanced position; do not require balanced discussion of both
+  sides unless the prompt explicitly asks for both views.
+- For comparative agree/disagree prompts (e.g. "X are better prepared than Y"),
+  a response can fully address the task by arguing clearly for one side with
+  relevant development; it does not automatically need equal coverage of both
+  groups unless the prompt asks for a discussion of both.
+- For "do the disadvantages outweigh the advantages" prompts, both sides should
+  be considered, but they do not need equal paragraph length if the candidate's
+  weighing is clear.
 - Is the candidate's POSITION clear and sustained throughout? An unclear or
   inconsistent position caps this criterion at Band 5.
 - Are ideas developed with relevant explanation and SUPPORTING EXAMPLES, or are

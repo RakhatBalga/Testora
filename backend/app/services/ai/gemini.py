@@ -89,7 +89,7 @@ def _config(
     *,
     schema=None,
     temperature: float = 0.3,
-    max_tokens: int = 2048,
+    max_tokens: int = 4096,
 ):
     from google.genai import types
 
@@ -97,8 +97,10 @@ def _config(
         system_instruction=system,
         response_mime_type="application/json",
         # Headroom so a full criterion-level rubric + errors never gets truncated
-        # mid-JSON. A truncated body is surfaced as a grading error, never saved
-        # as a bogus grade.
+        # mid-JSON. The examiner prompt is intentionally detailed; 2.5 models can
+        # spend many output tokens on schema fields even when the final JSON is
+        # compact. A truncated body is surfaced as a grading error, never saved as
+        # a bogus grade.
         max_output_tokens=max_tokens,
         temperature=temperature,
         # gemini-2.5-* thinking tokens count against max_output_tokens. Disable
@@ -127,7 +129,7 @@ def _generate(
     *,
     schema=None,
     temperature: float = 0.3,
-    max_tokens: int = 2048,
+    max_tokens: int = 4096,
 ) -> str:
     """Call Gemini with a fresh client, retrying transient failures with backoff."""
     last_exc: Exception | None = None
