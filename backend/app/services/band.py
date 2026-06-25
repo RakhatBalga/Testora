@@ -4,6 +4,17 @@ Tables are the commonly used Academic Reading / Listening conversions for a
 40-question test. For tests with fewer questions we scale the raw score to a
 /40 equivalent first, so short practice tests still map to a sensible band.
 """
+import math
+
+
+def round_ielts(x: float) -> float:
+    """Round to the nearest half-band using IELTS rules (.25 rounds UP to .5).
+
+    Python's built-in round() uses banker's rounding, so round(6.25*2)/2 yields
+    6.0 — but IELTS rounds an overall average of 6.25 up to 6.5. We round half
+    up explicitly. Result is clamped to the valid 0-9 range.
+    """
+    return max(0.0, min(9.0, math.floor(x * 2 + 0.5) / 2))
 
 # (min_raw_out_of_40, band) — checked from highest to lowest.
 _READING = [

@@ -9,10 +9,30 @@ directly to the model — no separate speech-to-text step is required.
 """
 
 import json
+import logging
+import re
+import time
 from pathlib import Path
 
 from app.core.config import settings
 from app.services.ai.base import Feedback, WritingGrader, SpeakingGrader
+from app.services.ai import prompts
+from app.services.ai.schemas import (
+    CoachResult,
+    build_feedback,
+    examiner_model,
+    normalize_examiner,
+)
+
+logger = logging.getLogger("testora.ai.gemini")
+
+# Examiner runs cold for consistency; coach a little warmer for natural prose.
+_EXAMINER_TEMPERATURE = 0.1
+_COACH_TEMPERATURE = 0.35
+
+
+def _count_words(text: str) -> int:
+    return len(re.findall(r"\b[\w'-]+\b", text or ""))
 
 # Map saved-file extensions to the audio MIME types Gemini accepts.
 _AUDIO_MIME = {
@@ -48,43 +68,94 @@ def _client():
     )
 
 
-def _config(system: str):
+def _config(system: str, *, schema=None, temperature: float = 0.3, max_tokens: int = 2048):
     from google.genai import types
 
-    return types.GenerateContentConfig(
+    kwargs = dict(
         system_instruction=system,
         response_mime_type="application/json",
-        max_output_tokens=1024,
-        temperature=0.3,
+        # Headroom so a full criterion-level rubric + errors never gets truncated
+        # mid-JSON (a truncated body is surfaced as a grading error, never saved
+        # as a bogus grade).
+        max_output_tokens=max_tokens,
+        temperature=temperature,
     )
+    if schema is not None:
+        # Constrained JSON mode: the model must emit objects matching `schema`.
+        kwargs["response_schema"] = schema
+    return types.GenerateContentConfig(**kwargs)
 
 
-def _generate(contents, system: str) -> str:
-    """Call Gemini with a fresh client, retrying once on transient failures.
+# Retry policy for transient Gemini failures (timeouts, 5xx, connection resets).
+_MAX_ATTEMPTS = 3
+_BACKOFF_BASE_SECONDS = 1.0
+
+
+def _generate(contents, system: str, *, schema=None, temperature: float = 0.3,
+              max_tokens: int = 2048) -> str:
+    """Call Gemini with a fresh client, retrying transient failures with backoff.
 
     Each attempt builds a new client because the SDK's internal retry reuses a
-    closed httpx connection; a fresh client sidesteps that.
+    closed httpx connection; a fresh client sidesteps that. Retries use
+    exponential backoff (1s, 2s, ...). A truncated response (hit the output
+    token cap) is treated as a hard failure — retrying would only truncate
+    again — so it is raised immediately for the caller to surface as an error.
     """
     last_exc: Exception | None = None
-    for _ in range(2):
+    for attempt in range(1, _MAX_ATTEMPTS + 1):
         try:
             resp = _client().models.generate_content(
                 model=settings.GEMINI_MODEL,
                 contents=contents,
-                config=_config(system),
+                config=_config(system, schema=schema, temperature=temperature,
+                               max_tokens=max_tokens),
             )
-            return resp.text
-        except Exception as exc:  # noqa: BLE001 — retried, then surfaced
+            _raise_if_truncated(resp)
+            text = resp.text
+            if not text or not text.strip():
+                raise ValueError("Gemini returned an empty response")
+            return text
+        except _TruncatedResponse:
+            raise
+        except Exception as exc:  # noqa: BLE001 — retried with backoff, then surfaced
             last_exc = exc
+            logger.warning(
+                "Gemini generate_content attempt %d/%d failed: %s",
+                attempt,
+                _MAX_ATTEMPTS,
+                exc,
+            )
+            if attempt < _MAX_ATTEMPTS:
+                time.sleep(_BACKOFF_BASE_SECONDS * (2 ** (attempt - 1)))
     raise last_exc  # type: ignore[misc]
 
 
-def _parse(raw: str) -> dict:
+class _TruncatedResponse(Exception):
+    """The model stopped because it hit the output-token cap — output is unusable."""
+
+
+def _raise_if_truncated(resp) -> None:
+    """Detect a MAX_TOKENS finish so we never try to parse half-written JSON."""
+    candidates = getattr(resp, "candidates", None) or []
+    for cand in candidates:
+        reason = getattr(cand, "finish_reason", None)
+        if reason is not None and str(reason).upper().endswith("MAX_TOKENS"):
+            raise _TruncatedResponse(
+                "Gemini response was truncated at the output-token limit"
+            )
+
+
+def _json_text(raw: str) -> str:
+    """Return clean JSON text, stripping any markdown code fence the model added."""
     raw = (raw or "").strip()
     if raw.startswith("```"):
         raw = raw.strip("`")
         raw = raw[raw.find("{") : raw.rfind("}") + 1]
-    return json.loads(raw)
+    return raw
+
+
+def _parse(raw: str) -> dict:
+    return json.loads(_json_text(raw))
 
 
 def _to_feedback(data: dict) -> Feedback:
@@ -102,25 +173,20 @@ def _to_feedback(data: dict) -> Feedback:
 
 
 def _error_feedback(message: str) -> Feedback:
-    """Returned when the AI call fails, so the submission is still saved."""
+    """Returned when the AI call fails.
+
+    `error=True` tells the router to save the submission as *failed* (band left
+    unset) rather than persisting a misleading Band-0 grade. The user keeps
+    their work and can re-submit.
+    """
     return Feedback(
         band=0.0,
         criteria={},
         summary=f"Automatic grading could not be completed: {message}",
         suggestions=["Try submitting again, or check the AI configuration."],
+        error=True,
     )
 
-
-_WRITING_SYSTEM = (
-    "You are an experienced IELTS examiner. Grade the candidate's writing using the "
-    "official IELTS band descriptors (0-9, half-bands allowed) for four criteria: "
-    "Task Achievement, Coherence & Cohesion, Lexical Resource, "
-    "Grammatical Range & Accuracy. Respond ONLY with a JSON object of the form: "
-    '{"band": number, "criteria": {"Task Achievement": number, '
-    '"Coherence & Cohesion": number, "Lexical Resource": number, '
-    '"Grammatical Range & Accuracy": number}, "summary": string, '
-    '"suggestions": [string, ...]}.'
-)
 
 _SPEAKING_SYSTEM = (
     "You are an experienced IELTS examiner. Listen to the candidate's recorded "
@@ -135,15 +201,56 @@ _SPEAKING_SYSTEM = (
 
 
 class GeminiWritingGrader(WritingGrader):
+    """Two-stage IELTS Writing engine: a cold Examiner then a warmer Coach.
+
+    Stage 1 (Examiner) scores the four criteria and extracts errors under a
+    constrained JSON schema; the result is normalized deterministically (band
+    snapping, IELTS hard-caps, recomputed overall). Stage 2 (Coach) turns those
+    findings into personalised guidance. If the Coach call fails the examiner
+    result is still returned — coaching is enrichment, not a grading dependency.
+    A failed Examiner call yields error feedback so the submission is saved as
+    *failed* rather than as a bogus grade.
+    """
+
     def grade(self, *, task_type: int, prompt: str, text: str, min_words: int) -> Feedback:
-        user = (
-            f"IELTS Writing Task {task_type}. Minimum words: {min_words}.\n\n"
-            f"PROMPT:\n{prompt}\n\nCANDIDATE RESPONSE:\n{text}"
+        word_count = _count_words(text)
+        system = (
+            prompts.TASK1_EXAMINER_SYSTEM if task_type == 1
+            else prompts.TASK2_EXAMINER_SYSTEM
         )
+        user = prompts.examiner_user_prompt(
+            task_type=task_type, prompt=prompt, text=text,
+            min_words=min_words, word_count=word_count,
+        )
+        model = examiner_model(task_type)
         try:
-            return _to_feedback(_parse(_generate([user], _WRITING_SYSTEM)))
+            raw = _generate([user], system, schema=model,
+                            temperature=_EXAMINER_TEMPERATURE)
+            examiner = model.model_validate_json(_json_text(raw))
         except Exception as exc:  # noqa: BLE001 — never 500 the submit endpoint
+            logger.exception("Gemini Writing examiner stage failed")
             return _error_feedback(str(exc))
+
+        normalized = normalize_examiner(
+            examiner, task_type=task_type, word_count=word_count, min_words=min_words,
+        )
+        coaching = self._coach(task_type, prompt, text, examiner) if settings.WRITING_COACH_ENABLED else None
+        return build_feedback(normalized, coaching, task_type=task_type)
+
+    def _coach(self, task_type, prompt, text, examiner) -> CoachResult | None:
+        """Best-effort coaching; a failure here must not fail the grade."""
+        try:
+            user = prompts.coach_user_prompt(
+                task_type=task_type, prompt=prompt, text=text,
+                examiner_json=examiner.model_dump_json(),
+            )
+            raw = _generate([user], prompts.COACH_SYSTEM, schema=CoachResult,
+                            temperature=_COACH_TEMPERATURE, max_tokens=1536)
+            return CoachResult.model_validate_json(_json_text(raw))
+        except Exception:  # noqa: BLE001
+            logger.warning("Gemini Writing coach stage failed; returning examiner result only",
+                           exc_info=True)
+            return None
 
 
 class GeminiSpeakingGrader(SpeakingGrader):
@@ -172,4 +279,5 @@ class GeminiSpeakingGrader(SpeakingGrader):
             ]
             return _to_feedback(_parse(_generate(contents, _SPEAKING_SYSTEM)))
         except Exception as exc:  # noqa: BLE001
+            logger.exception("Gemini speaking grading failed")
             return _error_feedback(str(exc))

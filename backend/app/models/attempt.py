@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Float, JSON
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Float, JSON, Index
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -22,6 +22,10 @@ class Attempt(Base):
     test = relationship("Test")
     answers = relationship(
         "AnswerRecord", back_populates="attempt", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        Index("ix_attempts_user_created", "user_id", "created_at"),
     )
 
 

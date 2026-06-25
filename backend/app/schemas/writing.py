@@ -1,6 +1,8 @@
 from datetime import datetime
-from typing import Optional, List, Any
-from pydantic import BaseModel
+from typing import Optional, Any
+from pydantic import BaseModel, Field
+
+from app.core.config import settings
 
 
 class WritingTaskOut(BaseModel):
@@ -18,7 +20,9 @@ class WritingTaskOut(BaseModel):
 
 class WritingSubmitIn(BaseModel):
     task_id: int
-    text: str
+    # Bounded to protect memory, AI token cost, and against abuse. A real essay
+    # is well under this ceiling; an empty submission is rejected.
+    text: str = Field(..., min_length=1, max_length=settings.MAX_WRITING_CHARS)
 
 
 class WritingSubmissionOut(BaseModel):

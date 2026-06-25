@@ -14,10 +14,7 @@ from app.models.writing import WritingSubmission
 from app.models.speaking import SpeakingSubmission
 from app.models.attempt import Attempt
 from app.models.test import Test
-
-
-def _round_half(x: float) -> float:
-    return max(0.0, min(9.0, round(x * 2) / 2))
+from app.services.band import round_ielts as _round_half
 
 
 def _graded_events(db: Session, user_id: int) -> list[tuple[datetime, str, float]]:

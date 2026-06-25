@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.models.mistake import Mistake
 from app.services.analytics.sources import skill_bands, latest_feedback, recent_submission_ids
+from app.services.band import round_ielts as _round_half
 
 DEFAULT_TARGET = 7.5
 
@@ -27,10 +28,6 @@ _CRITERION_CATEGORY = {
     "Fluency & Coherence": "fluency",
     "Pronunciation": "pronunciation",
 }
-
-
-def _round_half(x: float) -> float:
-    return max(0.0, min(9.0, round(x * 2) / 2))
 
 
 def compute_band_gap(db: Session, user_id: int, target: float = DEFAULT_TARGET) -> dict:

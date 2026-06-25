@@ -23,6 +23,7 @@ class AnswerResult(BaseModel):
     correct_answer: str
     is_correct: bool
     marked_for_review: bool = False
+    explanation: Optional[str] = None
 
 
 class BreakdownItem(BaseModel):
