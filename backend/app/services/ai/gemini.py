@@ -10,7 +10,6 @@ directly to the model -- no separate speech-to-text step is required.
 
 import json
 import logging
-import re
 import time
 from pathlib import Path
 
@@ -22,6 +21,11 @@ from app.services.ai.schemas import (
     build_feedback,
     examiner_model,
     normalize_examiner,
+)
+from app.services.writing_precheck import (
+    count_words,
+    validate_writing_submission,
+    zero_band_feedback,
 )
 
 logger = logging.getLogger("testora.ai.gemini")
@@ -63,10 +67,6 @@ _SPEAKING_SYSTEM = (
 
 class _TruncatedResponse(Exception):
     """The model stopped because it hit the output-token cap; output is unusable."""
-
-
-def _count_words(text: str) -> int:
-    return len(re.findall(r"\b[\w'-]+\b", text or ""))
 
 
 def _client():
@@ -216,7 +216,15 @@ class GeminiWritingGrader(WritingGrader):
     """Two-stage IELTS Writing engine: cold Examiner, then warmer Coach."""
 
     def grade(self, *, task_type: int, prompt: str, text: str, min_words: int) -> Feedback:
-        word_count = _count_words(text)
+        precheck = validate_writing_submission(
+            task_type=task_type,
+            text=text,
+            min_words=min_words,
+        )
+        word_count = precheck.word_count
+        if not precheck.valid:
+            return zero_band_feedback(task_type, precheck)
+
         system = (
             prompts.TASK1_EXAMINER_SYSTEM
             if task_type == 1
