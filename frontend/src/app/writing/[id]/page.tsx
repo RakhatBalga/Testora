@@ -245,8 +245,10 @@ function AiReviewStatus() {
     >
       <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20">
         <div className="px-6 py-7 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-950 text-white shadow-lg shadow-slate-950/20">
-            <Loader2 className="h-6 w-6 animate-spin" />
+          <div className="relative mx-auto h-14 w-14">
+            <div className="ai-review-spinner absolute inset-0 rounded-full" />
+            <div className="absolute inset-1.5 rounded-full bg-white" />
+            <div className="ai-review-pulse absolute inset-[19px] rounded-full bg-slate-950" />
           </div>
           <p className="mt-4 text-base font-semibold text-slate-950">
             Reviewing essay
@@ -255,7 +257,7 @@ function AiReviewStatus() {
         </div>
 
         <div className="h-1.5 overflow-hidden bg-slate-100">
-          <div className="h-full w-1/2 animate-[aiReviewProgress_2.4s_ease-in-out_infinite] bg-slate-950" />
+          <div className="ai-review-progress h-full w-2/5 rounded-full bg-slate-950" />
         </div>
       </div>
     </div>
