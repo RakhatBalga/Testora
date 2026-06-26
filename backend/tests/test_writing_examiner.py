@@ -17,9 +17,11 @@ from app.infrastructure.ai.schemas import (
     CoachResult,
     Task1Examiner,
     Task2Examiner,
+    WritingError,
     build_feedback,
     examiner_model,
     normalize_examiner,
+    sanitize_coach_evidence,
 )
 
 
@@ -248,6 +250,96 @@ def test_build_feedback_with_coaching():
     assert fb.roadmap and fb.roadmap[0]["target_band"] == 6.5
     assert "6.5" in fb.summary
     assert fb.criteria_notes["Task Response"]
+    assert fb.why_not_higher_band == "To reach 6.5, develop ideas and fix article errors."
+
+
+def test_build_feedback_uses_explicit_why_not_higher_band():
+    ex = _task2(7.5, 7.5, 7.5, 7.5)
+    coaching = CoachResult.model_validate({
+        "priorities": ["Make examples less generic"],
+        "why_not_higher_band": (
+            "To reach 8.0, improve specificity of examples and use more precise collocations."
+        ),
+    })
+    fb = build_feedback(_norm2(ex), coaching, task_type=2)
+    assert fb.why_not_higher_band == (
+        "To reach 8.0, improve specificity of examples and use more precise collocations."
+    )
+
+
+def test_build_feedback_filters_non_forward_roadmap_steps():
+    ex = _task2(7.5, 7.5, 7.5, 7.5)
+    coaching = CoachResult.model_validate({
+        "strengths": ["clear position"],
+        "weaknesses": ["support could be more concrete"],
+        "priorities": ["Add a precise example to each body paragraph"],
+        "roadmap": [
+            {"target_band": 7.5, "actions": ["keep doing the same thing"]},
+            {"target_band": 8.0, "actions": ["make support more specific"]},
+        ],
+        "summary": "Add more concrete support to move toward Band 8.",
+    })
+    fb = build_feedback(_norm2(ex), coaching, task_type=2)
+    assert fb.band == 7.5
+    assert fb.roadmap == [{"target_band": 8.0, "actions": ["make support more specific"]}]
+
+
+def test_build_feedback_creates_next_band_roadmap_when_coach_repeats_current_band():
+    ex = _task2(7.5, 7.5, 7.5, 7.5)
+    coaching = CoachResult.model_validate({
+        "priorities": ["Make examples less generic", "Use more precise collocations"],
+        "roadmap": [{"target_band": 7.5, "actions": ["already achieved"]}],
+    })
+    fb = build_feedback(_norm2(ex), coaching, task_type=2)
+    assert fb.band == 7.5
+    assert fb.roadmap == [{
+        "target_band": 8.0,
+        "actions": ["Make examples less generic", "Use more precise collocations"],
+    }]
+    assert fb.why_not_higher_band == (
+        "To reach 8.0, make examples less generic and use more precise collocations."
+    )
+
+
+def test_sanitize_coach_evidence_drops_unsupported_quotes():
+    coaching = CoachResult.model_validate({
+        "strengths": [
+            'Uses the exact phrase "family influence" well.',
+            'Invents evidence with "nonexistent phrase".',
+        ],
+        "weaknesses": ['Fix the examiner error "in the society".'],
+        "priorities": ['Replace "nonexistent transition" with a clearer linker.'],
+        "roadmap": [
+            {
+                "target_band": 8.0,
+                "actions": [
+                    'Develop the real idea "family influence".',
+                    'Do not mention "fake wording".',
+                ],
+            }
+        ],
+        "why_not_higher_band": 'To reach 8.0, refine "family influence".',
+        "summary": 'Avoid invented "fake wording".',
+    })
+    cleaned = sanitize_coach_evidence(
+        coaching,
+        essay="The essay argues that family influence matters most.",
+        errors=[
+            WritingError(
+                category="grammar",
+                subskill="articles",
+                severity=1,
+                snippet="in the society",
+                correction="in society",
+            )
+        ],
+    )
+    assert cleaned.strengths == ['Uses the exact phrase "family influence" well.']
+    assert cleaned.weaknesses == ['Fix the examiner error "in the society".']
+    assert cleaned.priorities == []
+    assert cleaned.roadmap[0].actions == ['Develop the real idea "family influence".']
+    assert cleaned.why_not_higher_band == 'To reach 8.0, refine "family influence".'
+    assert cleaned.summary == ""
 
 
 def test_build_feedback_without_coaching_degrades_gracefully():

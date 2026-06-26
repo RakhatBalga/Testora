@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { api, WritingSubmission, type ProgressImpact as ProgressImpactData } from "@/shared/api";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import {
+  api,
+  type WritingSubmission,
+  type ProgressImpact as ProgressImpactData,
+} from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { FeedbackCard } from "@/features/feedback";
 import { ProgressImpact } from "@/features/progress-impact";
 import { Badge } from "@/shared/ui";
-import { Card } from "@/shared/ui";
+import { Button, Card } from "@/shared/ui";
 import { LinkButton } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
 
@@ -21,6 +26,8 @@ export default function WritingResultPage() {
   const [impactLoading, setImpactLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState("");
 
   useEffect(() => {
     if (!token) return;
@@ -40,6 +47,33 @@ export default function WritingResultPage() {
     return () => window.clearTimeout(impactTimer);
   }, [token, submissionId]);
 
+  const handleRetry = async () => {
+    if (!submission || retrying) return;
+    setRetrying(true);
+    setRetryError("");
+    try {
+      const updated = await api.retryWritingSubmission(submission.id);
+      setSubmission(updated);
+      if (updated.status === "graded" && updated.band !== null) {
+        setImpactLoading(true);
+        try {
+          setImpact(await api.getProgressImpact("writing", updated.id));
+        } catch {
+          setImpact(null);
+        } finally {
+          setImpactLoading(false);
+        }
+      } else {
+        setImpact(null);
+        setImpactLoading(false);
+      }
+    } catch (err) {
+      setRetryError(err instanceof Error ? err.message : "Retry failed");
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   if (!ready || !token) return null;
   if (loading) {
     return (
@@ -56,6 +90,7 @@ export default function WritingResultPage() {
     );
   }
   if (!submission) return null;
+  const isFailed = submission.status === "failed";
 
   return (
     <div className="space-y-8">
@@ -74,15 +109,46 @@ export default function WritingResultPage() {
         </div>
       </Card>
 
-      {submission.feedback ? (
-        <FeedbackCard feedback={submission.feedback} />
+      {isFailed ? (
+        <Card className="p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                <AlertTriangle className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="font-semibold text-slate-900">Review failed, try again</h2>
+                <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                  {submission.feedback?.summary ||
+                    "Automatic grading could not be completed for this response."}
+                </p>
+                {retryError && (
+                  <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">
+                    {retryError}
+                  </p>
+                )}
+              </div>
+            </div>
+            <Button onClick={handleRetry} disabled={retrying} className="shrink-0">
+              <RefreshCw className={`h-4 w-4 ${retrying ? "animate-spin" : ""}`} />
+              {retrying ? "Retrying" : "Retry review"}
+            </Button>
+          </div>
+        </Card>
+      ) : submission.feedback ? (
+        <FeedbackCard feedback={submission.feedback} currentBand={submission.band} />
       ) : (
         <Card className="p-6 text-center text-slate-500">
           Feedback is not available yet.
         </Card>
       )}
 
-      {impactLoading ? <Skeleton className="h-48 w-full" /> : <ProgressImpact data={impact} />}
+      {!isFailed &&
+        (impactLoading ? (
+          <Skeleton className="h-48 w-full" />
+        ) : (
+          <ProgressImpact data={impact} />
+        ))}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-6">

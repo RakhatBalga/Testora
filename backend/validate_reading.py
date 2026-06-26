@@ -30,6 +30,19 @@ WORD_RANGES = [(800, 900), (900, 1000), (950, 1100)]
 TOTAL_WORD_RANGE = (2150, 2750)
 PLACEHOLDER_PATTERNS = re.compile(r"\b(lorem ipsum|todo|fixme|placeholder|xxxx|tbd)\b", re.I)
 NOT_GIVEN = {"not given", "notgiven"}
+QUESTION_TYPES = {
+    "single_choice",
+    "multiple_choice",
+    "true_false_notgiven",
+    "yes_no_not_given",
+    "matching",
+    "matching_headings",
+    "matching_information",
+    "sentence_completion",
+    "summary_completion",
+    "fill_blank",
+    "short_answer",
+}
 
 
 def _norm(text: str) -> str:
@@ -89,11 +102,17 @@ def validate_test(data: dict, where: str, rep: Report) -> None:
         if len(questions) != QCOUNTS[i]:
             rep.err(f"{title} · Passage {i+1}: {len(questions)} questions (expected {QCOUNTS[i]})")
         total_q += len(questions)
+        orders = [q.get("order") for q in questions]
+        if len(orders) != len(set(orders)):
+            rep.err(f"{title} · Passage {i+1}: duplicate question order")
 
         norm_passage = _norm(passage)
         for q in questions:
             rep.questions += 1
             qid = f"{title} · Q{q.get('order', '?')}"
+            qtype = q.get("question_type")
+            if qtype not in QUESTION_TYPES:
+                rep.err(f"{qid}: unknown question_type '{qtype}'")
             answers = q.get("correct_answer")
             if not answers or not isinstance(answers, list):
                 rep.err(f"{qid}: missing/invalid correct_answer")

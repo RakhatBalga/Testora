@@ -166,12 +166,17 @@ function Input({ question, value, onChange }: Omit<Props, "active" | "onFocus">)
     case "multiple_choice":
       return <CheckboxGroup question={question} value={value} onChange={onChange} />;
     case "matching":
+    case "matching_headings":
+    case "matching_information":
       return <MatchSelect question={question} value={value} onChange={onChange} />;
     case "fill_blank":
+    case "sentence_completion":
+    case "summary_completion":
     case "short_answer":
       return <TextEntry value={value} onChange={onChange} />;
     case "single_choice":
     case "true_false_notgiven":
+    case "yes_no_not_given":
     default:
       return question.options ? (
         <RadioGroup question={question} value={value} onChange={onChange} />

@@ -22,7 +22,7 @@ def _check(question, user_answer) -> bool:
     if question.question_type == "multiple_choice":
         return {_normalize(u) for u in user} == {_normalize(c) for c in correct}
 
-    # single answer types (choice / tf-ng / matching / fill_blank / short_answer):
+    # single answer types (choice / tf-ng / yn-ng / matching / completion):
     # the user's single answer must match one of the acceptable answers.
     if not user:
         return False
@@ -34,8 +34,13 @@ QUESTION_TYPE_LABELS = {
     "single_choice": "Multiple Choice",
     "multiple_choice": "Multiple Answer",
     "true_false_notgiven": "True / False / Not Given",
+    "yes_no_not_given": "Yes / No / Not Given",
     "matching": "Matching",
-    "fill_blank": "Sentence Completion",
+    "matching_headings": "Matching Headings",
+    "matching_information": "Matching Information",
+    "sentence_completion": "Sentence Completion",
+    "summary_completion": "Summary Completion",
+    "fill_blank": "Completion",
     "short_answer": "Short Answer",
 }
 

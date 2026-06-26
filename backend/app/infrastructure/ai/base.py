@@ -31,6 +31,7 @@ class Feedback:
     weaknesses: list[str] = field(default_factory=list)
     actions: list[str] = field(default_factory=list)
     roadmap: list[dict] = field(default_factory=list)  # [{target_band, actions[]}]
+    why_not_higher_band: str = ""
     # True when grading could not be completed (AI error/timeout/malformed
     # output). The caller must NOT persist this as a real Band-0 grade.
     error: bool = False
@@ -55,6 +56,8 @@ class Feedback:
             data["actions"] = self.actions
         if self.roadmap:
             data["roadmap"] = self.roadmap
+        if self.why_not_higher_band:
+            data["why_not_higher_band"] = self.why_not_higher_band
         return data
 
 

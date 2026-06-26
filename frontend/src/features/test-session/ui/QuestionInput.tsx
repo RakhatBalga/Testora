@@ -9,6 +9,8 @@ type Props = {
 export function QuestionInput({ question, value, onChange }: Props) {
   const isText =
     question.question_type === "fill_blank" ||
+    question.question_type === "sentence_completion" ||
+    question.question_type === "summary_completion" ||
     question.question_type === "short_answer" ||
     !question.options;
 

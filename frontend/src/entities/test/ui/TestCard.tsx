@@ -25,6 +25,17 @@ export function TestCard({ test, href, progress }: Props) {
         {test.title}
       </h3>
 
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold capitalize ${accent.softBg} ${accent.text}`}>
+          {test.test_type}
+        </span>
+        {test.difficulty && (
+          <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500">
+            {test.difficulty}
+          </span>
+        )}
+      </div>
+
       <div className="mt-3 flex items-center gap-4 text-sm text-slate-500">
         <span className="inline-flex items-center gap-1.5">
           <FileText className="h-4 w-4 text-slate-300" />

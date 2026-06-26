@@ -75,7 +75,12 @@ export type QuestionType =
   | "single_choice"
   | "multiple_choice"
   | "true_false_notgiven"
+  | "yes_no_not_given"
   | "matching"
+  | "matching_headings"
+  | "matching_information"
+  | "sentence_completion"
+  | "summary_completion"
   | "fill_blank"
   | "short_answer";
 
@@ -173,6 +178,7 @@ export type Feedback = {
   weaknesses?: string[];
   actions?: string[];
   roadmap?: RoadmapStep[];
+  why_not_higher_band?: string;
 };
 
 export type UserProfile = {
@@ -609,6 +615,11 @@ export const api = {
 
   getWritingSubmission: (id: number) =>
     request<WritingSubmission>(`/writing/submissions/${id}`),
+
+  retryWritingSubmission: (id: number) =>
+    request<WritingSubmission>(`/writing/submissions/${id}/retry`, {
+      method: "POST",
+    }),
 
   listSpeakingTasks: () => request<SpeakingTask[]>("/speaking/tasks"),
 

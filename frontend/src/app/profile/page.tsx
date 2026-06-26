@@ -123,7 +123,7 @@ export default function ProfilePage() {
       id: `attempt-${a.id}`,
       title: a.test_title,
       meta: `${a.test_type} - ${formatDate(a.created_at)}`,
-      href: `/result/${a.id}`,
+      href: a.test_type === "listening" ? `/listening/result/${a.id}` : `/result/${a.id}`,
       badge: `${a.score}/${a.total}`,
       badgeClass: scoreTone(a.score, a.total),
       createdAt: a.created_at,

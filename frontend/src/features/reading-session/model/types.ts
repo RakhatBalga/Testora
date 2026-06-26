@@ -58,8 +58,18 @@ export function typeLabel(type: Question["question_type"]): string {
       return "Choose TWO";
     case "true_false_notgiven":
       return "True / False / Not Given";
+    case "yes_no_not_given":
+      return "Yes / No / Not Given";
     case "matching":
       return "Matching";
+    case "matching_headings":
+      return "Matching headings";
+    case "matching_information":
+      return "Matching information";
+    case "sentence_completion":
+      return "Sentence completion";
+    case "summary_completion":
+      return "Summary completion";
     case "fill_blank":
       return "Completion";
     case "short_answer":

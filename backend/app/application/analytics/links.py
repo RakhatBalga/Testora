@@ -4,7 +4,7 @@ _PRACTICE_HREFS = {
     "writing": "/writing",
     "speaking": "/speaking",
     "reading": "/tests/reading",
-    "listening": "/tests/listening",
+    "listening": "/listening",
 }
 
 

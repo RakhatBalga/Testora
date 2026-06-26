@@ -74,13 +74,21 @@ function CheckboxRow({ question, value, onChange }: Omit<Props, "active" | "onFo
 function Field({ question, value, active, onChange, onFocus }: Props) {
   const type = question.question_type;
 
-  if (type === "single_choice" || type === "true_false_notgiven") {
+  if (
+    type === "single_choice" ||
+    type === "true_false_notgiven" ||
+    type === "yes_no_not_given"
+  ) {
     return question.options ? <RadioRow question={question} value={value} onChange={onChange} /> : null;
   }
   if (type === "multiple_choice") {
     return <CheckboxRow question={question} value={value} onChange={onChange} />;
   }
-  if (type === "matching") {
+  if (
+    type === "matching" ||
+    type === "matching_headings" ||
+    type === "matching_information"
+  ) {
     return (
       <select
         value={typeof value === "string" ? value : ""}
@@ -120,7 +128,8 @@ export function ListeningQuestionCard(props: Props) {
   const isChoice =
     question.question_type === "single_choice" ||
     question.question_type === "multiple_choice" ||
-    question.question_type === "true_false_notgiven";
+    question.question_type === "true_false_notgiven" ||
+    question.question_type === "yes_no_not_given";
 
   return (
     <div

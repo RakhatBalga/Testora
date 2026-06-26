@@ -7,7 +7,7 @@ content/ folder so you can grow the question bank just by dropping in files.
 
 Usage (run from the backend/ folder, venv active):
 
-    python import_content.py                 # import everything in content/
+    python import_content.py                 # import everything in content/**/
     python import_content.py content/foo.json  # import specific file(s)
     python import_content.py --replace       # overwrite items with the same key
 
@@ -31,8 +31,8 @@ JSON shape (any of the three arrays may be present per file):
               "order": 1,
               "title": "Section 1 — ...",
               "instructions": "...",
-              "passage": "...",               # reading text (omit for listening)
-              "audio_url": "https://.../clip.mp3",  # listening audio (omit for reading)
+                  "passage": "...",               # reading text or listening transcript
+                  "audio_url": "/static/audio/clip.m4a",  # listening audio, optional with transcript
               "questions": [
                 {
                   "order": 1,
@@ -82,7 +82,12 @@ QUESTION_TYPES = {
     "single_choice",
     "multiple_choice",
     "true_false_notgiven",
+    "yes_no_not_given",
     "matching",
+    "matching_headings",
+    "matching_information",
+    "sentence_completion",
+    "summary_completion",
     "fill_blank",
     "short_answer",
 }
@@ -310,7 +315,7 @@ def _collect_paths(args: list[str]) -> list[Path]:
         return [Path(f) for f in files]
     if not CONTENT_DIR.exists():
         return []
-    return sorted(CONTENT_DIR.glob("*.json"))
+    return sorted(CONTENT_DIR.rglob("*.json"))
 
 
 if __name__ == "__main__":

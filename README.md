@@ -67,8 +67,9 @@ ports 3000 (frontend) and 8000 (API).
 - [ ] `AI_PROVIDER=gemini` **and** `GEMINI_API_KEY` set (the API refuses to start
       in production if grading would fall back to mock)
 - [ ] Reading pack imported and validated: `cd backend && python validate_reading.py`
-- [ ] Writing Task 2 topics imported:
-      `docker compose -f docker-compose.prod.yml exec backend python import_content.py content/writing/task2-topics.json`
+- [ ] Listening pack imported and validated: `cd backend && python validate_listening.py`
+- [ ] Practice content imported:
+      `docker compose -f docker-compose.prod.yml exec backend python import_content.py`
 - [ ] Backups configured: `scripts/backup_prod.sh` writes DB + audio archives
 
 ## Operational notes
@@ -92,9 +93,22 @@ Backend:
 ```bash
 cd backend
 python validate_reading.py
+python validate_listening.py
 python scripts/check_migration_heads.py
 pytest
 ```
+
+Content import:
+```bash
+cd backend
+python import_content.py              # imports content/**/*.json
+python import_content.py --replace    # replace matching content without touching user attempts
+```
+
+Content packs currently live under `backend/content/reading/`,
+`backend/content/listening/`, and `backend/content/writing/`. Listening audio
+assets are stored under `backend/app/static/audio/listening/` and referenced as
+`/static/...` URLs in the JSON.
 
 Frontend:
 ```bash
