@@ -8,6 +8,14 @@
 #
 # NOTE: terminate TLS for testora.studio at a reverse proxy (nginx/Caddy/Traefik)
 # in front of the `frontend` and `backend` services.
+#
+# SECURITY: the `backend` and `frontend` ports below bind to 127.0.0.1 only, so
+# they are reachable solely from the reverse proxy on the same host — never from
+# the public internet directly. This is also what makes the auth rate-limiter
+# trustworthy: it keys on X-Forwarded-For, which clients could otherwise spoof.
+# The proxy MUST overwrite/append X-Forwarded-For (do not pass client-supplied
+# values through). If you run the proxy on another host, replace 127.0.0.1 with
+# the private interface the proxy reaches — do not expose 0.0.0.0.
 services:
   db:
     image: postgres:16
@@ -44,7 +52,7 @@ services:
     volumes:
       - audio:/app/private/audio_submissions
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
 
   frontend:
     build:
@@ -55,7 +63,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
 
 volumes:
   pgdata:

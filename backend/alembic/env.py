@@ -4,14 +4,14 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from app.core.config import settings
-from app.database import Base
-from app.models.user import User  # noqa
-from app.models.test import Test, Section, Question  # noqa
-from app.models.attempt import Attempt, AnswerRecord  # noqa
-from app.models.writing import WritingTask, WritingSubmission  # noqa
-from app.models.speaking import SpeakingTask, SpeakingSubmission  # noqa
-from app.models.mistake import Mistake  # noqa
+from app.infrastructure.config import settings
+from app.infrastructure.database import Base
+from app.domain.models.user import User  # noqa
+from app.domain.models.test import Test, Section, Question  # noqa
+from app.domain.models.attempt import Attempt, AnswerRecord  # noqa
+from app.domain.models.writing import WritingTask, WritingSubmission  # noqa
+from app.domain.models.speaking import SpeakingTask, SpeakingSubmission  # noqa
+from app.domain.models.mistake import Mistake  # noqa
 
 config = context.config
 
