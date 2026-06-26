@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { api, WritingTask } from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { Badge } from "@/components/ui/Badge";
@@ -12,8 +13,15 @@ function taskTone(taskType: number) {
   return taskType === 1 ? "blue" : "violet";
 }
 
+const TASK_FILTERS = [
+  { label: "All", href: "/writing", taskType: null },
+  { label: "Task 1", href: "/writing?task=1", taskType: 1 },
+  { label: "Task 2", href: "/writing?task=2", taskType: 2 },
+];
+
 export default function WritingPage() {
   const { token, ready } = useRequireAuth();
+  const searchParams = useSearchParams();
   const [tasks, setTasks] = useState<WritingTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -26,6 +34,23 @@ export default function WritingPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [token]);
+
+  const activeTaskType = searchParams.get("task") === "1"
+    ? 1
+    : searchParams.get("task") === "2"
+      ? 2
+      : null;
+  const taskCounts = useMemo(
+    () => ({
+      all: tasks.length,
+      task1: tasks.filter((task) => task.task_type === 1).length,
+      task2: tasks.filter((task) => task.task_type === 2).length,
+    }),
+    [tasks],
+  );
+  const visibleTasks = activeTaskType
+    ? tasks.filter((task) => task.task_type === activeTaskType)
+    : tasks;
 
   if (!ready || !token) return null;
 
@@ -50,6 +75,37 @@ export default function WritingPage() {
         </p>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        {TASK_FILTERS.map((filter) => {
+          const active = filter.taskType === activeTaskType;
+          const count = filter.taskType === null
+            ? taskCounts.all
+            : filter.taskType === 1
+              ? taskCounts.task1
+              : taskCounts.task2;
+          return (
+            <Link
+              key={filter.label}
+              href={filter.href}
+              className={`inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-semibold transition ${
+                active
+                  ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-950"
+              }`}
+            >
+              {filter.label}
+              <span
+                className={`rounded-full px-2 py-0.5 text-xs ${
+                  active ? "bg-white/15 text-white" : "bg-slate-100 text-slate-500"
+                }`}
+              >
+                {count}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+
       {error && (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
       )}
@@ -66,13 +122,13 @@ export default function WritingPage() {
             </Card>
           ))}
         </div>
-      ) : tasks.length === 0 && !error ? (
+      ) : visibleTasks.length === 0 && !error ? (
         <Card className="p-8 text-center text-slate-500">
           No writing tasks available yet.
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {tasks.map((task, i) => (
+          {visibleTasks.map((task, i) => (
             <Link
               key={task.id}
               href={`/writing/${task.id}`}
