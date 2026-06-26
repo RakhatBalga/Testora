@@ -31,7 +31,7 @@ import { SubmitConfirm } from "@/components/listening/SubmitConfirm";
 export default function ListeningPage() {
   const { token, ready } = useRequireAuth();
   const params = useParams();
-  const testId = Number(params.id);
+  const testId = Number(params?.id);
   const storeKey = `listening-${testId}`;
 
   const [test, setTest] = useState<TestDetail | null>(null);

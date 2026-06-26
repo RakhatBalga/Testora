@@ -20,7 +20,7 @@ function formatDuration(seconds: number | null): string | null {
 export default function ResultPage() {
   const { token, ready } = useRequireAuth();
   const params = useParams();
-  const attemptId = Number(params.id);
+  const attemptId = Number(params?.id);
 
   const [result, setResult] = useState<AttemptResult | null>(null);
   const [loading, setLoading] = useState(true);

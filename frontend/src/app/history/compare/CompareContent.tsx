@@ -208,8 +208,8 @@ function QTypeDiff({ diff }: { diff: QTypeDiffItem[] }) {
 export default function CompareContent() {
   const { token, ready } = useRequireAuth();
   const searchParams = useSearchParams();
-  const a = searchParams.get("a");
-  const b = searchParams.get("b");
+  const a = searchParams?.get("a") ?? null;
+  const b = searchParams?.get("b") ?? null;
 
   const [result, setResult] = useState<CompareResult | null>(null);
   const [loading, setLoading] = useState(true);

@@ -35,9 +35,10 @@ export default function WritingPage() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  const activeTaskType = searchParams.get("task") === "1"
+  const taskParam = searchParams?.get("task") ?? null;
+  const activeTaskType = taskParam === "1"
     ? 1
-    : searchParams.get("task") === "2"
+    : taskParam === "2"
       ? 2
       : null;
   const taskCounts = useMemo(
