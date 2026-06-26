@@ -4,5 +4,10 @@ __pycache__/
 venv/
 .venv/
 
+# Local writing calibration data/reports may contain third-party or private essays.
+backend/calibration/*.local.json
+backend/calibration/*.local.jsonl
+backend/calibration/reports/
+
 # Claude Code — local, machine-specific settings
 .claude/settings.local.json

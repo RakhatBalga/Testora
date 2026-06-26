@@ -1,37 +1,63 @@
 "use client";
 
-import { useEffect, useState, ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  Activity,
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  Headphones,
+  LogOut,
+  Mic,
+  PenLine,
+  Trophy,
+  UserRound,
+} from "lucide-react";
+import {
   api,
-  AttemptSummary,
-  WritingSubmissionSummary,
-  SpeakingSubmissionSummary,
+  type AttemptSummary,
+  type SpeakingSubmissionSummary,
+  type WritingSubmissionSummary,
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { Card } from "@/components/ui/Card";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Reveal } from "@/components/Reveal";
 
 function roundHalf(n: number): number {
   return Math.round(n * 2) / 2;
 }
 
+function formatDate(value: string | null): string {
+  if (!value) return "No date";
+  return new Date(value).toLocaleDateString();
+}
+
 function bandTone(band: number | null): string {
   if (band === null) return "bg-slate-100 text-slate-500";
-  if (band >= 7) return "bg-green-50 text-green-700";
+  if (band >= 7) return "bg-emerald-50 text-emerald-700";
   if (band >= 5.5) return "bg-amber-50 text-amber-700";
   return "bg-red-50 text-red-700";
 }
 
-function scoreTone(percent: number): string {
-  if (percent >= 70) return "bg-green-50 text-green-700";
-  if (percent >= 40) return "bg-amber-50 text-amber-700";
+function scoreTone(score: number, total: number): string {
+  const pct = total > 0 ? (score / total) * 100 : 0;
+  if (pct >= 70) return "bg-emerald-50 text-emerald-700";
+  if (pct >= 40) return "bg-amber-50 text-amber-700";
   return "bg-red-50 text-red-700";
 }
+
+type RecentItem = {
+  id: string;
+  title: string;
+  meta: string;
+  href: string;
+  badge: string;
+  badgeClass: string;
+  createdAt: string | null;
+};
 
 export default function ProfilePage() {
   const { token, ready } = useRequireAuth();
@@ -46,19 +72,82 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!token) return;
+    let active = true;
+
     Promise.all([
       api.listAttempts(),
       api.listWritingSubmissions(),
       api.listSpeakingSubmissions(),
     ])
       .then(([a, w, s]) => {
+        if (!active) return;
         setAttempts(a);
         setWriting(w);
         setSpeaking(s);
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => active && setError(err.message || "Profile failed to load."))
+      .finally(() => active && setLoading(false));
+
+    return () => {
+      active = false;
+    };
   }, [token]);
+
+  const readingCount = attempts.filter((a) => a.test_type === "reading").length;
+  const listeningCount = attempts.filter((a) => a.test_type === "listening").length;
+  const totalSessions = attempts.length + writing.length + speaking.length;
+
+  const bands = [
+    ...attempts.map((a) => a.band),
+    ...writing.map((w) => w.band),
+    ...speaking.map((s) => s.band),
+  ].filter((b): b is number => b !== null);
+
+  const avgBand =
+    bands.length === 0
+      ? null
+      : roundHalf(bands.reduce((sum, band) => sum + band, 0) / bands.length);
+  const bestBand = bands.length === 0 ? null : Math.max(...bands);
+
+  const recentItems = useMemo<RecentItem[]>(() => {
+    const readingListening = attempts.map((a) => ({
+      id: `attempt-${a.id}`,
+      title: a.test_title,
+      meta: `${a.test_type} - ${formatDate(a.created_at)}`,
+      href: `/result/${a.id}`,
+      badge: `${a.score}/${a.total}`,
+      badgeClass: scoreTone(a.score, a.total),
+      createdAt: a.created_at,
+    }));
+
+    const writingItems = writing.map((w) => ({
+      id: `writing-${w.id}`,
+      title: w.task_title,
+      meta: `${w.word_count} words - ${formatDate(w.created_at)}`,
+      href: `/writing/result/${w.id}`,
+      badge: w.band === null ? w.status : `Band ${w.band.toFixed(1)}`,
+      badgeClass: bandTone(w.band),
+      createdAt: w.created_at,
+    }));
+
+    const speakingItems = speaking.map((s) => ({
+      id: `speaking-${s.id}`,
+      title: `Speaking Part ${s.task_part}`,
+      meta: formatDate(s.created_at),
+      href: `/speaking/result/${s.id}`,
+      badge: s.band === null ? "submitted" : `Band ${s.band.toFixed(1)}`,
+      badgeClass: bandTone(s.band),
+      createdAt: s.created_at,
+    }));
+
+    return [...readingListening, ...writingItems, ...speakingItems]
+      .sort((a, b) => {
+        const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bt - at;
+      })
+      .slice(0, 6);
+  }, [attempts, writing, speaking]);
 
   const handleLogout = () => {
     logout();
@@ -67,208 +156,179 @@ export default function ProfilePage() {
 
   if (!ready || !token) return null;
 
-  const taken = attempts.length;
-  const tasksDone = writing.length + speaking.length;
-  const totalSessions = taken + tasksDone;
-
-  // Average/best across every graded item (Reading, Listening, Writing, Speaking)
-  // on the IELTS 0–9 band scale, rounded to the nearest half-band.
-  const bands = [
-    ...attempts.map((a) => a.band),
-    ...writing.map((w) => w.band),
-    ...speaking.map((s) => s.band),
-  ].filter((b): b is number => b !== null);
-  const avgBand =
-    bands.length === 0
-      ? null
-      : roundHalf(bands.reduce((sum, b) => sum + b, 0) / bands.length);
-  const bestBand = bands.length === 0 ? null : Math.max(...bands);
-
   return (
-    <div className="space-y-10">
-      {/* Header */}
-      <Card className="animate-fade-up overflow-hidden">
-        <div className="bg-hero relative flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-6">
+      <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand)] text-2xl font-bold text-white shadow-sm">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand)] text-xl font-bold text-white">
               {username?.[0]?.toUpperCase() ?? "?"}
             </span>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">{username}</h1>
-              <p className="text-sm text-slate-500">Your IELTS practice profile</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                Profile
+              </p>
+              <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                {username ?? "Student"}
+              </h1>
             </div>
           </div>
-          <Button variant="secondary" onClick={handleLogout} className="w-fit">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H4m0 0l3.5-3.5M4 12l3.5 3.5M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
-            </svg>
-            Log out
-          </Button>
-        </div>
-      </Card>
 
-      {/* Stats */}
-      <div className="grid animate-fade-up gap-4 [animation-delay:80ms] sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total sessions" value={loading ? null : String(totalSessions)} />
-        <StatCard
+          <div className="flex flex-wrap gap-2">
+            <LinkButton href="/analytics" variant="secondary">
+              <BarChart3 className="h-4 w-4" />
+              Analytics
+            </LinkButton>
+            <Button variant="secondary" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
+
+      <section className="grid animate-fade-up gap-4 [animation-delay:60ms] sm:grid-cols-2 lg:grid-cols-4">
+        <ProfileMetric label="Sessions" value={loading ? null : String(totalSessions)} />
+        <ProfileMetric
           label="Average band"
-          value={loading ? null : avgBand === null ? "—" : avgBand.toFixed(1)}
+          value={loading ? null : avgBand === null ? "-" : avgBand.toFixed(1)}
         />
-        <StatCard
+        <ProfileMetric
           label="Best band"
-          value={loading ? null : bestBand === null ? "—" : bestBand.toFixed(1)}
+          value={loading ? null : bestBand === null ? "-" : bestBand.toFixed(1)}
         />
-        <StatCard
-          label="AI sessions"
-          value={loading ? null : String(tasksDone)}
-        />
+        <ProfileMetric label="AI reviews" value={loading ? null : String(writing.length + speaking.length)} />
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:100ms]">
+          <div className="mb-5 flex items-center gap-2">
+            <Activity className="h-5 w-5 text-[var(--brand)]" />
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">Practice record</h2>
+          </div>
+
+          {loading ? (
+            <div className="space-y-3">
+              {[0, 1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <SkillRow icon={<BookOpen className="h-4 w-4" />} label="Reading" value={readingCount} href="/tests/reading" />
+              <SkillRow icon={<Headphones className="h-4 w-4" />} label="Listening" value={listeningCount} href="/tests/listening" />
+              <SkillRow icon={<PenLine className="h-4 w-4" />} label="Writing" value={writing.length} href="/writing" />
+              <SkillRow icon={<Mic className="h-4 w-4" />} label="Speaking" value={speaking.length} href="/speaking" />
+            </div>
+          )}
+        </section>
+
+        <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:140ms]">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              <h2 className="text-base font-semibold text-[var(--text-primary)]">Recent activity</h2>
+            </div>
+            <Link href="/practice" className="text-sm font-semibold text-[var(--brand)]">
+              Practice
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : recentItems.length > 0 ? (
+            <div className="space-y-2.5">
+              {recentItems.map((item) => (
+                <RecentRow key={item.id} item={item} />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-[var(--border)] bg-slate-50/60 p-6 text-center">
+              <UserRound className="mx-auto h-7 w-7 text-slate-300" />
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                Your completed tests and AI reviews will appear here.
+              </p>
+              <LinkButton href="/practice" size="sm" className="mt-4">
+                Start practice
+              </LinkButton>
+            </div>
+          )}
+        </section>
       </div>
+    </div>
+  );
+}
 
-      {error && (
-        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-      )}
-
-      {loading ? (
-        <div className="space-y-3">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-20 w-full" />
-          ))}
-        </div>
+function ProfileMetric({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm shadow-slate-200/40">
+      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+        {label}
+      </p>
+      {value === null ? (
+        <Skeleton className="mt-2 h-9 w-16 rounded-lg" />
       ) : (
-        <div className="space-y-10">
-          {/* Reading & Listening */}
-          <ResultSection
-            title="Reading & Listening"
-            empty="No tests taken yet."
-            href="/practice"
-            cta="Take a test"
-            items={attempts.map((a) => {
-              const percent = Math.round((a.score / a.total) * 100);
-              return (
-                <ResultRow
-                  key={`a-${a.id}`}
-                  href={`/result/${a.id}`}
-                  title={a.test_title}
-                  meta={`${a.test_type} · ${new Date(a.created_at).toLocaleDateString()}`}
-                  badge={`${a.score} / ${a.total}`}
-                  badgeClass={scoreTone(percent)}
-                />
-              );
-            })}
-          />
-
-          {/* Writing */}
-          <ResultSection
-            title="Writing"
-            empty="No writing submissions yet."
-            href="/writing"
-            cta="Practise writing"
-            items={writing.map((w) => (
-              <ResultRow
-                key={`w-${w.id}`}
-                href={`/writing/result/${w.id}`}
-                title={w.task_title}
-                meta={`${w.word_count} words · ${new Date(w.created_at).toLocaleDateString()}`}
-                badge={w.band === null ? w.status : `Band ${w.band.toFixed(1)}`}
-                badgeClass={bandTone(w.band)}
-              />
-            ))}
-          />
-
-          {/* Speaking */}
-          <ResultSection
-            title="Speaking"
-            empty="No speaking submissions yet."
-            href="/speaking"
-            cta="Practise speaking"
-            items={speaking.map((s) => (
-              <ResultRow
-                key={`s-${s.id}`}
-                href={`/speaking/result/${s.id}`}
-                title={`Speaking Part ${s.task_part}`}
-                meta={new Date(s.created_at).toLocaleDateString()}
-                badge={s.band === null ? "submitted" : `Band ${s.band.toFixed(1)}`}
-                badgeClass={bandTone(s.band)}
-              />
-            ))}
-          />
-        </div>
+        <p className="mt-1 text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
+          {value}
+        </p>
       )}
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string | null }) {
-  return (
-    <Card className="p-5">
-      <p className="text-sm text-slate-500">{label}</p>
-      {value === null ? (
-        <Skeleton className="mt-2 h-9 w-16" />
-      ) : (
-        <p className="mt-1 text-3xl font-bold text-slate-900">{value}</p>
-      )}
-    </Card>
-  );
-}
-
-function ResultSection({
-  title,
-  items,
-  empty,
+function SkillRow({
+  icon,
+  label,
+  value,
   href,
-  cta,
 }: {
-  title: string;
-  items: ReactNode[];
-  empty: string;
+  icon: React.ReactNode;
+  label: string;
+  value: number;
   href: string;
-  cta: string;
 }) {
   return (
-    <Reveal>
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">{title}</h2>
-        {items.length === 0 ? (
-          <Card className="flex flex-col items-center gap-3 p-8 text-center">
-            <p className="text-slate-500">{empty}</p>
-            <LinkButton href={href} variant="secondary" size="sm">
-              {cta}
-            </LinkButton>
-          </Card>
-        ) : (
-          <div className="space-y-3">{items}</div>
-        )}
-      </section>
-    </Reveal>
-  );
-}
-
-function ResultRow({
-  href,
-  title,
-  meta,
-  badge,
-  badgeClass,
-}: {
-  href: string;
-  title: string;
-  meta: string;
-  badge: string;
-  badgeClass: string;
-}) {
-  return (
-    <Link href={href} className="group block">
-      <Card className="flex items-center justify-between p-4 transition duration-300 group-hover:-translate-y-0.5 group-hover:border-blue-300 group-hover:shadow-md">
-        <div className="min-w-0">
-          <p className="truncate font-medium text-slate-900">{title}</p>
-          <p className="text-sm capitalize text-slate-400">{meta}</p>
-        </div>
-        <span
-          className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-semibold capitalize ${badgeClass}`}
-        >
-          {badge}
+    <Link
+      href={href}
+      className="group flex items-center justify-between rounded-xl border border-[var(--border)] px-4 py-3 transition-colors hover:border-slate-300 hover:bg-slate-50"
+    >
+      <span className="flex items-center gap-3">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-[var(--text-secondary)]">
+          {icon}
         </span>
-      </Card>
+        <span className="text-sm font-semibold text-[var(--text-primary)]">{label}</span>
+      </span>
+      <span className="flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)]">
+        {value}
+        <ArrowRight className="h-4 w-4 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-[var(--brand)]" />
+      </span>
+    </Link>
+  );
+}
+
+function RecentRow({ item }: { item: RecentItem }) {
+  return (
+    <Link
+      href={item.href}
+      className="group flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] px-4 py-3 transition-colors hover:border-slate-300 hover:bg-slate-50"
+    >
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">
+          {item.title}
+        </span>
+        <span className="mt-0.5 block text-xs capitalize text-[var(--text-secondary)]">
+          {item.meta}
+        </span>
+      </span>
+      <span className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-semibold capitalize ${item.badgeClass}`}>
+        {item.badge}
+      </span>
     </Link>
   );
 }

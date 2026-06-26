@@ -16,6 +16,7 @@ from app.models.speaking import SpeakingSubmission
 from app.models.attempt import Attempt
 from app.models.test import Test
 from app.services.analytics.band_gap import compute_band_gap, generate_blockers, DEFAULT_TARGET
+from app.services.analytics.links import practice_href
 from app.services.analytics.weakness import compute_weaknesses
 
 # Per-skill effort estimate (minutes) for a single practice task.
@@ -70,7 +71,7 @@ def compute_daily_plan(db: Session, user_id: int, target: float = DEFAULT_TARGET
                 "Complete your first Writing task",
                 "I'll estimate your band and find your biggest blocker from it.",
                 "writing",
-                "/practice/writing",
+                practice_href("writing"),
                 "cold_start",
                 _SKILL_MINUTES["writing"],
             ),
@@ -79,7 +80,7 @@ def compute_daily_plan(db: Session, user_id: int, target: float = DEFAULT_TARGET
                 "Try a Reading passage",
                 "Reading is scored instantly — a fast way to start your band estimate.",
                 "reading",
-                "/practice/reading",
+                practice_href("reading"),
                 "cold_start",
                 _SKILL_MINUTES["reading"],
             ),
@@ -103,7 +104,7 @@ def compute_daily_plan(db: Session, user_id: int, target: float = DEFAULT_TARGET
                 f"Practice {b['skill']} — focus on {b['criterion']}",
                 b.get("explanation") or f"{b['criterion']} is currently capping your {b['skill']} band.",
                 skill,
-                b.get("fix_href") or f"/practice/{skill}",
+                b.get("fix_href") or practice_href(skill),
                 "blocker",
                 _SKILL_MINUTES.get(skill, 20),
             )
@@ -120,7 +121,7 @@ def compute_daily_plan(db: Session, user_id: int, target: float = DEFAULT_TARGET
                 f"Complete a {title_skill} task",
                 f"{title_skill} is your lowest skill (Band {band_gap['per_skill'].get(lowest)}) — the biggest lever to your overall band.",
                 lowest,
-                f"/practice/{lowest}",
+                practice_href(lowest),
                 "band_gap",
                 _SKILL_MINUTES.get(lowest, 20),
             )
@@ -168,7 +169,7 @@ def compute_daily_plan(db: Session, user_id: int, target: float = DEFAULT_TARGET
                     f"Practice {skill.title()}",
                     detail,
                     skill,
-                    f"/practice/{skill}",
+                    practice_href(skill),
                     "last_activity",
                     _SKILL_MINUTES.get(skill, 20),
                 )
