@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -16,13 +15,14 @@ from app.schemas.writing import (
 from app.services.ai import get_writing_grader
 from app.services.ai.concurrency import run_grading
 from app.services.mistakes import record_mistakes
+from app.services.writing_precheck import (
+    count_words,
+    validate_writing_submission,
+    zero_band_feedback,
+)
 
 router = APIRouter()
 logger = logging.getLogger("testora.writing")
-
-
-def _count_words(text: str) -> int:
-    return len(re.findall(r"\b[\w'-]+\b", text))
 
 
 @router.get("/tasks", response_model=List[WritingTaskOut])
@@ -55,7 +55,12 @@ async def submit(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    word_count = _count_words(payload.text)
+    precheck = validate_writing_submission(
+        task_type=task.task_type,
+        text=payload.text,
+        min_words=task.min_words,
+    )
+    word_count = precheck.word_count
     submission = WritingSubmission(
         user_id=current_user.id,
         task_id=task.id,
@@ -64,17 +69,20 @@ async def submit(
         status="pending",
     )
 
-    # Grade via the AI layer (mock now, Gemini when AI_PROVIDER=gemini). The
-    # blocking call is offloaded to the threadpool and globally rate-bounded so
-    # concurrent gradings can't starve the event loop or hammer the model.
-    grader = get_writing_grader()
-    feedback = await run_grading(
-        grader.grade,
-        task_type=task.task_type,
-        prompt=task.prompt,
-        text=payload.text,
-        min_words=task.min_words,
-    )
+    if precheck.valid:
+        # Grade via the AI layer (mock now, Gemini when AI_PROVIDER=gemini). The
+        # blocking call is offloaded to the threadpool and globally rate-bounded so
+        # concurrent gradings can't starve the event loop or hammer the model.
+        grader = get_writing_grader()
+        feedback = await run_grading(
+            grader.grade,
+            task_type=task.task_type,
+            prompt=task.prompt,
+            text=payload.text,
+            min_words=task.min_words,
+        )
+    else:
+        feedback = zero_band_feedback(task.task_type, precheck)
 
     submission.feedback = feedback.to_dict()
     if feedback.error:

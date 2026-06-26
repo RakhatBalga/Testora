@@ -21,6 +21,7 @@ from app.models.test import Test
 from app.models.writing import WritingSubmission
 from app.models.speaking import SpeakingSubmission
 from app.services.analytics.band_gap import compute_band_gap, generate_blockers, DEFAULT_TARGET
+from app.services.analytics.links import practice_href
 from app.services.analytics.weakness import compute_recurring_mistakes
 
 _SKILL_MINUTES = {"writing": 40, "speaking": 15, "reading": 20, "listening": 30}
@@ -150,7 +151,7 @@ def compute_recommendations(
                 "cold_start",
                 "writing",
                 1,
-                "/practice/writing",
+                practice_href("writing"),
             ),
             _rec(
                 "cold-reading",
@@ -159,7 +160,7 @@ def compute_recommendations(
                 "cold_start",
                 "reading",
                 2,
-                "/practice/reading",
+                practice_href("reading"),
             ),
         ][:limit]
 
@@ -177,7 +178,7 @@ def compute_recommendations(
                 "blocker",
                 skill,
                 priority,
-                b.get("fix_href") or f"/practice/{skill}",
+                b.get("fix_href") or practice_href(skill),
             )
         )
         seen_skills.add(skill)
@@ -201,7 +202,7 @@ def compute_recommendations(
                 "band_gap",
                 lowest_skill,
                 priority,
-                f"/practice/{lowest_skill}",
+                practice_href(lowest_skill),
             )
         )
         seen_skills.add(lowest_skill)
@@ -238,7 +239,7 @@ def compute_recommendations(
                     "question_type",
                     skill,
                     priority,
-                    f"/practice/{skill}",
+                    practice_href(skill),
                 )
             )
             seen_skills.add(skill)
@@ -269,7 +270,7 @@ def compute_recommendations(
                         "inactivity",
                         skill,
                         priority,
-                        f"/practice/{skill}",
+                        practice_href(skill),
                     )
                 )
                 priority += 1

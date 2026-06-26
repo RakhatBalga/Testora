@@ -11,6 +11,7 @@ from statistics import mean
 from sqlalchemy.orm import Session
 
 from app.models.mistake import Mistake
+from app.services.analytics.links import practice_href
 from app.services.analytics.sources import skill_bands, latest_feedback, recent_submission_ids
 from app.services.band import round_ielts as _round_half
 
@@ -105,7 +106,7 @@ def generate_blockers(db: Session, user_id: int, target: float = DEFAULT_TARGET,
                     "criterion": criterion,
                     "band_cap": round(float(band), 1),
                     "explanation": explanation,
-                    "fix_href": f"/practice/{skill}",
+                    "fix_href": practice_href(skill),
                 }
             )
 

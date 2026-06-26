@@ -5,6 +5,7 @@ Scans content/reading/*.json and enforces the production quality bar:
   * exactly EXPECTED_TESTS reading tests
   * exactly 3 passages per test, with 13 / 13 / 14 questions (40 total)
   * passage word counts within target ranges
+  * total text length within the official Academic Reading range (2150-2750)
   * every question has correct_answer + explanation
   * every question (except a "Not Given" answer) has evidence with
     paragraph + sentence + quote, and the quote appears verbatim in the passage
@@ -26,6 +27,7 @@ CONTENT_DIR = Path(__file__).resolve().parent / "content" / "reading"
 EXPECTED_TESTS = 10
 QCOUNTS = [13, 13, 14]
 WORD_RANGES = [(800, 900), (900, 1000), (950, 1100)]
+TOTAL_WORD_RANGE = (2150, 2750)
 PLACEHOLDER_PATTERNS = re.compile(r"\b(lorem ipsum|todo|fixme|placeholder|xxxx|tbd)\b", re.I)
 NOT_GIVEN = {"not given", "notgiven"}
 
@@ -54,6 +56,7 @@ class Report:
         self.tests = 0
         self.questions = 0
         self.p_words: list[int] = []
+        self.t_words: list[int] = []
 
     def err(self, msg: str) -> None:
         self.errors.append(msg)
@@ -70,9 +73,11 @@ def validate_test(data: dict, where: str, rep: Report) -> None:
         return
 
     total_q = 0
+    total_words = 0
     for i, section in enumerate(sections):
         passage = _passage_text(section)
         wc = _word_count(passage)
+        total_words += wc
         rep.p_words.append(wc)
         lo, hi = WORD_RANGES[i]
         if not (lo <= wc <= hi):
@@ -117,6 +122,10 @@ def validate_test(data: dict, where: str, rep: Report) -> None:
 
     if total_q != 40:
         rep.err(f"{title}: {total_q} questions total (expected 40)")
+    lo, hi = TOTAL_WORD_RANGE
+    rep.t_words.append(total_words)
+    if not (lo <= total_words <= hi):
+        rep.err(f"{title}: {total_words} passage words total (official IELTS Academic range {lo}-{hi})")
 
 
 def main() -> int:
@@ -166,6 +175,8 @@ def main() -> int:
     print(f"  questions     : {rep.questions}")
     if rep.p_words:
         print(f"  passage words : min {min(rep.p_words)}, max {max(rep.p_words)}")
+    if rep.t_words:
+        print(f"  test words    : min {min(rep.t_words)}, max {max(rep.t_words)}")
     if rep.errors:
         print(f"\n  {len(rep.errors)} issue(s):")
         for e in rep.errors:

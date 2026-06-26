@@ -10,7 +10,6 @@ directly to the model -- no separate speech-to-text step is required.
 
 import json
 import logging
-import re
 import time
 from pathlib import Path
 
@@ -22,6 +21,11 @@ from app.services.ai.schemas import (
     build_feedback,
     examiner_model,
     normalize_examiner,
+)
+from app.services.writing_precheck import (
+    count_words,
+    validate_writing_submission,
+    zero_band_feedback,
 )
 
 logger = logging.getLogger("testora.ai.gemini")
@@ -65,10 +69,6 @@ class _TruncatedResponse(Exception):
     """The model stopped because it hit the output-token cap; output is unusable."""
 
 
-def _count_words(text: str) -> int:
-    return len(re.findall(r"\b[\w'-]+\b", text or ""))
-
-
 def _client():
     from google import genai  # lazy import
     from google.genai import types
@@ -89,7 +89,7 @@ def _config(
     *,
     schema=None,
     temperature: float = 0.3,
-    max_tokens: int = 2048,
+    max_tokens: int = 4096,
 ):
     from google.genai import types
 
@@ -97,14 +97,17 @@ def _config(
         system_instruction=system,
         response_mime_type="application/json",
         # Headroom so a full criterion-level rubric + errors never gets truncated
-        # mid-JSON. A truncated body is surfaced as a grading error, never saved
-        # as a bogus grade.
+        # mid-JSON. The examiner prompt is intentionally detailed; Pro models also
+        # spend output tokens on required thinking. A truncated body is surfaced as
+        # a grading error, never saved as a bogus grade.
         max_output_tokens=max_tokens,
         temperature=temperature,
-        # gemini-2.5-* thinking tokens count against max_output_tokens. Disable
-        # them for deterministic structured grading.
-        thinking_config=types.ThinkingConfig(thinking_budget=0),
     )
+    # Gemini Flash supports disabling thinking, which keeps structured grading
+    # cheaper and more deterministic. Gemini Pro requires thinking mode, so do
+    # not send an invalid zero budget for Pro models.
+    if "pro" not in settings.GEMINI_MODEL.lower():
+        kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
     if schema is not None:
         kwargs["response_schema"] = schema
     return types.GenerateContentConfig(**kwargs)
@@ -127,10 +130,12 @@ def _generate(
     *,
     schema=None,
     temperature: float = 0.3,
-    max_tokens: int = 2048,
+    max_tokens: int = 4096,
 ) -> str:
     """Call Gemini with a fresh client, retrying transient failures with backoff."""
     last_exc: Exception | None = None
+    if "pro" in settings.GEMINI_MODEL.lower():
+        max_tokens = max(max_tokens, 8192)
     for attempt in range(1, _MAX_ATTEMPTS + 1):
         try:
             client = _client()
@@ -211,7 +216,15 @@ class GeminiWritingGrader(WritingGrader):
     """Two-stage IELTS Writing engine: cold Examiner, then warmer Coach."""
 
     def grade(self, *, task_type: int, prompt: str, text: str, min_words: int) -> Feedback:
-        word_count = _count_words(text)
+        precheck = validate_writing_submission(
+            task_type=task_type,
+            text=text,
+            min_words=min_words,
+        )
+        word_count = precheck.word_count
+        if not precheck.valid:
+            return zero_band_feedback(task_type, precheck)
+
         system = (
             prompts.TASK1_EXAMINER_SYSTEM
             if task_type == 1

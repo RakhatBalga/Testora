@@ -35,7 +35,7 @@ export default function SpeakingTaskPage() {
   const { token, ready } = useRequireAuth();
   const params = useParams();
   const router = useRouter();
-  const taskId = Number(params.id);
+  const taskId = Number(params?.id);
 
   const [task, setTask] = useState<SpeakingTask | null>(null);
   const [phase, setPhase] = useState<Phase>("prep");

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { api, WritingTask } from "@/lib/api";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { Badge } from "@/components/ui/Badge";
@@ -25,11 +26,18 @@ function taskTone(taskType: number) {
   return taskType === 1 ? "blue" : "violet";
 }
 
+const REVIEW_STEPS = [
+  "Reading essay",
+  "Checking criteria",
+  "Preparing feedback",
+];
+const MIN_REVIEW_DISPLAY_MS = 6500;
+
 export default function WritingTaskPage() {
   const { token, ready } = useRequireAuth();
   const params = useParams();
   const router = useRouter();
-  const taskId = Number(params.id);
+  const taskId = Number(params?.id);
 
   const [task, setTask] = useState<WritingTask | null>(null);
   const [answer, setAnswer] = useState("");
@@ -67,7 +75,14 @@ export default function WritingTaskPage() {
     setSubmitting(true);
     setError("");
     try {
+      const startedAt = Date.now();
       const submission = await api.submitWriting(task.id, answer.trim());
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < MIN_REVIEW_DISPLAY_MS) {
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, MIN_REVIEW_DISPLAY_MS - elapsed);
+        });
+      }
       router.push(`/writing/result/${submission.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Submit failed");
@@ -181,6 +196,7 @@ export default function WritingTaskPage() {
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
           placeholder="Write your response here..."
+          disabled={submitting}
           className="min-h-80 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 leading-relaxed text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
         />
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -193,10 +209,57 @@ export default function WritingTaskPage() {
             size="lg"
             className="sm:min-w-36"
           >
-            {submitting ? "Submitting..." : "Submit"}
+            {submitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Reviewing
+              </>
+            ) : (
+              "Submit"
+            )}
           </Button>
         </div>
       </Card>
+
+      {submitting && <AiReviewStatus />}
+    </div>
+  );
+}
+
+function AiReviewStatus() {
+  const [activeStep, setActiveStep] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveStep((step) => (step + 1) % REVIEW_STEPS.length);
+    }, 2600);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-[2px]"
+      role="status"
+      aria-live="polite"
+      aria-label="AI examiner is reviewing your writing"
+    >
+      <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-950/20">
+        <div className="px-6 py-7 text-center">
+          <div className="relative mx-auto h-14 w-14">
+            <div className="ai-review-spinner absolute inset-0 rounded-full" />
+            <div className="absolute inset-1.5 rounded-full bg-white" />
+            <div className="ai-review-pulse absolute inset-[19px] rounded-full bg-slate-950" />
+          </div>
+          <p className="mt-4 text-base font-semibold text-slate-950">
+            Reviewing essay
+          </p>
+          <p className="mt-1 text-sm text-slate-500">{REVIEW_STEPS[activeStep]}</p>
+        </div>
+
+        <div className="h-1.5 overflow-hidden bg-slate-100">
+          <div className="ai-review-progress h-full w-2/5 rounded-full bg-slate-950" />
+        </div>
+      </div>
     </div>
   );
 }

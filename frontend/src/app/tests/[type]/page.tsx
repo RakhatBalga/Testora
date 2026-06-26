@@ -32,7 +32,7 @@ function examHref(test: Test): string {
 export default function TestLibraryPage() {
   const { token, ready } = useRequireAuth();
   const params = useParams();
-  const type = String(params.type);
+  const type = String(params?.type ?? "");
   const meta = META[type];
   const accent = accentFor(type);
 

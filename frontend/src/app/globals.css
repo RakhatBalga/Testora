@@ -104,6 +104,60 @@ body {
   }
 }
 
+@keyframes aiReviewProgress {
+  0% {
+    opacity: 0.35;
+    transform: translateX(-130%);
+  }
+  45%,
+  55% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.35;
+    transform: translateX(250%);
+  }
+}
+
+@keyframes aiReviewSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes aiReviewPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.86);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ai-review-spinner {
+  background: conic-gradient(
+    from 0deg,
+    rgba(15, 23, 42, 0.06),
+    rgba(15, 23, 42, 0.14),
+    rgba(15, 23, 42, 0.95)
+  );
+  animation: aiReviewSpin 1.35s linear infinite;
+  will-change: transform;
+}
+
+.ai-review-pulse {
+  animation: aiReviewPulse 2.2s ease-in-out infinite;
+  will-change: opacity, transform;
+}
+
+.ai-review-progress {
+  animation: aiReviewProgress 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: opacity, transform;
+}
+
 .animate-fade-up {
   animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
