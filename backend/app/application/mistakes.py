@@ -1,7 +1,7 @@
 """Persist mistakes produced by the grading layer.
 
-The grader (services/ai) detects mistakes; this records them. Kept separate from
-analytics, which only *reads* these rows.
+The grader (infrastructure/ai) detects mistakes; this records them. Kept
+separate from analytics, which only *reads* these rows.
 """
 from sqlalchemy.orm import Session
 

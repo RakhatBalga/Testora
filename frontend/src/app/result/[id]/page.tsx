@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { CheckCircle2, XCircle, Target, Clock, Percent, Flag } from "lucide-react";
-import { api, AttemptResult } from "@/lib/api";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { Card } from "@/components/ui/Card";
-import { LinkButton } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { ResultBreakdown } from "@/components/test/ResultBreakdown";
+import { api, AttemptResult } from "@/shared/api";
+import { useRequireAuth } from "@/shared/auth";
+import { Card } from "@/shared/ui";
+import { LinkButton } from "@/shared/ui";
+import { Skeleton } from "@/shared/ui";
+import { ResultBreakdown } from "@/features/test-session";
 
 function formatDuration(seconds: number | null): string | null {
   if (seconds == null) return null;

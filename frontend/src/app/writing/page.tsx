@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { api, WritingTask } from "@/lib/api";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { api, WritingTask } from "@/shared/api";
+import { useRequireAuth } from "@/shared/auth";
+import { Badge } from "@/shared/ui";
+import { Card } from "@/shared/ui";
+import { Skeleton } from "@/shared/ui";
 
 function taskTone(taskType: number) {
   return taskType === 1 ? "blue" : "violet";

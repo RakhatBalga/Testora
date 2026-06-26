@@ -1,6 +1,6 @@
 "use client";
 
-import Landing from "@/components/landing/Landing";
+import Landing from "./Landing";
 
 export function PublicLanding() {
   return <Landing />;

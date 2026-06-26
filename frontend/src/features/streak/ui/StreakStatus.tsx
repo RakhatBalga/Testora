@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Flame } from "lucide-react";
-import { type Streak } from "@/lib/api";
+import { type Streak } from "@/shared/api";
 
 export function StreakStatus({ streak, href }: { streak: Streak | null; href: string }) {
   if (!streak) {

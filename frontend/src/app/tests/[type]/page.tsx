@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, notFound } from "next/navigation";
-import { api, type AttemptSummary, type Test } from "@/lib/api";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { ContinueCard } from "@/components/library/ContinueCard";
-import { TestCard } from "@/components/library/TestCard";
-import { RecentActivity } from "@/components/library/RecentActivity";
-import { accentFor, deriveProgress, type TestProgress } from "@/components/library/library";
+import { api, type AttemptSummary, type Test } from "@/shared/api";
+import { useRequireAuth } from "@/shared/auth";
+import { Skeleton } from "@/shared/ui";
+import { ContinueCard } from "@/entities/test";
+import { TestCard } from "@/entities/test";
+import { RecentActivity } from "@/entities/test";
+import { accentFor, deriveProgress, type TestProgress } from "@/entities/test";
 
 const META: Record<string, { eyebrow: string; title: string; description: string }> = {
   reading: {

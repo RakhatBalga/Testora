@@ -20,11 +20,11 @@ import {
   type AttemptSummary,
   type SpeakingSubmissionSummary,
   type WritingSubmissionSummary,
-} from "@/lib/api";
-import { useAuth } from "@/lib/auth";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { Button, LinkButton } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
+} from "@/shared/api";
+import { useAuth } from "@/shared/auth";
+import { useRequireAuth } from "@/shared/auth";
+import { Button, LinkButton } from "@/shared/ui";
+import { Skeleton } from "@/shared/ui";
 
 function roundHalf(n: number): number {
   return Math.round(n * 2) / 2;

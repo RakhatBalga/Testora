@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, SpeakingTask } from "@/lib/api";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { api, SpeakingTask } from "@/shared/api";
+import { useRequireAuth } from "@/shared/auth";
+import { Badge } from "@/shared/ui";
+import { Card } from "@/shared/ui";
+import { Skeleton } from "@/shared/ui";
 
 function partTone(part: number) {
   if (part === 1) return "blue";

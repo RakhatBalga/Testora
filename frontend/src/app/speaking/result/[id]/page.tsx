@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { api, authedMediaUrl, SpeakingSubmission } from "@/lib/api";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { FeedbackCard } from "@/components/FeedbackCard";
-import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
-import { LinkButton } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { api, authedMediaUrl, SpeakingSubmission } from "@/shared/api";
+import { useRequireAuth } from "@/shared/auth";
+import { FeedbackCard } from "@/features/feedback";
+import { Badge } from "@/shared/ui";
+import { Card } from "@/shared/ui";
+import { LinkButton } from "@/shared/ui";
+import { Skeleton } from "@/shared/ui";
 
 export default function SpeakingResultPage() {
   const { token, ready } = useRequireAuth();

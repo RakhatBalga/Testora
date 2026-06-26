@@ -9,9 +9,9 @@ import {
   GitCompare,
   X,
 } from "lucide-react";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { api, type HistoryItem } from "@/lib/api";
-import { PageHeader } from "@/components/dashboard/widgets";
+import { useRequireAuth } from "@/shared/auth";
+import { api, type HistoryItem } from "@/shared/api";
+import { PageHeader } from "@/shared/ui/dashboard";
 import { useRouter } from "next/navigation";
 
 type Skill = "all" | "writing" | "speaking" | "reading" | "listening";

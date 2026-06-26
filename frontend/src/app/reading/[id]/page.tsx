@@ -8,23 +8,23 @@ import {
   type AnswerValue,
   type AttemptResult,
   type TestDetail,
-} from "@/lib/api";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { ReadingPassage } from "@/components/reading/ReadingPassage";
-import { ReadingPassageNav } from "@/components/reading/ReadingPassageNav";
-import { ReadingQuestions } from "@/components/reading/ReadingQuestions";
-import { ReadingTimer } from "@/components/reading/ReadingTimer";
-import { ReadingReviewSplit } from "@/components/reading/ReadingReviewSplit";
-import { useReadingTimer } from "@/components/reading/useReadingTimer";
+} from "@/shared/api";
+import { useRequireAuth } from "@/shared/auth";
+import { Card } from "@/shared/ui";
+import { Button } from "@/shared/ui";
+import { Skeleton } from "@/shared/ui";
+import { ReadingPassage } from "@/features/reading-session";
+import { ReadingPassageNav } from "@/features/reading-session";
+import { ReadingQuestions } from "@/features/reading-session";
+import { ReadingTimer } from "@/features/reading-session";
+import { ReadingReviewSplit } from "@/features/reading-session";
+import { useReadingTimer } from "@/features/reading-session";
 import {
   buildGroups,
   flattenQuestions,
   isAnswered,
   type AnswerMap,
-} from "@/components/reading/types";
+} from "@/features/reading-session";
 
 type Tab = "passage" | "questions";
 

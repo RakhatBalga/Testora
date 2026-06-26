@@ -4,11 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, User, Users, Sparkles } from "lucide-react";
-import { api } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
-import AuthShell, { type AuthPanel } from "@/components/auth/AuthShell";
-import { AuthField } from "@/components/auth/AuthField";
-import AccountExistsModal from "@/components/auth/AccountExistsModal";
+import { api } from "@/shared/api";
+import { useAuth } from "@/shared/auth";
+import { AccountExistsModal, AuthField, AuthShell, type AuthPanel } from "@/features/auth";
 
 const TOTAL_STEPS = 3;
 
