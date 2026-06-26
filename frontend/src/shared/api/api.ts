@@ -175,6 +175,11 @@ export type Feedback = {
   roadmap?: RoadmapStep[];
 };
 
+export type UserProfile = {
+  username: string;
+  target_band: number;
+};
+
 export type WritingTask = {
   id: number;
   task_type: number;
@@ -541,17 +546,34 @@ function audioFilename(audio: Blob): string {
   return "speaking.webm";
 }
 
+function queryString(params: Record<string, string | number | undefined>): string {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined) search.set(key, String(value));
+  });
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
+
 export const api = {
-  register: (username: string, password: string) =>
+  register: (username: string, password: string, target_band = 7.5) =>
     request<{ message: string }>("/auth/register", {
       method: "POST",
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, target_band }),
     }),
 
   login: (username: string, password: string) =>
     request<{ access_token: string; token_type: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
+    }),
+
+  getProfile: () => request<UserProfile>("/auth/me"),
+
+  updateProfile: (target_band: number) =>
+    request<UserProfile>("/auth/me", {
+      method: "PATCH",
+      body: JSON.stringify({ target_band }),
     }),
 
   listTests: () => request<Test[]>("/tests"),
@@ -608,18 +630,19 @@ export const api = {
   getWeaknesses: (limit = 6) =>
     request<{ weaknesses: Weakness[] }>(`/analytics/weaknesses?limit=${limit}`),
 
-  getBlockers: (target = 7.5) =>
-    request<{ blockers: Blocker[] }>(`/analytics/blockers?target=${target}`),
+  getBlockers: (target?: number) =>
+    request<{ blockers: Blocker[] }>(`/analytics/blockers${queryString({ target })}`),
 
-  getBandGap: (target = 7.5) => request<BandGapResult>(`/analytics/band-gap?target=${target}`),
+  getBandGap: (target?: number) =>
+    request<BandGapResult>(`/analytics/band-gap${queryString({ target })}`),
 
   getBandTrajectory: () => request<BandTrajectoryResult>("/analytics/band-trajectory"),
 
   getProgressImpact: (skill: "writing" | "speaking", submissionId: number) =>
     request<ProgressImpact>(`/analytics/progress-impact?skill=${skill}&submission_id=${submissionId}`),
 
-  getDailyPlan: (target = 7.5, limit = 3) =>
-    request<DailyPlan>(`/analytics/daily-plan?target=${target}&limit=${limit}`),
+  getDailyPlan: (target?: number, limit = 3) =>
+    request<DailyPlan>(`/analytics/daily-plan${queryString({ target, limit })}`),
 
   getBlockerHistory: () => request<BlockerHistory>("/analytics/blocker-history"),
 
@@ -628,8 +651,10 @@ export const api = {
   getRecurringMistakes: (limit = 6) =>
     request<{ recurring: RecurringMistake[] }>(`/analytics/recurring-mistakes?limit=${limit}`),
 
-  getRecommendations: (target = 7.5, limit = 5) =>
-    request<{ recommendations: Recommendation[] }>(`/analytics/recommendations?target=${target}&limit=${limit}`),
+  getRecommendations: (target?: number, limit = 5) =>
+    request<{ recommendations: Recommendation[] }>(
+      `/analytics/recommendations${queryString({ target, limit })}`
+    ),
 
   getHistory: (skill?: string, sort = "newest") => {
     const params = new URLSearchParams({ sort });

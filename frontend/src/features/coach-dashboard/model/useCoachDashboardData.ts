@@ -30,7 +30,7 @@ export function useCoachDashboardData() {
     };
 
     settle(
-      api.getBandGap(IELTS_TARGET_BAND),
+      api.getBandGap(),
       setBandGap,
       {
         current: null,
@@ -41,11 +41,11 @@ export function useCoachDashboardData() {
         has_data: false,
       }
     );
-    settle(api.getBlockers(IELTS_TARGET_BAND), (b) => setBlockers(b.blockers), { blockers: [] });
+    settle(api.getBlockers(), (b) => setBlockers(b.blockers), { blockers: [] });
     settle(api.getWeaknesses(3), (w) => setWeaknesses(w.weaknesses), { weaknesses: [] });
     settle(api.getBandTrajectory(), setTrajectory, { points: [], delta: null, has_data: false });
     settle(
-      api.getDailyPlan(IELTS_TARGET_BAND, 3),
+      api.getDailyPlan(undefined, 3),
       (plan) => setTodaysPlan(plan.plan),
       { generated_for: "", has_data: false, plan: [] }
     );

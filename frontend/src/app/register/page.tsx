@@ -3,18 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, User, Users, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles, Target } from "lucide-react";
 import { api } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
+import { IELTS_BAND_OPTIONS, IELTS_TARGET_BAND } from "@/shared/config";
 import { AccountExistsModal, AuthField, AuthShell, type AuthPanel } from "@/features/auth";
 
 const TOTAL_STEPS = 3;
-
-const GENDERS = [
-  { value: "female", label: "Female", icon: User },
-  { value: "male", label: "Male", icon: User },
-  { value: "other", label: "Prefer not to say", icon: Users },
-];
 
 function panelFor(step: number, name: string): AuthPanel {
   const first = name.trim().split(" ")[0];
@@ -27,9 +22,9 @@ function panelFor(step: number, name: string): AuthPanel {
   }
   if (step === 2) {
     return {
-      eyebrow: first ? `Nice to meet you, ${first}` : "Step 2 · About you",
-      title: "Help us adapt your preparation experience.",
-      subtitle: "The more we know, the sharper your recommendations get.",
+      eyebrow: first ? `Nice to meet you, ${first}` : "Step 2 · Target band",
+      title: "Choose the band you're aiming for.",
+      subtitle: "Your dashboard will use this goal to shape blockers and daily practice.",
     };
   }
   return {
@@ -42,7 +37,7 @@ function panelFor(step: number, name: string): AuthPanel {
 export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
-  const [gender, setGender] = useState("");
+  const [targetBand, setTargetBand] = useState<number>(IELTS_TARGET_BAND);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -66,8 +61,8 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      // Only the account credentials are persisted; name/gender personalize the flow.
-      await api.register(username, password);
+      // Name personalizes the flow; credentials and target band are persisted.
+      await api.register(username, password, targetBand);
       const res = await api.login(username, password);
       login(res.access_token, username);
       router.push("/");
@@ -136,29 +131,29 @@ export default function RegisterPage() {
           </form>
         )}
 
-        {/* Step 2 — profile */}
+        {/* Step 2 — target band */}
         {step === 2 && (
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (gender) next();
+              next();
             }}
           >
             <h1 className="text-[2rem] font-extrabold tracking-tight text-[var(--text-primary)]">
-              Tell us about yourself
+              Set your target band
             </h1>
             <p className="mt-2 text-[var(--text-secondary)]">
-              This information helps us tailor recommendations.
+              Pick the overall IELTS band you want Testora to coach you toward.
             </p>
 
-            <div className="mt-8 grid grid-cols-3 gap-3">
-              {GENDERS.map((g) => {
-                const active = gender === g.value;
+            <div className="mt-8 grid grid-cols-3 gap-3 sm:grid-cols-5">
+              {IELTS_BAND_OPTIONS.map((band) => {
+                const active = targetBand === band;
                 return (
                   <button
-                    key={g.value}
+                    key={band}
                     type="button"
-                    onClick={() => setGender(g.value)}
+                    onClick={() => setTargetBand(band)}
                     className={`flex flex-col items-center gap-3 rounded-2xl border-2 px-3 py-6 text-center transition-all duration-200 ${
                       active
                         ? "border-[var(--brand)] bg-[var(--brand)]/[0.06] shadow-sm"
@@ -172,14 +167,14 @@ export default function RegisterPage() {
                           : "bg-slate-100 text-[var(--text-secondary)]"
                       }`}
                     >
-                      <g.icon className="h-6 w-6" />
+                      <Target className="h-6 w-6" />
                     </span>
                     <span
                       className={`text-sm font-semibold ${
                         active ? "text-[var(--brand)]" : "text-[var(--text-primary)]"
                       }`}
                     >
-                      {g.label}
+                      {band.toFixed(1)}
                     </span>
                   </button>
                 );
@@ -191,7 +186,7 @@ export default function RegisterPage() {
                 <ArrowLeft className="h-5 w-5" />
                 Back
               </button>
-              <button type="submit" disabled={!gender} className={`flex-1 ${primaryBtn}`}>
+              <button type="submit" className={`flex-1 ${primaryBtn}`}>
                 Continue
                 <ArrowRight className="h-5 w-5" />
               </button>

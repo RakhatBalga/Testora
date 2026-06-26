@@ -76,6 +76,15 @@ from the public test catalogue unless their titles match
 Do not delete legacy tests directly if they have attempts attached; historical
 attempts and review pages should remain available by id.
 
+## Writing content import
+
+Task 2 prompts are authored in `backend/content/writing/task2-topics.json`.
+Import them after first deploy, and repeat safely whenever the pack is updated:
+
+```bash
+python import_content.py content/writing/task2-topics.json
+```
+
 ## Monitoring / metrics to watch
 
 Logs are structured (`%(asctime)s %(levelname)s [%(name)s] %(message)s`). Key

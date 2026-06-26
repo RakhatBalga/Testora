@@ -12,6 +12,7 @@ import {
   LogOut,
   Mic,
   PenLine,
+  Target,
   Trophy,
   UserRound,
 } from "lucide-react";
@@ -19,10 +20,12 @@ import {
   api,
   type AttemptSummary,
   type SpeakingSubmissionSummary,
+  type UserProfile,
   type WritingSubmissionSummary,
 } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
 import { useRequireAuth } from "@/shared/auth";
+import { IELTS_BAND_OPTIONS, IELTS_TARGET_BAND } from "@/shared/config";
 import { Button, LinkButton } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
 
@@ -64,23 +67,28 @@ export default function ProfilePage() {
   const { username, logout } = useAuth();
   const router = useRouter();
 
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [attempts, setAttempts] = useState<AttemptSummary[]>([]);
   const [writing, setWriting] = useState<WritingSubmissionSummary[]>([]);
   const [speaking, setSpeaking] = useState<SpeakingSubmissionSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingTarget, setSavingTarget] = useState(false);
   const [error, setError] = useState("");
+  const [targetError, setTargetError] = useState("");
 
   useEffect(() => {
     if (!token) return;
     let active = true;
 
     Promise.all([
+      api.getProfile(),
       api.listAttempts(),
       api.listWritingSubmissions(),
       api.listSpeakingSubmissions(),
     ])
-      .then(([a, w, s]) => {
+      .then(([p, a, w, s]) => {
         if (!active) return;
+        setProfile(p);
         setAttempts(a);
         setWriting(w);
         setSpeaking(s);
@@ -108,6 +116,7 @@ export default function ProfilePage() {
       ? null
       : roundHalf(bands.reduce((sum, band) => sum + band, 0) / bands.length);
   const bestBand = bands.length === 0 ? null : Math.max(...bands);
+  const targetBand = profile?.target_band ?? IELTS_TARGET_BAND;
 
   const recentItems = useMemo<RecentItem[]>(() => {
     const readingListening = attempts.map((a) => ({
@@ -154,6 +163,23 @@ export default function ProfilePage() {
     router.push("/login");
   };
 
+  const handleTargetChange = async (band: number) => {
+    if (savingTarget || band === targetBand) return;
+    const previous = profile;
+    setTargetError("");
+    setSavingTarget(true);
+    setProfile({ username: previous?.username ?? username ?? "Student", target_band: band });
+    try {
+      const updated = await api.updateProfile(band);
+      setProfile(updated);
+    } catch (err) {
+      if (previous) setProfile(previous);
+      setTargetError(err instanceof Error ? err.message : "Target band failed to save.");
+    } finally {
+      setSavingTarget(false);
+    }
+  };
+
   if (!ready || !token) return null;
 
   return (
@@ -162,14 +188,14 @@ export default function ProfilePage() {
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand)] text-xl font-bold text-white">
-              {username?.[0]?.toUpperCase() ?? "?"}
+              {(profile?.username ?? username)?.[0]?.toUpperCase() ?? "?"}
             </span>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                 Profile
               </p>
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-                {username ?? "Student"}
+                {profile?.username ?? username ?? "Student"}
               </h1>
             </div>
           </div>
@@ -188,6 +214,50 @@ export default function ProfilePage() {
       </section>
 
       {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
+      {targetError && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{targetError}</p>}
+
+      <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:40ms]">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+              <Target className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                Target band
+              </p>
+              <p className="mt-1 text-2xl font-extrabold tracking-tight text-[var(--text-primary)]">
+                {loading ? "..." : targetBand.toFixed(1)}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-5 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+            {IELTS_BAND_OPTIONS.map((band) => {
+              const active = band === targetBand;
+              return (
+                <button
+                  key={band}
+                  type="button"
+                  aria-pressed={active}
+                  disabled={loading || savingTarget}
+                  onClick={() => handleTargetChange(band)}
+                  className={`h-10 min-w-14 rounded-lg border px-3 text-sm font-semibold transition ${
+                    active
+                      ? "border-slate-950 bg-slate-950 text-white"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-950"
+                  } disabled:cursor-not-allowed disabled:opacity-60`}
+                >
+                  {band.toFixed(1)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {savingTarget && (
+          <p className="mt-3 text-sm text-[var(--text-secondary)]">Saving target...</p>
+        )}
+      </section>
 
       <section className="grid animate-fade-up gap-4 [animation-delay:60ms] sm:grid-cols-2 lg:grid-cols-4">
         <ProfileMetric label="Sessions" value={loading ? null : String(totalSessions)} />
