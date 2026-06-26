@@ -5,9 +5,9 @@ Idempotent for this title. Uses public SoundHelix MP3s as placeholder audio
 
 Run from backend/:  venv/bin/python seed_listening.py
 """
-from app.database import SessionLocal
-from app.models.test import Test, Section, Question
-from app.models.attempt import Attempt, AnswerRecord
+from app.infrastructure.database import SessionLocal
+from app.domain.models.test import Test, Section, Question
+from app.domain.models.attempt import Attempt, AnswerRecord
 
 TITLE = "Listening Test 1 (Full)"
 
