@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from app.routers.tests import is_catalog_test
+from app.api.routers.tests import is_catalog_test
 
 
 def _test(title: str, test_type: str = "reading"):

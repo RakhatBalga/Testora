@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Response, status
@@ -7,33 +8,37 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
-from app.core.config import settings
-from app.core.logging import configure_logging
-from app.core.errortracking import init_error_tracking
-from app.database import engine
-from app.services.ai.factory import effective_provider
-from app.routers import auth, tests, results, writing, speaking, analytics
-from app.routers import history
+from app.infrastructure.config import settings
+from app.infrastructure.logging import configure_logging
+from app.infrastructure.errortracking import init_error_tracking
+from app.infrastructure.database import engine
+from app.infrastructure.ai.factory import effective_provider
+from app.api.routers import auth, tests, results, writing, speaking, analytics
+from app.api.routers import history
 
 configure_logging()
 init_error_tracking()
 logger = logging.getLogger("testora")
 
-app = FastAPI(title="Testora API")
+def _validate_security_configuration() -> None:
+    """In production, refuse to start on a missing/placeholder/weak SECRET_KEY.
 
-STATIC_DIR = Path(__file__).resolve().parents[1] / "static"
-STATIC_DIR.mkdir(exist_ok=True)
+    Config only requires SECRET_KEY to be *present* — it would happily accept the
+    ".env.example" placeholder or a short, guessable value, which would make every
+    issued JWT trivially forgeable. Fail fast instead. Dev/staging are unaffected.
+    """
+    if not settings.is_production:
+        return
+    key = (settings.SECRET_KEY or "").strip()
+    placeholders = {"", "change_me", "changeme", "secret", "your-secret-key"}
+    if key.lower() in placeholders or len(key) < 32:
+        raise RuntimeError(
+            "Refusing to start in production with a missing/placeholder/weak "
+            "SECRET_KEY (need >=32 chars, not a placeholder). Generate one with "
+            "`openssl rand -hex 32`."
+        )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-
-@app.on_event("startup")
 def _validate_ai_configuration() -> None:
     """Guard against shipping the free mock grader to production.
 
@@ -57,6 +62,29 @@ def _validate_ai_configuration() -> None:
         )
     else:
         logger.info("AI grading provider: %s", provider)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Validate configuration before serving any traffic; either guard raising
+    # here aborts startup (fail fast) rather than degrading silently.
+    _validate_security_configuration()
+    _validate_ai_configuration()
+    yield
+
+
+app = FastAPI(title="Testora API", lifespan=lifespan)
+
+STATIC_DIR = Path(__file__).resolve().parents[1] / "static"
+STATIC_DIR.mkdir(exist_ok=True)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(tests.router, prefix="/tests", tags=["Tests"])

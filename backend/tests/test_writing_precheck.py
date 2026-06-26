@@ -1,4 +1,4 @@
-from app.services.writing_precheck import (
+from app.application.writing_precheck import (
     validate_writing_submission,
     zero_band_feedback,
 )

@@ -10,8 +10,8 @@ import json
 
 import pytest
 
-from app.services.ai import gemini
-from app.services.ai.base import Feedback
+from app.infrastructure.ai import gemini
+from app.infrastructure.ai.base import Feedback
 
 
 _VALID_WRITING = {

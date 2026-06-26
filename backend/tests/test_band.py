@@ -1,5 +1,5 @@
 """IELTS band correctness: half-up rounding + raw-score conversion."""
-from app.services.band import band_from_raw, round_ielts
+from app.domain.band import band_from_raw, round_ielts
 
 
 def test_round_ielts_quarter_rounds_up():

@@ -13,7 +13,7 @@ checked against the labelled essay fixtures in
 """
 import pytest
 
-from app.services.ai.schemas import (
+from app.infrastructure.ai.schemas import (
     CoachResult,
     Task1Examiner,
     Task2Examiner,
