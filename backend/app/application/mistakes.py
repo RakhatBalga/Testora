@@ -9,6 +9,20 @@ from app.domain.models.mistake import Mistake
 from app.infrastructure.ai.base import MistakeItem
 
 
+def clear_mistakes(
+    db: Session,
+    *,
+    user_id: int,
+    submission_id: int,
+    skill: str,
+) -> None:
+    db.query(Mistake).filter(
+        Mistake.user_id == user_id,
+        Mistake.submission_id == submission_id,
+        Mistake.skill == skill,
+    ).delete(synchronize_session=False)
+
+
 def record_mistakes(
     db: Session,
     *,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { ListChecks } from "lucide-react";
 import {
   api,
@@ -31,6 +31,7 @@ import { SubmitConfirm } from "@/features/listening-session";
 export default function ListeningPage() {
   const { token, ready } = useRequireAuth();
   const params = useParams();
+  const router = useRouter();
   const testId = Number(params?.id);
   const storeKey = `listening-${testId}`;
 
@@ -70,14 +71,14 @@ export default function ListeningPage() {
       clearTimerRef.current?.();
       setConfirmOpen(false);
       setResult(res);
-      window.scrollTo({ top: 0 });
+      router.push(`/listening/result/${res.id}`);
     } catch (err) {
       submittedRef.current = false;
       setError(err instanceof Error ? err.message : "Submit failed");
     } finally {
       setSubmitting(false);
     }
-  }, [test, flat, answers, storeKey]);
+  }, [test, flat, answers, storeKey, router]);
 
   const { remaining, paused, pause, resume, clear: clearTimer } = useReadingTimer(
     storeKey,
@@ -205,7 +206,11 @@ export default function ListeningPage() {
           </div>
         </div>
 
-        <ListeningAudioPlayer src={section.section.audio_url} sectionTitle={section.section.title} />
+        <ListeningAudioPlayer
+          src={section.section.audio_url}
+          transcript={section.section.passage}
+          sectionTitle={section.section.title}
+        />
 
         <ListeningSectionNav
           sections={sections}

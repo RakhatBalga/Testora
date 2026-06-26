@@ -48,7 +48,7 @@ class Question(Base):
     section_id = Column(Integer, ForeignKey("sections.id"), nullable=False)
     order = Column(Integer, nullable=False, default=0)
     text = Column(Text, nullable=False)
-    # single_choice | multiple_choice | true_false_notgiven | matching | fill_blank | short_answer
+    # IELTS question type id (choice, matching, completion, short answer, etc.).
     question_type = Column(String, nullable=False, default="single_choice")
     options = Column(JSON, nullable=True)  # list of choices (null for free-text)
     correct_answer = Column(JSON, nullable=False)  # list of acceptable answers

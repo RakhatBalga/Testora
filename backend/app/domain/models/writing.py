@@ -24,7 +24,7 @@ class WritingSubmission(Base):
     task_id = Column(Integer, ForeignKey("writing_tasks.id"), nullable=False)
     text = Column(Text, nullable=False)
     word_count = Column(Integer, nullable=False, default=0)
-    status = Column(String, nullable=False, default="pending")  # pending | graded
+    status = Column(String, nullable=False, default="pending")  # pending | graded | failed
     band = Column(Float, nullable=True)
     feedback = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

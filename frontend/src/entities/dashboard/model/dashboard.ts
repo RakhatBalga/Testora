@@ -15,7 +15,7 @@ export const skillMeta: Record<
   listening: {
     label: "Listening",
     tone: "sky",
-    href: "/tests/listening",
+    href: "/listening",
     blurb: "Audio recordings with section-by-section question sets.",
   },
   reading: {

@@ -21,6 +21,7 @@ from app.infrastructure.ai.schemas import (
     build_feedback,
     examiner_model,
     normalize_examiner,
+    sanitize_coach_evidence,
 )
 from app.application.writing_precheck import (
     count_words,
@@ -257,13 +258,20 @@ class GeminiWritingGrader(WritingGrader):
             min_words=min_words,
         )
         coaching = (
-            self._coach(task_type, prompt, text, examiner)
+            self._coach(task_type, prompt, text, examiner, normalized["overall"])
             if settings.WRITING_COACH_ENABLED
             else None
         )
         return build_feedback(normalized, coaching, task_type=task_type)
 
-    def _coach(self, task_type, prompt, text, examiner) -> CoachResult | None:
+    def _coach(
+        self,
+        task_type,
+        prompt,
+        text,
+        examiner,
+        current_overall,
+    ) -> CoachResult | None:
         """Best-effort coaching; a failure here must not fail the grade."""
         try:
             user = prompts.coach_user_prompt(
@@ -271,6 +279,7 @@ class GeminiWritingGrader(WritingGrader):
                 prompt=prompt,
                 text=text,
                 examiner_json=examiner.model_dump_json(),
+                current_overall=current_overall,
             )
             raw = _generate(
                 [user],
@@ -279,7 +288,12 @@ class GeminiWritingGrader(WritingGrader):
                 temperature=_COACH_TEMPERATURE,
                 max_tokens=1536,
             )
-            return CoachResult.model_validate_json(_json_text(raw))
+            coaching = CoachResult.model_validate_json(_json_text(raw))
+            return sanitize_coach_evidence(
+                coaching,
+                essay=text,
+                errors=examiner.errors,
+            )
         except Exception:  # noqa: BLE001
             logger.warning(
                 "Gemini Writing coach stage failed; returning examiner result only",

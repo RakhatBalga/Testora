@@ -218,17 +218,41 @@ Return ONLY a JSON object matching the provided schema, containing:
 - roadmap: ordered steps from the current overall band toward higher half-bands
   (e.g. current 6.0 -> 6.5 -> 7.0). For each target band give 2-3 concrete,
   checkable actions specific to this candidate's gaps.
+- why_not_higher_band: one short sentence explaining why the result is not yet
+  the next half-band higher (e.g. "To reach 8.0, improve specificity of
+  examples, reduce formulaic transitions, and use more precise collocations.").
 - summary: 2-3 sentences naming the single biggest blocker and what to do next.
 
 Be specific and actionable. Do not restate the scores as advice. Do not invent
 new language errors that are not present in the examiner's `errors` list. If the
 examiner gives only a general criterion note without a concrete error, describe
-the issue generally; do not quote a new phrase and label it wrong."""
+the issue generally; do not quote a new phrase and label it wrong. Use the
+CURRENT OVERALL BAND from the user message as the current estimate.
+
+Evidence discipline:
+- If you quote candidate wording, the quoted text MUST appear exactly in the
+  candidate essay or in the examiner's `errors[].snippet`.
+- Do not invent examples such as transitions, collocations, article/preposition
+  errors, or phrases that are not in the candidate essay.
+- Do not put quotation marks around criterion names, labels, band names, or
+  illustrative examples. Quotation marks are only for exact evidence from the
+  essay or examiner error snippets.
+- Roadmap target bands must be strictly above the examiner's current overall
+  band. Never include a step like "to reach Band 7.5" when the current estimate
+  is already 7.5."""
 
 
-def coach_user_prompt(*, task_type: int, prompt: str, text: str, examiner_json: str) -> str:
+def coach_user_prompt(
+    *,
+    task_type: int,
+    prompt: str,
+    text: str,
+    examiner_json: str,
+    current_overall: float,
+) -> str:
     return (
         f"TASK {task_type}. The examiner has graded the essay below.\n\n"
+        f"CURRENT OVERALL BAND (computed by the app): {current_overall:.1f}\n\n"
         f"EXAMINER RESULT (JSON):\n{examiner_json}\n\n"
         f"TASK PROMPT:\n{prompt}\n\nCANDIDATE ESSAY:\n\"\"\"\n{text}\n\"\"\"\n\n"
         "Produce the coaching JSON, grounded in this specific essay and the "

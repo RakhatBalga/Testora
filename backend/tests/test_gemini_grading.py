@@ -122,6 +122,54 @@ def test_writing_coach_failure_still_returns_examiner_grade(monkeypatch):
     assert fb.roadmap == []  # no coaching, but grade intact
 
 
+def test_writing_coach_unsupported_quotes_are_not_persisted(monkeypatch):
+    coach = {
+        "strengths": [
+            'Develops the idea of "family influence".',
+            'Mentions the invented phrase "community dashboard".',
+        ],
+        "weaknesses": ['The examiner error "in the society" needs attention.'],
+        "priorities": [
+            'Replace "in the society" with a cleaner general noun phrase.',
+            'Fix the invented phrase "community dashboard".',
+        ],
+        "roadmap": [
+            {
+                "target_band": 7.0,
+                "actions": [
+                    'Make "family influence" more specific.',
+                    'Remove "community dashboard".',
+                ],
+            }
+        ],
+        "why_not_higher_band": 'To reach 7.0, make "family influence" more specific.',
+        "summary": 'Do not invent "community dashboard".',
+    }
+    calls = {"n": 0}
+
+    def gen(*a, **k):
+        calls["n"] += 1
+        return json.dumps(_EXAMINER_T2 if calls["n"] == 1 else coach)
+
+    monkeypatch.setattr(gemini.settings, "WRITING_COACH_ENABLED", True)
+    monkeypatch.setattr(gemini, "_generate", gen)
+
+    fb = gemini.GeminiWritingGrader().grade(
+        task_type=2,
+        prompt="p",
+        text=_VALID_ESSAY,
+        min_words=60,
+    )
+
+    assert fb.error is False
+    assert fb.strengths == ['Develops the idea of "family influence".']
+    assert fb.weaknesses == ['The examiner error "in the society" needs attention.']
+    assert fb.suggestions == ['Replace "in the society" with a cleaner general noun phrase.']
+    assert fb.roadmap == [{"target_band": 7.0, "actions": ['Make "family influence" more specific.']}]
+    assert fb.summary.startswith("Estimated Band 6.5.")
+    assert fb.why_not_higher_band == 'To reach 7.0, make "family influence" more specific.'
+
+
 def test_writing_malformed_json_is_error_not_crash(monkeypatch):
     monkeypatch.setattr(gemini, "_generate", lambda *a, **k: "not json at all {")
     fb = gemini.GeminiWritingGrader().grade(task_type=2, prompt="p", text=_VALID_ESSAY, min_words=60)

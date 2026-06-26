@@ -1,4 +1,10 @@
-import { CheckCircle2, AlertTriangle, ArrowRight, TrendingUp } from "lucide-react";
+import {
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  TrendingUp,
+  HelpCircle,
+} from "lucide-react";
 import { Feedback } from "@/shared/api";
 import { Card } from "@/shared/ui";
 
@@ -14,9 +20,38 @@ function barColor(band: number): string {
   return "bg-red-500";
 }
 
-export function FeedbackCard({ feedback }: { feedback: Feedback }) {
+function actionFragment(action: string): string {
+  const trimmed = action.trim().replace(/\.$/, "");
+  if (!trimmed) return trimmed;
+  return trimmed.charAt(0).toLowerCase() + trimmed.slice(1);
+}
+
+function joinActions(actions: string[]): string {
+  const fragments = actions.map(actionFragment).filter(Boolean).slice(0, 3);
+  if (fragments.length === 0) return "";
+  if (fragments.length === 1) return fragments[0];
+  if (fragments.length === 2) return `${fragments[0]} and ${fragments[1]}`;
+  return `${fragments[0]}, ${fragments[1]}, and ${fragments[2]}`;
+}
+
+function fallbackWhyNotHigher(roadmap: Feedback["roadmap"]): string {
+  const nextStep = roadmap?.[0];
+  if (!nextStep) return "";
+  const joined = joinActions(nextStep.actions);
+  if (!joined) return "";
+  return `To reach ${nextStep.target_band.toFixed(1)}, ${joined}.`;
+}
+
+export function FeedbackCard({
+  feedback,
+  currentBand,
+}: {
+  feedback: Feedback;
+  currentBand?: number | null;
+}) {
+  const band = currentBand ?? feedback.band;
   const hasCriteria = Object.keys(feedback.criteria).length > 0;
-  const graded = feedback.band > 0 || hasCriteria;
+  const graded = band > 0 || hasCriteria;
   const notes = feedback.criteria_notes ?? {};
   const strengths = feedback.strengths ?? [];
   const weaknesses = feedback.weaknesses ?? [];
@@ -24,7 +59,11 @@ export function FeedbackCard({ feedback }: { feedback: Feedback }) {
     feedback.actions && feedback.actions.length > 0
       ? feedback.actions
       : feedback.suggestions;
-  const roadmap = feedback.roadmap ?? [];
+  const roadmap = (feedback.roadmap ?? []).filter(
+    (step) => step.target_band > band + 0.001
+  );
+  const whyNotHigher =
+    feedback.why_not_higher_band?.trim() || fallbackWhyNotHigher(roadmap);
 
   return (
     <div className="space-y-6">
@@ -35,8 +74,8 @@ export function FeedbackCard({ feedback }: { feedback: Feedback }) {
             Estimated IELTS band
           </p>
           {graded ? (
-            <p className={`text-6xl font-extrabold ${bandColor(feedback.band)}`}>
-              {feedback.band.toFixed(1)}
+            <p className={`text-6xl font-extrabold ${bandColor(band)}`}>
+              {band.toFixed(1)}
             </p>
           ) : (
             <p className="mt-2 text-2xl font-bold text-slate-400">Awaiting review</p>
@@ -75,6 +114,16 @@ export function FeedbackCard({ feedback }: { feedback: Feedback }) {
         <h3 className="mb-2 font-semibold text-slate-900">Examiner summary</h3>
         <p className="text-sm leading-relaxed text-slate-600">{feedback.summary}</p>
       </Card>
+
+      {graded && whyNotHigher && band < 9 && (
+        <Card className="p-6">
+          <h3 className="mb-2 flex items-center gap-2 font-semibold text-slate-900">
+            <HelpCircle className="h-5 w-5 text-amber-500" />
+            Why not higher band?
+          </h3>
+          <p className="text-sm leading-relaxed text-slate-600">{whyNotHigher}</p>
+        </Card>
+      )}
 
       {(strengths.length > 0 || weaknesses.length > 0) && (
         <div className="grid gap-4 sm:grid-cols-2">

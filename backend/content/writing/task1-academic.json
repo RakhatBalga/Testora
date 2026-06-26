@@ -1,0 +1,52 @@
+{
+  "writing_tasks": [
+    {
+      "task_type": 1,
+      "title": "Writing Task 1 — Line graph: library visits",
+      "prompt": "The line graph below shows the average number of monthly visits to three public libraries in a city from 2018 to 2023.\n\nAverage monthly visits (thousands):\nCentral Library: 2018 42, 2019 45, 2020 31, 2021 36, 2022 49, 2023 58\nRiverside Library: 2018 18, 2019 22, 2020 25, 2021 29, 2022 34, 2023 41\nHilltop Library: 2018 27, 2019 26, 2020 20, 2021 22, 2022 24, 2023 23\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "image_url": null,
+      "min_words": 150,
+      "duration_minutes": 20
+    },
+    {
+      "task_type": 1,
+      "title": "Writing Task 1 — Bar chart: commuting methods",
+      "prompt": "The bar chart below compares the main commuting methods used by workers in two districts in 2024.\n\nShare of workers (%):\nCar: Northbank 38, Eastmere 24\nBus: Northbank 22, Eastmere 31\nTrain: Northbank 16, Eastmere 27\nBicycle: Northbank 14, Eastmere 8\nWalking: Northbank 10, Eastmere 10\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "image_url": null,
+      "min_words": 150,
+      "duration_minutes": 20
+    },
+    {
+      "task_type": 1,
+      "title": "Writing Task 1 — Table: household energy use",
+      "prompt": "The table below shows average household energy use in four categories in two years.\n\nAverage annual energy use per household (kWh):\nHeating: 2014 6800, 2024 5200\nWater heating: 2014 2500, 2024 2200\nAppliances: 2014 1900, 2024 2600\nLighting: 2014 900, 2024 450\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "image_url": null,
+      "min_words": 150,
+      "duration_minutes": 20
+    },
+    {
+      "task_type": 1,
+      "title": "Writing Task 1 — Pie charts: university spending",
+      "prompt": "The pie charts below show how a university allocated its annual budget in 2015 and 2025.\n\nBudget share (%):\nTeaching staff: 2015 42, 2025 36\nResearch: 2015 18, 2025 25\nBuildings and maintenance: 2015 16, 2025 14\nTechnology: 2015 9, 2025 17\nStudent services: 2015 15, 2025 8\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "image_url": null,
+      "min_words": 150,
+      "duration_minutes": 20
+    },
+    {
+      "task_type": 1,
+      "title": "Writing Task 1 — Process: recycled glass bottles",
+      "prompt": "The diagram below describes the process by which used glass bottles are recycled into new bottles.\n\nStages:\n1. Used bottles are deposited in colour-coded collection bins.\n2. Trucks transport the bottles to a recycling plant.\n3. Bottles are sorted by colour and unsuitable items are removed.\n4. The glass is washed and crushed into small pieces called cullet.\n5. Cullet is melted in a furnace at high temperature.\n6. The molten glass is moulded into new bottles.\n7. The bottles are cooled, inspected, filled, and delivered to shops.\n\nSummarise the information by selecting and reporting the main features.\n\nWrite at least 150 words.",
+      "image_url": null,
+      "min_words": 150,
+      "duration_minutes": 20
+    },
+    {
+      "task_type": 1,
+      "title": "Writing Task 1 — Map: town centre redevelopment",
+      "prompt": "The maps below show changes planned for a town centre between the present day and 2030.\n\nPresent town centre:\n- A large car park occupies the north-west corner.\n- A bus station is located in the north-east corner.\n- Small shops line both sides of Market Street.\n- The public library stands south of Market Street.\n- A narrow footpath runs along the river in the south.\n\nPlanned town centre in 2030:\n- The car park will be replaced by an apartment block and a small public square.\n- The bus station will move next to the railway station east of the centre.\n- Market Street will become pedestrian-only.\n- The library will be extended and connected to a new community hall.\n- The riverside footpath will be widened and linked to a cycle lane.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "image_url": null,
+      "min_words": 150,
+      "duration_minutes": 20
+    }
+  ]
+}

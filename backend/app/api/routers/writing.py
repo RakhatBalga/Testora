@@ -1,6 +1,6 @@
 import logging
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db, get_current_user
@@ -14,9 +14,8 @@ from app.api.schemas.writing import (
 )
 from app.infrastructure.ai import get_writing_grader
 from app.infrastructure.ai.concurrency import run_grading
-from app.application.mistakes import record_mistakes
+from app.application.mistakes import clear_mistakes, record_mistakes
 from app.application.writing_precheck import (
-    count_words,
     validate_writing_submission,
     zero_band_feedback,
 )
@@ -69,6 +68,26 @@ async def submit(
         status="pending",
     )
 
+    submission = await _grade_and_persist(submission, task, db, current_user)
+    return _to_out(submission, task)
+
+
+async def _grade_and_persist(
+    submission: WritingSubmission,
+    task: WritingTask,
+    db: Session,
+    current_user: User,
+) -> WritingSubmission:
+    precheck = validate_writing_submission(
+        task_type=task.task_type,
+        text=submission.text,
+        min_words=task.min_words,
+    )
+    word_count = precheck.word_count
+    submission.word_count = word_count
+    submission.status = "pending"
+    submission.band = None
+
     if precheck.valid:
         # Grade via the AI layer (mock now, Gemini when AI_PROVIDER=gemini). The
         # blocking call is offloaded to the threadpool and globally rate-bounded so
@@ -78,12 +97,20 @@ async def submit(
             grader.grade,
             task_type=task.task_type,
             prompt=task.prompt,
-            text=payload.text,
+            text=submission.text,
             min_words=task.min_words,
         )
     else:
         feedback = zero_band_feedback(task.task_type, precheck)
 
+    db.add(submission)
+    db.flush()  # assign submission.id before replacing/recording its mistakes
+    clear_mistakes(
+        db,
+        user_id=current_user.id,
+        submission_id=submission.id,
+        skill="writing",
+    )
     submission.feedback = feedback.to_dict()
     if feedback.error:
         # Grading failed — preserve the user's text but do NOT record a band or
@@ -96,16 +123,13 @@ async def submit(
             current_user.id,
             task.id,
         )
-        db.add(submission)
         db.commit()
         db.refresh(submission)
-        return _to_out(submission, task)
+        return submission
 
     submission.band = feedback.band
     submission.status = "graded"
 
-    db.add(submission)
-    db.flush()  # assign submission.id before recording its mistakes
     record_mistakes(
         db,
         user_id=current_user.id,
@@ -115,8 +139,7 @@ async def submit(
     )
     db.commit()
     db.refresh(submission)
-
-    return _to_out(submission, task)
+    return submission
 
 
 @router.get("/submissions", response_model=List[WritingSubmissionSummary])
@@ -160,6 +183,32 @@ def get_submission(
     )
     if not sub:
         raise HTTPException(status_code=404, detail="Submission not found")
+    return _to_out(sub, sub.task)
+
+
+@router.post("/submissions/{submission_id}/retry", response_model=WritingSubmissionOut)
+async def retry_submission(
+    submission_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    sub = (
+        db.query(WritingSubmission)
+        .filter(
+            WritingSubmission.id == submission_id,
+            WritingSubmission.user_id == current_user.id,
+        )
+        .first()
+    )
+    if not sub:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    if sub.status != "failed":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only failed writing submissions can be retried",
+        )
+
+    sub = await _grade_and_persist(sub, sub.task, db, current_user)
     return _to_out(sub, sub.task)
 
 

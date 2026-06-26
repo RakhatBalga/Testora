@@ -14,6 +14,7 @@ whatever the model returned — so grading can't be inflated by a chatty model:
 """
 from __future__ import annotations
 
+import re
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -81,6 +82,7 @@ class CoachResult(BaseModel):
     weaknesses: list[str] = Field(default_factory=list)
     priorities: list[str] = Field(default_factory=list)
     roadmap: list[CoachStep] = Field(default_factory=list)
+    why_not_higher_band: str = ""
     summary: str = ""
 
 
@@ -253,7 +255,14 @@ def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type:
         suggestions = coaching.priorities or [n for n in notes.values() if n][:3]
         strengths = coaching.strengths
         weaknesses = coaching.weaknesses
-        roadmap = [{"target_band": s.target_band, "actions": s.actions} for s in coaching.roadmap]
+        roadmap = _roadmap_above_current(coaching.roadmap, overall, suggestions)
+        why_not_higher = _why_not_higher_band(
+            overall=overall,
+            explicit=coaching.why_not_higher_band,
+            roadmap=roadmap,
+            suggestions=suggestions,
+            lowest=lowest,
+        )
     else:
         # Coach stage unavailable — still return a useful, examiner-grounded result.
         summary = f"Estimated Band {overall}. Your lowest criterion is {lowest} ({criteria[lowest]})."
@@ -263,6 +272,13 @@ def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type:
         strengths = []
         weaknesses = []
         roadmap = []
+        why_not_higher = _why_not_higher_band(
+            overall=overall,
+            explicit="",
+            roadmap=roadmap,
+            suggestions=[f"focus on {lowest}"],
+            lowest=lowest,
+        )
 
     return Feedback(
         band=overall,
@@ -274,4 +290,123 @@ def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type:
         strengths=strengths,
         weaknesses=weaknesses,
         roadmap=roadmap,
+        why_not_higher_band=why_not_higher,
+    )
+
+
+def _roadmap_above_current(
+    steps: list[CoachStep],
+    overall: float,
+    fallback_actions: list[str],
+) -> list[dict]:
+    """Keep roadmap targets forward-looking, never equal to the current band."""
+    roadmap: list[dict] = []
+    seen: set[float] = set()
+    for step in steps:
+        target = _snap(step.target_band)
+        if target <= overall or target in seen:
+            continue
+        actions = [a.strip() for a in step.actions if a.strip()][:3]
+        if not actions:
+            continue
+        seen.add(target)
+        roadmap.append({"target_band": target, "actions": actions})
+
+    if roadmap or overall >= 9.0:
+        return sorted(roadmap, key=lambda item: item["target_band"])
+
+    next_band = min(9.0, overall + 0.5)
+    actions = [a.strip() for a in fallback_actions if a.strip()][:3]
+    if not actions:
+        return []
+    return [{"target_band": next_band, "actions": actions}]
+
+
+def _why_not_higher_band(
+    *,
+    overall: float,
+    explicit: str,
+    roadmap: list[dict],
+    suggestions: list[str],
+    lowest: str,
+) -> str:
+    """Short next-half-band explanation for the result page."""
+    if overall >= 9.0:
+        return ""
+    explicit = explicit.strip()
+    if explicit:
+        return explicit
+
+    next_band = _snap(overall + 0.5)
+    actions: list[str] = []
+    if roadmap:
+        first = roadmap[0]
+        if first.get("target_band") == next_band:
+            actions = [str(a) for a in first.get("actions", [])]
+    if not actions:
+        actions = suggestions
+    fragments = [_action_fragment(action) for action in actions if action.strip()][:3]
+    if not fragments:
+        fragments = [f"focus on {lowest}"]
+    return f"To reach {next_band:.1f}, {_join_fragments(fragments)}."
+
+
+def _action_fragment(action: str) -> str:
+    action = action.strip().rstrip(".")
+    if not action:
+        return action
+    return action[:1].lower() + action[1:]
+
+
+def _join_fragments(items: list[str]) -> str:
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return f"{items[0]}, {items[1]}, and {items[2]}"
+
+
+_QUOTE_RE = re.compile(r'"([^"\n]+)"|“([^”\n]+)”|`([^`\n]+)`')
+
+
+def sanitize_coach_evidence(
+    coaching: CoachResult,
+    *,
+    essay: str,
+    errors: list[WritingError],
+) -> CoachResult:
+    """Drop coach items that quote phrases unsupported by the essay/errors."""
+    sources = [essay, *[(error.snippet or "") for error in errors]]
+
+    def supported(value: str) -> bool:
+        quotes = [
+            q.strip()
+            for match in _QUOTE_RE.findall(value)
+            for q in match
+            if q.strip()
+        ]
+        return all(any(quote in source for source in sources) for quote in quotes)
+
+    def clean_list(items: list[str]) -> list[str]:
+        return [item for item in items if supported(item)]
+
+    roadmap: list[CoachStep] = []
+    for step in coaching.roadmap:
+        actions = clean_list(step.actions)
+        if actions:
+            roadmap.append(CoachStep(target_band=step.target_band, actions=actions))
+
+    return coaching.model_copy(
+        update={
+            "strengths": clean_list(coaching.strengths),
+            "weaknesses": clean_list(coaching.weaknesses),
+            "priorities": clean_list(coaching.priorities),
+            "roadmap": roadmap,
+            "why_not_higher_band": (
+                coaching.why_not_higher_band
+                if supported(coaching.why_not_higher_band)
+                else ""
+            ),
+            "summary": coaching.summary if supported(coaching.summary) else "",
+        }
     )

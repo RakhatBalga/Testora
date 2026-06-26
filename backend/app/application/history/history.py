@@ -86,8 +86,9 @@ def list_history(db: Session, user_id: int, skill: str | None = None) -> list[di
         )
         for r in rows:
             title = r.test.title if r.test else f"{skill_name.title()} Test"
+            href = f"/listening/result/{r.id}" if skill_name == "listening" else f"/result/{r.id}"
             items.append(
-                _item(skill_name, r.id, title, r.band, r.score, r.total, "graded", r.created_at, f"/result/{r.id}")
+                _item(skill_name, r.id, title, r.band, r.score, r.total, "graded", r.created_at, href)
             )
 
     items.sort(key=lambda x: x["created_at"] or "", reverse=True)
@@ -169,7 +170,7 @@ def get_history_item(db: Session, user_id: int, item_id: str) -> dict | None:
             "status": "graded",
             "breakdown": r.breakdown,
             "created_at": _fmt(r.created_at),
-            "href": f"/result/{ref_id}",
+            "href": f"/listening/result/{ref_id}" if skill == "listening" else f"/result/{ref_id}",
         }
 
     return None

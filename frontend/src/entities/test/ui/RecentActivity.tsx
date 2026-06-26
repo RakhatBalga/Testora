@@ -9,6 +9,12 @@ function bandTone(band: number | null): string {
   return "bg-rose-50 text-rose-700";
 }
 
+function resultHref(attempt: AttemptSummary): string {
+  return attempt.test_type === "listening"
+    ? `/listening/result/${attempt.id}`
+    : `/result/${attempt.id}`;
+}
+
 /** Compact timeline of recent completed attempts for this skill. */
 export function RecentActivity({ attempts }: { attempts: AttemptSummary[] }) {
   if (attempts.length === 0) return null;
@@ -20,7 +26,7 @@ export function RecentActivity({ attempts }: { attempts: AttemptSummary[] }) {
         {attempts.slice(0, 5).map((a, i) => (
           <Link
             key={a.id}
-            href={`/result/${a.id}`}
+            href={resultHref(a)}
             className={`flex items-center justify-between px-5 py-3 transition hover:bg-slate-50 ${
               i > 0 ? "border-t border-slate-100" : ""
             }`}
