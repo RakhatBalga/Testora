@@ -67,6 +67,8 @@ ports 3000 (frontend) and 8000 (API).
 - [ ] `AI_PROVIDER=gemini` **and** `GEMINI_API_KEY` set (the API refuses to start
       in production if grading would fall back to mock)
 - [ ] Reading pack imported and validated: `cd backend && python validate_reading.py`
+- [ ] Writing Task 2 topics imported:
+      `docker compose -f docker-compose.prod.yml exec backend python import_content.py content/writing/task2-topics.json`
 - [ ] Backups configured: `scripts/backup_prod.sh` writes DB + audio archives
 
 ## Operational notes

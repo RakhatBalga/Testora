@@ -32,7 +32,7 @@ import { PageHeader, ProgressBar, StatTile, skillIcons } from "@/shared/ui/dashb
 import { LinkButton } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
 
-const TARGET_BAND = 7.5;
+const FALLBACK_TARGET_BAND = 7.5;
 
 export default function AnalyticsPage() {
   const { token, ready } = useRequireAuth();
@@ -63,15 +63,15 @@ export default function AnalyticsPage() {
     };
 
     settle(
-      api.getBandGap(TARGET_BAND),
+      api.getBandGap(),
       setBandGap,
-      { current: null, target: TARGET_BAND, gap: null, per_skill: {}, lowest_skill: null, has_data: false }
+      { current: null, target: FALLBACK_TARGET_BAND, gap: null, per_skill: {}, lowest_skill: null, has_data: false }
     );
     settle(api.getBandTrajectory(), setTrajectory, { points: [], delta: null, has_data: false });
-    settle(api.getBlockers(TARGET_BAND), (b) => setBlockers(b.blockers), { blockers: [] });
+    settle(api.getBlockers(), (b) => setBlockers(b.blockers), { blockers: [] });
     settle(api.getWeaknesses(5), (w) => setWeaknesses(w.weaknesses), { weaknesses: [] });
-    settle(api.getDailyPlan(TARGET_BAND, 3), (p) => setDailyPlan(p.plan), { generated_for: "", has_data: false, plan: [] });
-    settle(api.getRecommendations(TARGET_BAND, 4), (r) => setRecommendations(r.recommendations), { recommendations: [] });
+    settle(api.getDailyPlan(undefined, 3), (p) => setDailyPlan(p.plan), { generated_for: "", has_data: false, plan: [] });
+    settle(api.getRecommendations(undefined, 4), (r) => setRecommendations(r.recommendations), { recommendations: [] });
     settle(api.getRecurringMistakes(5), (r) => setRecurring(r.recurring), { recurring: [] });
     settle(api.getStreak(), setStreak, { current_streak: 0, active_today: false });
     settle(
@@ -100,7 +100,7 @@ export default function AnalyticsPage() {
     historyItems === null ||
     historyTotal === null;
 
-  const target = bandGap?.target ?? TARGET_BAND;
+  const target = bandGap?.target ?? FALLBACK_TARGET_BAND;
   const current = bandGap?.current ?? null;
   const gap = bandGap?.gap ?? null;
   const mainBlocker = blockers?.[0] ?? null;

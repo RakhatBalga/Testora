@@ -24,6 +24,10 @@ from app.application.analytics.band_gap import DEFAULT_TARGET
 router = APIRouter()
 
 
+def _target_for(current_user: User, requested: float | None) -> float:
+    return requested if requested is not None else (current_user.target_band or DEFAULT_TARGET)
+
+
 @router.get("/weaknesses")
 def weaknesses(
     limit: int = Query(6, ge=1, le=20),
@@ -35,20 +39,20 @@ def weaknesses(
 
 @router.get("/blockers")
 def blockers(
-    target: float = Query(DEFAULT_TARGET, ge=4.0, le=9.0),
+    target: float | None = Query(None, ge=4.0, le=9.0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return {"blockers": generate_blockers(db, current_user.id, target=target)}
+    return {"blockers": generate_blockers(db, current_user.id, target=_target_for(current_user, target))}
 
 
 @router.get("/band-gap")
 def band_gap(
-    target: float = Query(DEFAULT_TARGET, ge=4.0, le=9.0),
+    target: float | None = Query(None, ge=4.0, le=9.0),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return compute_band_gap(db, current_user.id, target=target)
+    return compute_band_gap(db, current_user.id, target=_target_for(current_user, target))
 
 
 @router.get("/band-trajectory")
@@ -77,12 +81,12 @@ def blocker_history(
 
 @router.get("/daily-plan")
 def daily_plan(
-    target: float = Query(DEFAULT_TARGET, ge=4.0, le=9.0),
+    target: float | None = Query(None, ge=4.0, le=9.0),
     limit: int = Query(3, ge=1, le=5),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return compute_daily_plan(db, current_user.id, target=target, limit=limit)
+    return compute_daily_plan(db, current_user.id, target=_target_for(current_user, target), limit=limit)
 
 
 @router.get("/progress-impact")
@@ -97,12 +101,19 @@ def progress_impact(
 
 @router.get("/recommendations")
 def recommendations(
-    target: float = Query(DEFAULT_TARGET, ge=4.0, le=9.0),
+    target: float | None = Query(None, ge=4.0, le=9.0),
     limit: int = Query(5, ge=1, le=8),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return {"recommendations": compute_recommendations(db, current_user.id, target=target, limit=limit)}
+    return {
+        "recommendations": compute_recommendations(
+            db,
+            current_user.id,
+            target=_target_for(current_user, target),
+            limit=limit,
+        )
+    }
 
 
 @router.get("/recurring-mistakes")
