@@ -21,8 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from app.core.config import settings  # noqa: E402
-from app.services.ai.gemini import GeminiWritingGrader  # noqa: E402
+from app.infrastructure.config import settings  # noqa: E402
+from app.infrastructure.ai.gemini import GeminiWritingGrader  # noqa: E402
 
 
 @dataclass(frozen=True)

@@ -1,4 +1,8 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const AUTH_TOKEN_KEY = "testora.auth.token";
+const AUTH_USERNAME_KEY = "testora.auth.username";
+const LEGACY_TOKEN_KEY = "token";
+const LEGACY_USERNAME_KEY = "username";
 
 export function mediaUrl(path: string | null): string | null {
   if (!path) return null;
@@ -6,17 +10,55 @@ export function mediaUrl(path: string | null): string | null {
   return `${API_URL}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
-/**
- * Like mediaUrl, but appends the auth token as a query param so a private,
- * ownership-checked media endpoint can be loaded by a plain <audio> element
- * (which cannot send an Authorization header).
- */
-export function authedMediaUrl(path: string | null): string | null {
-  const url = mediaUrl(path);
-  if (!url) return null;
-  const token = getToken();
-  if (!token) return url;
-  return `${url}${url.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+function browserSessionStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage;
+}
+
+export function getStoredAuthToken(): string | null {
+  const storage = browserSessionStorage();
+  if (!storage) return null;
+
+  const token = storage.getItem(AUTH_TOKEN_KEY);
+  if (token) return token;
+
+  const legacy = localStorage.getItem(LEGACY_TOKEN_KEY);
+  if (!legacy) return null;
+  storage.setItem(AUTH_TOKEN_KEY, legacy);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  return legacy;
+}
+
+export function getStoredUsername(): string | null {
+  const storage = browserSessionStorage();
+  if (!storage) return null;
+
+  const username = storage.getItem(AUTH_USERNAME_KEY);
+  if (username) return username;
+
+  const legacy = localStorage.getItem(LEGACY_USERNAME_KEY);
+  if (!legacy) return null;
+  storage.setItem(AUTH_USERNAME_KEY, legacy);
+  localStorage.removeItem(LEGACY_USERNAME_KEY);
+  return legacy;
+}
+
+export function storeAuth(token: string, username: string): void {
+  const storage = browserSessionStorage();
+  if (!storage) return;
+  storage.setItem(AUTH_TOKEN_KEY, token);
+  storage.setItem(AUTH_USERNAME_KEY, username);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_USERNAME_KEY);
+}
+
+export function clearStoredAuth(): void {
+  const storage = browserSessionStorage();
+  storage?.removeItem(AUTH_TOKEN_KEY);
+  storage?.removeItem(AUTH_USERNAME_KEY);
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_USERNAME_KEY);
 }
 
 export type Test = {
@@ -398,11 +440,6 @@ export type RecurringMistake = {
   message: string;
 };
 
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("token");
-}
-
 /**
  * Global handler for an expired/invalid session. Clears stored credentials and
  * bounces the user to /login (preserving where they were) instead of leaving
@@ -410,8 +447,7 @@ function getToken(): string | null {
  */
 function handleUnauthorized(): void {
   if (typeof window === "undefined") return;
-  localStorage.removeItem("token");
-  localStorage.removeItem("username");
+  clearStoredAuth();
   const { pathname, search } = window.location;
   if (pathname !== "/login") {
     const next = encodeURIComponent(pathname + search);
@@ -420,7 +456,7 @@ function handleUnauthorized(): void {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = getToken();
+  const token = getStoredAuthToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
@@ -447,7 +483,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 async function requestForm<T>(path: string, formData: FormData): Promise<T> {
-  const token = getToken();
+  const token = getStoredAuthToken();
   const headers: Record<string, string> = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -472,6 +508,29 @@ async function requestForm<T>(path: string, formData: FormData): Promise<T> {
     throw new Error(detail);
   }
   return res.json();
+}
+
+export async function fetchAuthenticatedMedia(path: string | null): Promise<string | null> {
+  const url = mediaUrl(path);
+  if (!url) return null;
+
+  const token = getStoredAuthToken();
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(url, {
+    headers,
+    cache: "no-store",
+  });
+
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+  if (!res.ok) {
+    throw new Error("Recording failed to load.");
+  }
+  return URL.createObjectURL(await res.blob());
 }
 
 function audioFilename(audio: Blob): string {

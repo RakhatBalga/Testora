@@ -61,21 +61,28 @@ ports 3000 (frontend) and 8000 (API).
 ### Pre-launch checklist
 - [ ] `SECRET_KEY` is a fresh random value (not the example)
 - [ ] `CORS_ORIGINS` lists the real frontend domain(s)
+- [ ] `TRUSTED_PROXY_CIDRS` matches your reverse proxy / Docker bridge source
 - [ ] `NEXT_PUBLIC_API_URL` points at the public API origin
 - [ ] `APP_ENV=production`
 - [ ] `AI_PROVIDER=gemini` **and** `GEMINI_API_KEY` set (the API refuses to start
       in production if grading would fall back to mock)
 - [ ] Reading pack imported and validated: `cd backend && python validate_reading.py`
-- [ ] DB backups configured for the `pgdata` volume
+- [ ] Backups configured: `scripts/backup_prod.sh` writes DB + audio archives
 
 ## Operational notes
-- **Rate limiting** is in-process (per backend worker). Behind multiple workers
-  or replicas the effective limit scales with worker count; use a shared store
-  (Redis) or proxy-level limiting if you need a hard global cap.
+- **Rate limiting** is in-process (per backend worker). The Docker deploy runs a
+  single backend process; if you scale workers/replicas, add proxy/CDN or Redis
+  limiting for a global cap. `X-Forwarded-For` is trusted only from
+  `TRUSTED_PROXY_CIDRS`.
+- **Auth tokens** are stored in `sessionStorage`, not persistent `localStorage`.
 - **Recordings** are stored privately under `backend/private/audio_submissions`
-  and served only to their owner via an authenticated endpoint.
+  and served only to their owner via an authenticated endpoint. The frontend
+  fetches recordings with an Authorization header and plays a blob URL, so JWTs
+  are not placed in query strings.
 - **Failed AI grades** are saved without a band (Writing `status="failed"`) and
   excluded from analytics — never as a Band 0.
+- **Containers** run as non-root users; keep mounted volumes writable by the
+  container users.
 
 ## Tests
 
@@ -99,4 +106,12 @@ Production compose sanity:
 POSTGRES_PASSWORD=dummy SECRET_KEY=dummy AI_PROVIDER=gemini GEMINI_API_KEY=dummy \
 CORS_ORIGINS=https://app.testora.com NEXT_PUBLIC_API_URL=https://api.testora.com \
 docker compose -f docker-compose.prod.yml config
+```
+
+Backups:
+```bash
+BACKUP_DIR=/backups/testora scripts/backup_prod.sh
+# Restore:
+scripts/restore_prod.sh /backups/testora/testora_db_YYYYmmddTHHMMSSZ.dump \
+  /backups/testora/testora_audio_YYYYmmddTHHMMSSZ.tgz
 ```

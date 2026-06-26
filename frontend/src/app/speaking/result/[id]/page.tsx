@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { api, authedMediaUrl, SpeakingSubmission } from "@/shared/api";
+import { api, fetchAuthenticatedMedia, SpeakingSubmission } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { FeedbackCard } from "@/features/feedback";
 import { Badge } from "@/shared/ui";
@@ -16,6 +16,11 @@ export default function SpeakingResultPage() {
   const submissionId = Number(params?.id);
 
   const [submission, setSubmission] = useState<SpeakingSubmission | null>(null);
+  const [audio, setAudio] = useState<{
+    source: string;
+    url: string | null;
+    error: string | null;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -27,6 +32,38 @@ export default function SpeakingResultPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [token, submissionId]);
+
+  useEffect(() => {
+    const source = submission?.audio_url;
+    if (!token || !source) return;
+
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    fetchAuthenticatedMedia(source)
+      .then((url) => {
+        if (cancelled) {
+          if (url) URL.revokeObjectURL(url);
+          return;
+        }
+        objectUrl = url;
+        setAudio({ source, url, error: null });
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setAudio({
+            source,
+            url: null,
+            error: err instanceof Error ? err.message : "Recording failed to load.",
+          });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [token, submission?.audio_url]);
 
   if (!ready || !token) return null;
   if (loading) {
@@ -45,7 +82,7 @@ export default function SpeakingResultPage() {
   }
   if (!submission) return null;
 
-  const audioSrc = authedMediaUrl(submission.audio_url);
+  const currentAudio = audio?.source === submission.audio_url ? audio : null;
 
   return (
     <div className="space-y-8">
@@ -60,10 +97,16 @@ export default function SpeakingResultPage() {
           <p className="mt-2 text-sm text-slate-500">
             {new Date(submission.created_at).toLocaleString()}
           </p>
-          {audioSrc && (
-            <audio controls src={audioSrc} className="mx-auto mt-6 w-full max-w-xl">
+          {currentAudio?.url && (
+            <audio controls src={currentAudio.url} className="mx-auto mt-6 w-full max-w-xl">
               Your browser does not support audio.
             </audio>
+          )}
+          {!currentAudio?.url && !currentAudio?.error && (
+            <p className="mt-6 text-sm text-slate-500">Loading recording...</p>
+          )}
+          {currentAudio?.error && (
+            <p className="mt-6 text-sm text-red-600">{currentAudio.error}</p>
           )}
         </div>
       </Card>

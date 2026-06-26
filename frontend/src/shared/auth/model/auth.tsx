@@ -7,6 +7,12 @@ import {
   useState,
   ReactNode,
 } from "react";
+import {
+  clearStoredAuth,
+  getStoredAuthToken,
+  getStoredUsername,
+  storeAuth,
+} from "@/shared/api";
 
 type AuthContextType = {
   token: string | null;
@@ -25,23 +31,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setToken(localStorage.getItem("token"));
-      setUsername(localStorage.getItem("username"));
+      setToken(getStoredAuthToken());
+      setUsername(getStoredUsername());
       setReady(true);
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
   const login = (newToken: string, newUsername: string) => {
-    localStorage.setItem("token", newToken);
-    localStorage.setItem("username", newUsername);
+    storeAuth(newToken, newUsername);
     setToken(newToken);
     setUsername(newUsername);
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
+    clearStoredAuth();
     setToken(null);
     setUsername(null);
   };

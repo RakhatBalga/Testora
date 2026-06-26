@@ -10,7 +10,13 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+RUN adduser --disabled-password --gecos "" --uid 10001 testora
+
+COPY --chown=testora:testora . .
+RUN mkdir -p /app/private/audio_submissions /app/static && \
+    chown -R testora:testora /app/private /app/static
+
+USER testora
 
 # Run migrations, then serve. Fail fast if migrations fail.
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
