@@ -10,9 +10,9 @@ Also removes the legacy "Academic Reading Practice 1" demo from the library.
 Idempotent for this title. Run from backend/:
     venv/bin/python seed_reading_gold.py
 """
-from app.database import SessionLocal
-from app.models.test import Test, Section, Question
-from app.models.attempt import Attempt, AnswerRecord
+from app.infrastructure.database import SessionLocal
+from app.domain.models.test import Test, Section, Question
+from app.domain.models.attempt import Attempt, AnswerRecord
 
 TITLE = "IELTS Academic Reading — Test A"
 LEGACY_TITLE = "Academic Reading Practice 1"

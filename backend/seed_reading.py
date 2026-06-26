@@ -6,9 +6,9 @@ touch listening/writing/speaking data.
 
 Run from backend/:  venv/bin/python seed_reading.py
 """
-from app.database import SessionLocal
-from app.models.test import Test, Section, Question
-from app.models.attempt import Attempt, AnswerRecord
+from app.infrastructure.database import SessionLocal
+from app.domain.models.test import Test, Section, Question
+from app.domain.models.attempt import Attempt, AnswerRecord
 
 TITLE = "Academic Reading Test 1 (Full)"
 

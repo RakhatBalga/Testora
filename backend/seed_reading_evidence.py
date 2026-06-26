@@ -8,8 +8,8 @@ Not Given have NO evidence (None) — that absence is itself the lesson.
 Runs in place (does NOT delete attempts). Run from backend/:
     venv/bin/python seed_reading_evidence.py
 """
-from app.database import SessionLocal
-from app.models.test import Test, Section, Question
+from app.infrastructure.database import SessionLocal
+from app.domain.models.test import Test, Section, Question
 
 TITLE = "Academic Reading Test 1 (Full)"
 

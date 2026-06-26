@@ -3,11 +3,11 @@
 Run from the backend/ folder:  python seed.py
 Safe to re-run: it clears existing tests/sections/questions first.
 """
-from app.database import SessionLocal
-from app.models.test import Test, Section, Question
-from app.models.attempt import AnswerRecord, Attempt
-from app.models.writing import WritingTask, WritingSubmission
-from app.models.speaking import SpeakingTask, SpeakingSubmission
+from app.infrastructure.database import SessionLocal
+from app.domain.models.test import Test, Section, Question
+from app.domain.models.attempt import AnswerRecord, Attempt
+from app.domain.models.writing import WritingTask, WritingSubmission
+from app.domain.models.speaking import SpeakingTask, SpeakingSubmission
 
 
 def run():
