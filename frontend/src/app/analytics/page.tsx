@@ -13,7 +13,7 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useRequireAuth } from "@/shared/auth";
 import {
   api,
   type BandGapResult,
@@ -25,12 +25,12 @@ import {
   type RecurringMistake,
   type Streak,
   type Weakness,
-} from "@/lib/api";
-import { SKILLS, skillMeta, toneClasses, type Skill } from "@/lib/dashboard";
-import { BandTrajectory } from "@/components/dashboard/BandTrajectory";
-import { PageHeader, ProgressBar, StatTile, skillIcons } from "@/components/dashboard/widgets";
-import { LinkButton } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
+} from "@/shared/api";
+import { SKILLS, skillMeta, toneClasses, type Skill } from "@/entities/dashboard";
+import { BandTrajectory } from "@/shared/ui/dashboard";
+import { PageHeader, ProgressBar, StatTile, skillIcons } from "@/shared/ui/dashboard";
+import { LinkButton } from "@/shared/ui";
+import { Skeleton } from "@/shared/ui";
 
 const TARGET_BAND = 7.5;
 

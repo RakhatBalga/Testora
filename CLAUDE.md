@@ -15,7 +15,7 @@ they do next.
 - **Frontend:** Next.js 16 (App Router) + TypeScript + Tailwind v4. In `frontend/`.
 - **Backend:** FastAPI (Python) + SQLAlchemy + Alembic. In `backend/`.
 - **DB:** PostgreSQL (local, `testora` db). Migrations via Alembic.
-- **AI:** Gemini behind `backend/app/services/ai/` (factory: `mock | claude | gemini`).
+- **AI:** Gemini behind `backend/app/infrastructure/ai/` (factory: `mock | claude | gemini`).
   **Currently `AI_PROVIDER=mock`** — there is no AI budget, so all grading uses free
   deterministic heuristics. Switching to real Gemini later = env change only, no code edits.
 - ⚠️ The product brief says "Supabase" — **the repo does NOT use Supabase.** Don't assume it.
@@ -29,46 +29,45 @@ they do next.
 - Auth is username + password (JWT in localStorage). Test user: `Olzhas` / `testpass123`.
 
 ## Backend layout (`backend/app/`)
-- `models/` — SQLAlchemy tables: `user`, `test`/`section`/`question`, `attempt` (reading/
-  listening), `writing`, `speaking`, `mistake`.
-- `routers/` — `auth`, `tests`, `results`, `writing`, `speaking`, `analytics`.
-- `services/ai/` — grading abstraction. `base.py` = `Feedback` + `MistakeItem`; `mock.py` =
-  free heuristic graders that ALSO emit deterministic, text-derived mistakes; `factory.py`
+- `domain/` — core SQLAlchemy models and pure scoring/band logic.
+- `application/` — use-case services: mistakes, writing precheck, history, comparison,
+  and analytics. Analytics is **pure aggregation, NO AI at read time**.
+- `api/` — FastAPI routers, dependencies, and Pydantic schemas.
+- `infrastructure/` — database/config/logging/security/rate-limit/error tracking and
+  `ai/` grading adapters. `ai/base.py` = `Feedback` + `MistakeItem`; `ai/mock.py` =
+  free heuristic graders that ALSO emit deterministic, text-derived mistakes; `ai/factory.py`
   picks the provider from env. **Grading creates mistakes.**
-- `services/mistakes.py` — persists `MistakeItem`s to the `mistakes` table on submit.
-- `services/analytics/` — **pure aggregation, NO AI at read time.** `sources.py` (uniform
-  per-skill reads), `weakness.py` (weakness scoring + recurring detection), `band_gap.py`
-  (band gap + blocker generation).
 - Alembic: migrations in `backend/alembic/versions/`; register new models in `alembic/env.py`.
 
 ## Frontend layout (`frontend/src/`)
 - `app/` — App Router pages: `/` (dashboard or landing), `login`, `register` (3-step
   onboarding), `practice/[skill]`, `mock-tests`, `analytics`, `vocabulary`, `writing`,
   `speaking`, `profile`, `tests/[type]`.
-- `components/` — `ui/` (Button/Card/Badge/Input), `dashboard/` (widgets, BandTrajectory,
-  WeaknessCard, BlockerCard), `auth/`, `landing/`.
-- `lib/` — `api.ts` (typed FastAPI client — all backend calls go through here), `auth.tsx`
-  (auth context), `coach.ts` (dashboard MOCK data + types, swappable for real endpoints),
-  `dashboard.ts` (mock data for practice/analytics/vocab pages).
+- `shared/` — infrastructure shared by all layers: typed API client, auth provider/hooks,
+  UI primitives, config, and shared lib helpers.
+- `entities/` — domain-owned frontend models and entity UI (`dashboard`, `coach`, `test`).
+- `features/` — user workflows with `ui/` and `model/` segments (`auth`, `reading-session`,
+  `listening-session`, `test-session`, `feedback`, `progress-impact`, `streak`).
+- `widgets/` — page-level composition (`app-shell`, `coach-dashboard`, `landing`).
+- Avoid reintroducing legacy `components/`, `lib/`, or `hooks/` folders; export through
+  slice `index.ts` barrels.
 
 ## Key domain model (the "coach loop")
-1. User submits Writing/Speaking → graded by `services/ai` → `Feedback` (band + 4 IELTS
+1. User submits Writing/Speaking → graded by `infrastructure/ai` → `Feedback` (band + 4 IELTS
    criteria) + `MistakeItem[]`.
 2. Mistakes saved to `mistakes` (skill, category, subskill, severity 1–3, snippet, correction).
 3. **Weakness engine:** `score = 1 − 0.5^(Σ severity·recency_decay / opportunities)`,
    half-life 14 days. Recurring = appears in ≥3 recent attempts.
 4. **Band gap:** overall = mean of per-skill bands rounded to 0.5; lowest skill = highest
    leverage; lowest criterion in Writing/Speaking = the named blocker.
-5. Dashboard reads `/analytics/band-gap|blockers|weaknesses|recurring-mistakes` and shows
-   the blocker + today's plan. Some dashboard sections (trajectory, today's plan, recent
-   movement) are still mock from `lib/coach.ts`.
+5. Dashboard reads `/analytics/band-gap|blockers|weaknesses|daily-plan|band-trajectory`
+   and derives recent Writing movement from `/analytics/progress-impact`.
 
 ## Conventions
 - **Design system:** blue academic palette via CSS vars in `globals.css`
   (`--brand #2563EB`, `--surface`, `--text-primary/secondary`, `--border`). No bright
-  gradients, no gamification theatre. Reuse `ui/` and `dashboard/` components.
-- **Mock data is centralized & swappable** (`lib/coach.ts`, `lib/dashboard.ts`) with
-  `// BACKEND:` markers — replacing with real endpoints should need no UI change.
+  gradients, no gamification theatre. Reuse `shared/ui` and `shared/ui/dashboard`.
+- Keep backend access behind `shared/api`; pages/features should not call `fetch` directly.
 - Don't change auth fields/API contracts or existing routes unless asked.
 - Verify UI changes in the browser preview; commit per feature with a clear message;
   end commit messages with the Co-Authored-By trailer.

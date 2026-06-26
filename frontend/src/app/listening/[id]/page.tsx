@@ -8,25 +8,25 @@ import {
   type AnswerValue,
   type AttemptResult,
   type TestDetail,
-} from "@/lib/api";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { ReadingTimer } from "@/components/reading/ReadingTimer";
-import { ReadingProgress } from "@/components/reading/ReadingProgress";
-import { ReadingReview } from "@/components/reading/ReadingReview";
-import { useReadingTimer } from "@/components/reading/useReadingTimer";
+} from "@/shared/api";
+import { useRequireAuth } from "@/shared/auth";
+import { Card } from "@/shared/ui";
+import { Button } from "@/shared/ui";
+import { Skeleton } from "@/shared/ui";
+import { ReadingTimer } from "@/features/reading-session";
+import { ReadingProgress } from "@/features/reading-session";
+import { ReadingReview } from "@/features/reading-session";
+import { useReadingTimer } from "@/features/reading-session";
 import {
   buildGroups,
   flattenQuestions,
   isAnswered,
   type AnswerMap,
-} from "@/components/reading/types";
-import { ListeningAudioPlayer } from "@/components/listening/ListeningAudioPlayer";
-import { ListeningSectionNav } from "@/components/listening/ListeningSectionNav";
-import { ListeningQuestions } from "@/components/listening/ListeningQuestions";
-import { SubmitConfirm } from "@/components/listening/SubmitConfirm";
+} from "@/features/reading-session";
+import { ListeningAudioPlayer } from "@/features/listening-session";
+import { ListeningSectionNav } from "@/features/listening-session";
+import { ListeningQuestions } from "@/features/listening-session";
+import { SubmitConfirm } from "@/features/listening-session";
 
 export default function ListeningPage() {
   const { token, ready } = useRequireAuth();

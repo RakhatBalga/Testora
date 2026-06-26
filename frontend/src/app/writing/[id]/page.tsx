@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { api, WritingTask } from "@/lib/api";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { api, WritingTask } from "@/shared/api";
+import { useRequireAuth } from "@/shared/auth";
+import { Badge } from "@/shared/ui";
+import { Button } from "@/shared/ui";
+import { Card } from "@/shared/ui";
+import { Skeleton } from "@/shared/ui";
 
 function countWords(text: string): number {
   return text.match(/\b[\w'-]+\b/g)?.length ?? 0;

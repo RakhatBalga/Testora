@@ -9,8 +9,8 @@ import {
   type DailyPlanTask,
   type Streak,
   type Weakness,
-} from "@/lib/api";
-import { type ProgressMovement } from "@/lib/coach";
+} from "@/shared/api";
+import { type ProgressMovement } from "@/entities/coach";
 import { IELTS_TARGET_BAND } from "@/shared/config";
 
 export function useCoachDashboardData() {

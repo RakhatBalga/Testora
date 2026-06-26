@@ -3,15 +3,15 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Flag, Clock, ListChecks } from "lucide-react";
-import { api, TestDetail, AnswerValue, Section } from "@/lib/api";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { QuestionInput } from "@/components/QuestionInput";
-import { QuestionPalette, type PaletteItem } from "@/components/test/QuestionPalette";
-import { ReviewModal } from "@/components/test/ReviewModal";
+import { api, TestDetail, AnswerValue, Section } from "@/shared/api";
+import { useRequireAuth } from "@/shared/auth";
+import { Card } from "@/shared/ui";
+import { Badge } from "@/shared/ui";
+import { Button } from "@/shared/ui";
+import { Skeleton } from "@/shared/ui";
+import { QuestionInput } from "@/features/test-session";
+import { QuestionPalette, type PaletteItem } from "@/features/test-session";
+import { ReviewModal } from "@/features/test-session";
 
 type FlatItem = {
   id: number;

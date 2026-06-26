@@ -15,9 +15,9 @@ import {
   ChevronUp,
   ChevronDown,
 } from "lucide-react";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { api, type CompareResult, type CriteriaDiffItem, type QTypeDiffItem, type MistakeDiffItem } from "@/lib/api";
-import { PageHeader } from "@/components/dashboard/widgets";
+import { useRequireAuth } from "@/shared/auth";
+import { api, type CompareResult, type CriteriaDiffItem, type QTypeDiffItem, type MistakeDiffItem } from "@/shared/api";
+import { PageHeader } from "@/shared/ui/dashboard";
 
 const SKILL_COLORS: Record<string, string> = {
   writing: "bg-blue-50 text-blue-700",

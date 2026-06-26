@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
-import AuthShell from "@/components/auth/AuthShell";
-import { AuthField } from "@/components/auth/AuthField";
+import { api } from "@/shared/api";
+import { useAuth } from "@/shared/auth";
+import { AuthField, AuthShell } from "@/features/auth";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");

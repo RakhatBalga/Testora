@@ -11,10 +11,10 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { BandTrajectory } from "@/components/dashboard/BandTrajectory";
+import { BandTrajectory } from "@/shared/ui/dashboard";
 import { StreakStatus } from "@/features/streak";
 import { useCoachDashboardData } from "@/features/coach-dashboard";
-import { type ProgressMovement } from "@/lib/coach";
+import { type ProgressMovement } from "@/entities/coach";
 import { formatDisplayName, greeting } from "@/shared/lib";
 
 export function CoachDashboard({ username }: { username: string | null }) {

@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { api, WritingSubmission, type ProgressImpact as ProgressImpactData } from "@/lib/api";
-import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { FeedbackCard } from "@/components/FeedbackCard";
-import { ProgressImpact } from "@/components/dashboard/ProgressImpact";
-import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
-import { LinkButton } from "@/components/ui/Button";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { api, WritingSubmission, type ProgressImpact as ProgressImpactData } from "@/shared/api";
+import { useRequireAuth } from "@/shared/auth";
+import { FeedbackCard } from "@/features/feedback";
+import { ProgressImpact } from "@/features/progress-impact";
+import { Badge } from "@/shared/ui";
+import { Card } from "@/shared/ui";
+import { LinkButton } from "@/shared/ui";
+import { Skeleton } from "@/shared/ui";
 
 export default function WritingResultPage() {
   const { token, ready } = useRequireAuth();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/shared/auth";
 import { CoachDashboard } from "@/widgets/coach-dashboard";
 import { PublicLanding } from "@/widgets/landing";
 
