@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 export default function SpeakingResultPage() {
   const { token, ready } = useRequireAuth();
   const params = useParams();
-  const submissionId = Number(params.id);
+  const submissionId = Number(params?.id);
 
   const [submission, setSubmission] = useState<SpeakingSubmission | null>(null);
   const [loading, setLoading] = useState(true);

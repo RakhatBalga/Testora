@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 export default function WritingResultPage() {
   const { token, ready } = useRequireAuth();
   const params = useParams();
-  const submissionId = Number(params.id);
+  const submissionId = Number(params?.id);
 
   const [submission, setSubmission] = useState<WritingSubmission | null>(null);
   const [impact, setImpact] = useState<ProgressImpactData | null>(null);

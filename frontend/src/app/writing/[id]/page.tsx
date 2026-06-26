@@ -37,7 +37,7 @@ export default function WritingTaskPage() {
   const { token, ready } = useRequireAuth();
   const params = useParams();
   const router = useRouter();
-  const taskId = Number(params.id);
+  const taskId = Number(params?.id);
 
   const [task, setTask] = useState<WritingTask | null>(null);
   const [answer, setAnswer] = useState("");

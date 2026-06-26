@@ -31,7 +31,7 @@ type Tab = "passage" | "questions";
 export default function ReadingPage() {
   const { token, ready } = useRequireAuth();
   const params = useParams();
-  const testId = Number(params.id);
+  const testId = Number(params?.id);
   const storeKey = `reading-${testId}`;
 
   const [test, setTest] = useState<TestDetail | null>(null);

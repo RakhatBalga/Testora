@@ -34,7 +34,7 @@ export default function TestPage() {
   const { token, ready } = useRequireAuth();
   const params = useParams();
   const router = useRouter();
-  const testId = Number(params.id);
+  const testId = Number(params?.id);
 
   const [test, setTest] = useState<TestDetail | null>(null);
   const [answers, setAnswers] = useState<Record<number, AnswerValue>>({});
