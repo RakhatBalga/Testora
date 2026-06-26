@@ -8,7 +8,7 @@ frontend, Gemini grading, with a local-only mock fallback for development.
 - **Frontend:** Next.js 16 (App Router) + TypeScript + Tailwind v4 — `frontend/`
 - **Backend:** FastAPI + SQLAlchemy + Alembic — `backend/`
 - **DB:** PostgreSQL
-- **AI:** Gemini Flash behind `backend/app/services/ai/` (`mock | claude | gemini`; production uses Gemini)
+- **AI:** Gemini Flash behind `backend/app/infrastructure/ai/` (`mock | claude | gemini`; production uses Gemini)
 
 ## Local development
 

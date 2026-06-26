@@ -35,10 +35,13 @@ router = APIRouter()
 logger = logging.getLogger("testora.speaking")
 
 # Private (NOT publicly served) directory for user recordings — they are PII and
-# must only be reachable through the authenticated audio endpoint below.
-UPLOAD_DIR = Path(__file__).resolve().parents[2] / "private" / "audio_submissions"
+# must only be reachable through the authenticated audio endpoint below. Resolve
+# from the backend root (/app in the Docker image) so docker-compose's
+# /app/private/audio_submissions volume actually persists uploads.
+_BACKEND_ROOT = Path(__file__).resolve().parents[3]
+UPLOAD_DIR = _BACKEND_ROOT / "private" / "audio_submissions"
 # Legacy location for recordings created before audio was made private.
-_LEGACY_DIR = Path(__file__).resolve().parents[2] / "static" / "audio_submissions"
+_LEGACY_DIR = _BACKEND_ROOT / "static" / "audio_submissions"
 ALLOWED_EXTENSIONS = {".webm", ".ogg", ".mp3", ".wav", ".m4a"}
 _MAX_AUDIO_BYTES = settings.MAX_AUDIO_UPLOAD_MB * 1024 * 1024
 _CHUNK = 1024 * 1024  # 1 MiB
