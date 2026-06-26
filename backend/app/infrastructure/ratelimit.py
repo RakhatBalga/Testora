@@ -8,8 +8,34 @@ store (Redis) or proxy-level limiting — see README operational notes.
 import threading
 import time
 from collections import defaultdict
+from ipaddress import ip_address, ip_network
 
 from fastapi import HTTPException, Request, status
+
+from app.infrastructure.config import settings
+
+
+def _trusted_proxy_networks():
+    networks = []
+    for raw in settings.TRUSTED_PROXY_CIDRS.split(","):
+        value = raw.strip()
+        if not value:
+            continue
+        try:
+            networks.append(ip_network(value, strict=False))
+        except ValueError:
+            continue
+    return networks
+
+
+def _is_trusted_proxy(host: str | None) -> bool:
+    if not host:
+        return False
+    try:
+        ip = ip_address(host)
+    except ValueError:
+        return False
+    return any(ip in network for network in _trusted_proxy_networks())
 
 
 class RateLimiter:
@@ -20,15 +46,11 @@ class RateLimiter:
         self._lock = threading.Lock()
 
     def _client_ip(self, request: Request) -> str:
-        # SECURITY ASSUMPTION: the app runs ONLY behind a trusted reverse proxy
-        # that overwrites X-Forwarded-For (see docker-compose.prod.yml — backend
-        # binds to 127.0.0.1, not the public internet). We take the first hop as
-        # the client IP. If the backend were reachable directly, a client could
-        # spoof X-Forwarded-For to dodge the per-IP limit — so don't expose it.
+        direct_ip = request.client.host if request.client else "unknown"
         fwd = request.headers.get("x-forwarded-for")
-        if fwd:
+        if fwd and _is_trusted_proxy(direct_ip):
             return fwd.split(",")[0].strip()
-        return request.client.host if request.client else "unknown"
+        return direct_ip
 
     async def __call__(self, request: Request) -> None:
         now = time.monotonic()

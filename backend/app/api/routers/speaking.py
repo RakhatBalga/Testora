@@ -10,7 +10,6 @@ from fastapi import (
     Form,
     Header,
     HTTPException,
-    Query,
     UploadFile,
     status,
 )
@@ -169,11 +168,7 @@ async def submit(
 
 
 def _resolve_media_user(token: str | None, db: Session) -> User:
-    """Authenticate a media request via a bearer header OR a `token` query param.
-
-    The browser <audio> element can't send an Authorization header, so signed
-    playback falls back to a query-string token (the same short-lived JWT).
-    """
+    """Authenticate a media request via an Authorization bearer header."""
     cred_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -197,7 +192,6 @@ def _resolve_media_user(token: str | None, db: Session) -> User:
 @router.get("/submissions/{submission_id}/audio")
 def get_audio(
     submission_id: int,
-    token: str | None = Query(None),
     authorization: str | None = Header(None),
     db: Session = Depends(get_db),
 ):
@@ -205,7 +199,7 @@ def get_audio(
     bearer = None
     if authorization and authorization.lower().startswith("bearer "):
         bearer = authorization[7:]
-    user = _resolve_media_user(token or bearer, db)
+    user = _resolve_media_user(bearer, db)
 
     submission = (
         db.query(SpeakingSubmission)

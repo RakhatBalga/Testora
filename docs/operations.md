@@ -27,18 +27,24 @@ if the effective grader resolved to mock. Wire load-balancer / k8s readiness to
 State lives in PostgreSQL (`pgdata` volume). User audio lives in
 `backend/private/audio_submissions` (not in the DB).
 
-**Nightly logical backup (cron):**
+Use the checked-in helper for both PostgreSQL and audio:
 
 ```bash
-pg_dump "$DATABASE_URL" --format=custom --file "/backups/testora_$(date +%F).dump"
-# retain 14 days
-find /backups -name 'testora_*.dump' -mtime +14 -delete
+BACKUP_DIR=/backups/testora RETENTION_DAYS=14 scripts/backup_prod.sh
+```
+
+Run it from the repository root on the host that runs Docker Compose. Example
+nightly cron entry:
+
+```cron
+15 2 * * * cd /srv/testora && BACKUP_DIR=/backups/testora scripts/backup_prod.sh >> /var/log/testora-backup.log 2>&1
 ```
 
 **Restore:**
 
 ```bash
-pg_restore --clean --if-exists --dbname "$DATABASE_URL" /backups/testora_YYYY-MM-DD.dump
+scripts/restore_prod.sh /backups/testora/testora_db_YYYYmmddTHHMMSSZ.dump \
+  /backups/testora/testora_audio_YYYYmmddTHHMMSSZ.tgz
 ```
 
 Test a restore into a scratch database at least monthly — an untested backup is
@@ -88,14 +94,16 @@ unhandled exceptions; unset = disabled.
 
 ## Cost / abuse protection (current)
 
-- Auth endpoints are IP rate-limited (10/min/IP, fixed window).
+- Auth endpoints are IP rate-limited (10/min/IP, fixed window). `X-Forwarded-For`
+  is trusted only when the direct peer is inside `TRUSTED_PROXY_CIDRS`.
 - Concurrent gradings are capped (`MAX_CONCURRENT_GRADINGS`, default 8) — bounds
   simultaneous Gemini calls (cost/quota) and threadpool usage.
 - Inputs are bounded: writing `MAX_WRITING_CHARS` (20k), audio `MAX_AUDIO_UPLOAD_MB` (15).
 
-Note: rate limiting is per-process; behind N workers the effective limit is
-N×. For a hard global cap, move to a shared store (Redis) or enforce at the
-proxy/CDN.
+Note: Docker runs one backend process by default, so the in-process limiter is
+the effective cap for this deployment. If you scale to N workers or replicas,
+the limit becomes N×; enforce a hard global cap at the proxy/CDN or move the
+limiter to a shared store.
 
 ## Rollback procedure
 

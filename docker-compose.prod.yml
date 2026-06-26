@@ -11,11 +11,10 @@
 #
 # SECURITY: the `backend` and `frontend` ports below bind to 127.0.0.1 only, so
 # they are reachable solely from the reverse proxy on the same host — never from
-# the public internet directly. This is also what makes the auth rate-limiter
-# trustworthy: it keys on X-Forwarded-For, which clients could otherwise spoof.
-# The proxy MUST overwrite/append X-Forwarded-For (do not pass client-supplied
-# values through). If you run the proxy on another host, replace 127.0.0.1 with
-# the private interface the proxy reaches — do not expose 0.0.0.0.
+# the public internet directly. The auth rate-limiter trusts X-Forwarded-For
+# only from TRUSTED_PROXY_CIDRS; configure that to the reverse proxy/container
+# gateway CIDR. If you run the proxy on another host, replace 127.0.0.1 with the
+# private interface the proxy reaches — do not expose 0.0.0.0.
 services:
   db:
     image: postgres:16
@@ -44,6 +43,7 @@ services:
       APP_ENV: production
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
       CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS}
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-127.0.0.1/32,::1/128,172.16.0.0/12}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Almaty}
       AI_PROVIDER: ${AI_PROVIDER:?set AI_PROVIDER}
       GEMINI_API_KEY: ${GEMINI_API_KEY:?set GEMINI_API_KEY}
@@ -53,6 +53,11 @@ services:
       - audio:/app/private/audio_submissions
     ports:
       - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3).read()\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
 
   frontend:
     build:
@@ -61,9 +66,15 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
       - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:

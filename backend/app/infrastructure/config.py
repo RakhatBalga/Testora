@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     # MUST be set in production, e.g. "https://testora.studio,https://www.testora.studio".
     CORS_ORIGINS: str = "http://localhost:3000"
 
+    # Comma-separated proxy IPs/CIDRs whose X-Forwarded-For may be trusted.
+    # Empty = ignore X-Forwarded-For and rate-limit by the direct peer address.
+    TRUSTED_PROXY_CIDRS: str = ""
+
     # IANA timezone used for day-boundary logic (streaks, "today's plan").
     # Users are in CIS/MENA, so UTC would shift day boundaries by several hours.
     APP_TIMEZONE: str = "Asia/Almaty"
