@@ -5,6 +5,17 @@
       "title": "Writing Task 1 — Line graph: library visits",
       "prompt": "The line graph below shows the average number of monthly visits to three public libraries in a city from 2018 to 2023.\n\nAverage monthly visits (thousands):\nCentral Library: 2018 42, 2019 45, 2020 31, 2021 36, 2022 49, 2023 58\nRiverside Library: 2018 18, 2019 22, 2020 25, 2021 29, 2022 34, 2023 41\nHilltop Library: 2018 27, 2019 26, 2020 20, 2021 22, 2022 24, 2023 23\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
       "image_url": null,
+      "visual_data": {
+        "kind": "line",
+        "title": "Average monthly visits to public libraries, 2018–2023",
+        "unit": "thousands",
+        "categories": ["2018", "2019", "2020", "2021", "2022", "2023"],
+        "series": [
+          { "name": "Central Library", "values": [42, 45, 31, 36, 49, 58] },
+          { "name": "Riverside Library", "values": [18, 22, 25, 29, 34, 41] },
+          { "name": "Hilltop Library", "values": [27, 26, 20, 22, 24, 23] }
+        ]
+      },
       "min_words": 150,
       "duration_minutes": 20
     },
@@ -13,6 +24,16 @@
       "title": "Writing Task 1 — Bar chart: commuting methods",
       "prompt": "The bar chart below compares the main commuting methods used by workers in two districts in 2024.\n\nShare of workers (%):\nCar: Northbank 38, Eastmere 24\nBus: Northbank 22, Eastmere 31\nTrain: Northbank 16, Eastmere 27\nBicycle: Northbank 14, Eastmere 8\nWalking: Northbank 10, Eastmere 10\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
       "image_url": null,
+      "visual_data": {
+        "kind": "bar",
+        "title": "Main commuting methods used by workers in 2024",
+        "unit": "% of workers",
+        "categories": ["Car", "Bus", "Train", "Bicycle", "Walking"],
+        "series": [
+          { "name": "Northbank", "values": [38, 22, 16, 14, 10] },
+          { "name": "Eastmere", "values": [24, 31, 27, 8, 10] }
+        ]
+      },
       "min_words": 150,
       "duration_minutes": 20
     },
@@ -21,6 +42,13 @@
       "title": "Writing Task 1 — Table: household energy use",
       "prompt": "The table below shows average household energy use in four categories in two years.\n\nAverage annual energy use per household (kWh):\nHeating: 2014 6800, 2024 5200\nWater heating: 2014 2500, 2024 2200\nAppliances: 2014 1900, 2024 2600\nLighting: 2014 900, 2024 450\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
       "image_url": null,
+      "visual_data": {
+        "kind": "table",
+        "title": "Average annual household energy use",
+        "unit": "kWh",
+        "columns": ["Category", "2014", "2024"],
+        "rows": [["Heating", 6800, 5200], ["Water heating", 2500, 2200], ["Appliances", 1900, 2600], ["Lighting", 900, 450]]
+      },
       "min_words": 150,
       "duration_minutes": 20
     },
@@ -29,6 +57,15 @@
       "title": "Writing Task 1 — Pie charts: university spending",
       "prompt": "The pie charts below show how a university allocated its annual budget in 2015 and 2025.\n\nBudget share (%):\nTeaching staff: 2015 42, 2025 36\nResearch: 2015 18, 2025 25\nBuildings and maintenance: 2015 16, 2025 14\nTechnology: 2015 9, 2025 17\nStudent services: 2015 15, 2025 8\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
       "image_url": null,
+      "visual_data": {
+        "kind": "pie",
+        "title": "University annual budget allocation",
+        "unit": "%",
+        "charts": [
+          { "title": "2015", "values": [{ "name": "Teaching staff", "value": 42 }, { "name": "Research", "value": 18 }, { "name": "Buildings", "value": 16 }, { "name": "Technology", "value": 9 }, { "name": "Student services", "value": 15 }] },
+          { "title": "2025", "values": [{ "name": "Teaching staff", "value": 36 }, { "name": "Research", "value": 25 }, { "name": "Buildings", "value": 14 }, { "name": "Technology", "value": 17 }, { "name": "Student services", "value": 8 }] }
+        ]
+      },
       "min_words": 150,
       "duration_minutes": 20
     },
@@ -37,6 +74,11 @@
       "title": "Writing Task 1 — Process: recycled glass bottles",
       "prompt": "The diagram below describes the process by which used glass bottles are recycled into new bottles.\n\nStages:\n1. Used bottles are deposited in colour-coded collection bins.\n2. Trucks transport the bottles to a recycling plant.\n3. Bottles are sorted by colour and unsuitable items are removed.\n4. The glass is washed and crushed into small pieces called cullet.\n5. Cullet is melted in a furnace at high temperature.\n6. The molten glass is moulded into new bottles.\n7. The bottles are cooled, inspected, filled, and delivered to shops.\n\nSummarise the information by selecting and reporting the main features.\n\nWrite at least 150 words.",
       "image_url": null,
+      "visual_data": {
+        "kind": "process",
+        "title": "Recycling used glass bottles",
+        "steps": ["Deposit bottles in colour-coded bins", "Transport bottles to the plant", "Sort by colour and remove unsuitable items", "Wash and crush into cullet", "Melt cullet in a furnace", "Mould molten glass into bottles", "Cool, inspect, fill and deliver"]
+      },
       "min_words": 150,
       "duration_minutes": 20
     },
@@ -45,6 +87,12 @@
       "title": "Writing Task 1 — Map: town centre redevelopment",
       "prompt": "The maps below show changes planned for a town centre between the present day and 2030.\n\nPresent town centre:\n- A large car park occupies the north-west corner.\n- A bus station is located in the north-east corner.\n- Small shops line both sides of Market Street.\n- The public library stands south of Market Street.\n- A narrow footpath runs along the river in the south.\n\nPlanned town centre in 2030:\n- The car park will be replaced by an apartment block and a small public square.\n- The bus station will move next to the railway station east of the centre.\n- Market Street will become pedestrian-only.\n- The library will be extended and connected to a new community hall.\n- The riverside footpath will be widened and linked to a cycle lane.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
       "image_url": null,
+      "visual_data": {
+        "kind": "map",
+        "title": "Town centre redevelopment",
+        "before": ["North-west: large car park", "North-east: bus station", "Market Street: shops on both sides", "South: public library", "Riverside: narrow footpath"],
+        "after": ["North-west: apartments and public square", "East: bus station beside railway station", "Market Street: pedestrian-only", "South: extended library and community hall", "Riverside: wider footpath and cycle lane"]
+      },
       "min_words": 150,
       "duration_minutes": 20
     }

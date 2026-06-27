@@ -94,6 +94,7 @@ Backend:
 cd backend
 python validate_reading.py
 python validate_listening.py
+python validate_writing.py
 python scripts/check_migration_heads.py
 pytest
 ```
@@ -106,9 +107,12 @@ python import_content.py --replace    # replace matching content without touchin
 ```
 
 Content packs currently live under `backend/content/reading/`,
-`backend/content/listening/`, and `backend/content/writing/`. Listening audio
+`backend/content/listening/`, `backend/content/writing/`, and
+`backend/content/speaking/`. Listening audio
 assets are stored under `backend/app/static/audio/listening/` and referenced as
-`/static/...` URLs in the JSON.
+`/static/...` URLs in the JSON. Academic Task 1 prompts use `visual_data` for
+locally rendered line, bar, table, pie, process, and map visuals; run the
+Writing validator before importing them.
 
 Frontend:
 ```bash

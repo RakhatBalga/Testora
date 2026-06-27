@@ -12,6 +12,7 @@ class WritingTask(Base):
     title = Column(String, nullable=False)
     prompt = Column(Text, nullable=False)
     image_url = Column(String, nullable=True)  # chart/graph for Task 1
+    visual_data = Column(JSON, nullable=True)  # structured Task 1 chart/process/map
     min_words = Column(Integer, nullable=False, default=250)
     duration_minutes = Column(Integer, nullable=False, default=40)
 

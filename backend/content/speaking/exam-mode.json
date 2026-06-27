@@ -1,0 +1,66 @@
+{
+  "speaking_tasks": [
+    {
+      "part": 1,
+      "questions": [
+        "Do you live in a house or an apartment?",
+        "Which room do you spend the most time in?",
+        "Is there anything you would like to change about your home?",
+        "What kind of home would you like to live in in the future?"
+      ],
+      "prep_seconds": 0,
+      "speak_seconds": 120
+    },
+    {
+      "part": 1,
+      "questions": [
+        "How often do you use public transport?",
+        "What is the most convenient way to travel around your town?",
+        "Did you travel differently when you were younger?",
+        "What would improve transport in your area?"
+      ],
+      "prep_seconds": 0,
+      "speak_seconds": 120
+    },
+    {
+      "part": 2,
+      "questions": [
+        "Describe a public place where you enjoy spending time.",
+        "You should say where it is, what it looks like, what you do there, and explain why you enjoy spending time there."
+      ],
+      "prep_seconds": 60,
+      "speak_seconds": 120
+    },
+    {
+      "part": 2,
+      "questions": [
+        "Describe a useful skill that someone taught you.",
+        "You should say what the skill is, who taught you, how you learned it, and explain why the skill has been useful."
+      ],
+      "prep_seconds": 60,
+      "speak_seconds": 120
+    },
+    {
+      "part": 3,
+      "questions": [
+        "Why are public spaces important in large cities?",
+        "Should local governments spend more on parks or on transport?",
+        "How have people's expectations of public places changed?",
+        "What makes a shared space feel safe and welcoming?"
+      ],
+      "prep_seconds": 0,
+      "speak_seconds": 240
+    },
+    {
+      "part": 3,
+      "questions": [
+        "Which practical skills should children learn at school?",
+        "Why do some adults find it difficult to learn new skills?",
+        "Has online learning made expert teachers less important?",
+        "How might workplace training change in the future?"
+      ],
+      "prep_seconds": 0,
+      "speak_seconds": 240
+    }
+  ]
+}

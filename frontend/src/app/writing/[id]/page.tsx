@@ -9,6 +9,7 @@ import { Badge } from "@/shared/ui";
 import { Button } from "@/shared/ui";
 import { Card } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
+import { WritingTaskVisual } from "@/features/writing-task/ui/WritingTaskVisual";
 
 function countWords(text: string): number {
   return text.match(/\b[\w'-]+\b/g)?.length ?? 0;
@@ -168,6 +169,7 @@ export default function WritingTaskPage() {
         <p className="whitespace-pre-line leading-relaxed text-slate-700">
           {task.prompt}
         </p>
+        {task.visual_data && <WritingTaskVisual data={task.visual_data} />}
         {task.image_url && (
           <div
             aria-label="Writing task visual"

@@ -11,6 +11,7 @@ class WritingTaskOut(BaseModel):
     title: str
     prompt: str
     image_url: Optional[str] = None
+    visual_data: Optional[dict[str, Any]] = None
     min_words: int
     duration_minutes: int
 

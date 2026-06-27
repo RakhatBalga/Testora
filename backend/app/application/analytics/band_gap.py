@@ -106,7 +106,13 @@ def generate_blockers(db: Session, user_id: int, target: float = DEFAULT_TARGET,
                     "criterion": criterion,
                     "band_cap": round(float(band), 1),
                     "explanation": explanation,
-                    "fix_href": practice_href(skill),
+                    "fix_href": (
+                        "/writing?task=2"
+                        if criterion == "Task Response"
+                        else "/writing?task=1"
+                        if criterion == "Task Achievement"
+                        else practice_href(skill)
+                    ),
                 }
             )
 

@@ -31,6 +31,7 @@ export function CoachDashboard({ username }: { username: string | null }) {
     recentMovement,
     todaysPlan,
     streak,
+    weeklyWeakest,
     primaryActionHref,
   } = useCoachDashboardData();
 
@@ -63,10 +64,15 @@ export function CoachDashboard({ username }: { username: string | null }) {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-5 border-t border-[var(--border)] pt-5 sm:grid-cols-3">
+        <div className="mt-6 grid gap-5 border-t border-[var(--border)] pt-5 sm:grid-cols-2 lg:grid-cols-4">
           <Metric label="Current band" value={current != null ? current.toFixed(1) : "-"} hint={hasData ? "from graded attempts" : "no data yet"} />
           <Metric label="Target" value={target.toFixed(1)} hint="goal band" />
           <Metric label="Gap" value={gapValue != null ? `+${gapValue.toFixed(1)}` : "-"} hint="bands remaining" />
+          <Metric
+            label="Weakest this week"
+            value={weeklyWeakest?.skill ? weeklyWeakest.skill.charAt(0).toUpperCase() + weeklyWeakest.skill.slice(1) : "-"}
+            hint={weeklyWeakest?.band != null ? `Band ${weeklyWeakest.band.toFixed(1)} from ${weeklyWeakest.attempts} attempt${weeklyWeakest.attempts === 1 ? "" : "s"}` : "no graded attempts in 7 days"}
+          />
         </div>
 
         <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">

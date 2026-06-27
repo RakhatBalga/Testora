@@ -52,6 +52,7 @@ JSON shape (any of the three arrays may be present per file):
           "title": "Writing Task 1 — Line graph",
           "prompt": "...",
           "image_url": "/static/charts/graph1.png",  # or null
+          "visual_data": {"kind": "line", "categories": [], "series": []},
           "min_words": 150,
           "duration_minutes": 20
         }
@@ -190,6 +191,7 @@ def _build_writing(data: dict) -> WritingTask:
         title=title,
         prompt=_require(data, "prompt", f"writing_task '{title}'"),
         image_url=data.get("image_url"),
+        visual_data=data.get("visual_data"),
         min_words=int(data.get("min_words", 250)),
         duration_minutes=int(data.get("duration_minutes", 40)),
     )
