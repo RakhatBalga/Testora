@@ -15,6 +15,8 @@ READING_CATALOG_TITLE = re.compile(r"^IELTS Academic Reading\s+(?:—|-)\s+Test\
 
 
 def is_catalog_test(test: Test) -> bool:
+    if test.test_type == "listening":
+        return (test.content_metadata or {}).get("published") is True
     if test.test_type != "reading":
         return True
     return bool(READING_CATALOG_TITLE.match(test.title))
@@ -57,4 +59,32 @@ def get_test(
     test = db.query(Test).filter(Test.id == test_id).first()
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
+    if test.test_type == "listening":
+        # Legacy route remains available for old clients, but review-only data
+        # must never be exposed before a submission exists.
+        return {
+            "id": test.id,
+            "title": test.title,
+            "test_type": test.test_type,
+            "description": test.description,
+            "duration_minutes": test.duration_minutes,
+            "difficulty": test.difficulty,
+            "question_count": sum(len(section.questions) for section in test.sections),
+            "sections": [{
+                "id": section.id,
+                "order": section.order,
+                "title": section.title,
+                "instructions": section.instructions,
+                "passage": None,
+                "audio_url": section.audio_url,
+                "questions": [{
+                    "id": question.id,
+                    "text": question.text,
+                    "question_type": question.question_type,
+                    "options": question.options,
+                    "order": question.order,
+                    "evidence": None,
+                } for question in section.questions],
+            } for section in test.sections],
+        }
     return test

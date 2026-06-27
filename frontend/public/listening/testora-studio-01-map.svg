@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 520" role="img" aria-labelledby="title desc">
+  <title id="title">Northhaven Coast Discovery Centre map</title>
+  <desc id="desc">A labelled visitor map with entrance, paths, pond, footbridge, reed beds, laboratory, dunes, and points A to H.</desc>
+  <rect width="800" height="520" fill="#f8fafc"/>
+  <path d="M360 520V382c0-38 28-55 28-92V105" fill="none" stroke="#94a3b8" stroke-width="34" stroke-linecap="round"/>
+  <path d="M386 293H610M385 376H170M386 165H185" fill="none" stroke="#cbd5e1" stroke-width="20" stroke-linecap="round"/>
+  <path d="M610 293c55 0 76-45 112-73" fill="none" stroke="#cbd5e1" stroke-width="20" stroke-linecap="round"/>
+  <rect x="32" y="28" width="736" height="62" fill="#dbeafe" stroke="#60a5fa" stroke-width="2"/>
+  <text x="400" y="66" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1e3a8a">SHORE</text>
+  <ellipse cx="225" cy="250" rx="88" ry="55" fill="#bae6fd" stroke="#38bdf8" stroke-width="2"/>
+  <text x="225" y="257" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#0c4a6e">Pond</text>
+  <rect x="476" y="330" width="145" height="75" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+  <text x="548" y="374" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" fill="#334155">Laboratory</text>
+  <rect x="58" y="118" width="110" height="74" fill="#dcfce7" stroke="#22c55e" stroke-width="2"/>
+  <text x="113" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#166534">Reed beds</text>
+  <rect x="88" y="326" width="102" height="62" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <text x="139" y="364" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" fill="#92400e">Garden</text>
+  <path d="M320 313h130" stroke="#92400e" stroke-width="8" stroke-dasharray="13 8"/>
+  <text x="385" y="337" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#78350f">Footbridge</text>
+  <text x="662" y="130" font-family="Arial, sans-serif" font-size="17" fill="#475569">Dunes</text>
+  <text x="360" y="498" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#334155">ENTRANCE</text>
+  <text x="425" y="462" font-family="Arial, sans-serif" font-size="15" fill="#475569">Reception</text>
+  <g font-family="Arial, sans-serif" font-size="20" font-weight="700" text-anchor="middle" dominant-baseline="central">
+    <g><circle cx="445" cy="445" r="19" fill="#fff" stroke="#0f766e" stroke-width="3"/><text x="445" y="445" fill="#0f766e">A</text></g>
+    <g><circle cx="295" cy="443" r="19" fill="#fff" stroke="#0f766e" stroke-width="3"/><text x="295" y="443" fill="#0f766e">B</text></g>
+    <g><circle cx="275" cy="355" r="19" fill="#fff" stroke="#0f766e" stroke-width="3"/><text x="275" y="355" fill="#0f766e">C</text></g>
+    <g><circle cx="120" cy="230" r="19" fill="#fff" stroke="#0f766e" stroke-width="3"/><text x="120" y="230" fill="#0f766e">D</text></g>
+    <g><circle cx="305" cy="190" r="19" fill="#fff" stroke="#0f766e" stroke-width="3"/><text x="305" y="190" fill="#0f766e">E</text></g>
+    <g><circle cx="225" cy="335" r="19" fill="#fff" stroke="#0f766e" stroke-width="3"/><text x="225" y="335" fill="#0f766e">F</text></g>
+    <g><circle cx="680" cy="150" r="19" fill="#fff" stroke="#0f766e" stroke-width="3"/><text x="680" y="150" fill="#0f766e">G</text></g>
+    <g><circle cx="710" cy="250" r="19" fill="#fff" stroke="#0f766e" stroke-width="3"/><text x="710" y="250" fill="#0f766e">H</text></g>
+  </g>
+</svg>

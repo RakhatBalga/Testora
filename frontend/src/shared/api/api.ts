@@ -234,7 +234,7 @@ export type StudyPlan = {
 export type NotebookItem = {
   id: string;
   source_id: number;
-  skill: "writing" | "reading";
+  skill: "writing" | "reading" | "listening";
   status: "new" | "reviewing" | "mastered";
   category: string;
   label: string;
@@ -246,6 +246,97 @@ export type NotebookItem = {
   source_href: string;
   source_title: string;
   created_at: string;
+};
+
+export type ListeningMode = "exam" | "practice";
+
+export type ListeningCatalogItem = {
+  id: number;
+  title: string;
+  description: string | null;
+  duration_minutes: number;
+  difficulty: string | null;
+  question_count: number;
+  content_version: string;
+  calibration_status: "draft" | "provisional" | "reviewed" | "calibrated" | "retired";
+  authorship: string;
+};
+
+export type ListeningQuestion = {
+  id: number;
+  order: number;
+  text: string;
+  question_type: QuestionType;
+  options: string[] | null;
+  word_limit: number | null;
+};
+
+export type ListeningSection = {
+  id: number;
+  order: number;
+  title: string;
+  instructions: string | null;
+  audio_url: string | null;
+  audio_start: number;
+  audio_end: number;
+  map_asset: string | null;
+  questions: ListeningQuestion[];
+};
+
+export type ListeningTest = ListeningCatalogItem & {
+  schema_version: "testora.listening-public.v1";
+  intro_notice: string;
+  sections: ListeningSection[];
+};
+
+export type ListeningProgress = {
+  content_version: string;
+  mode: ListeningMode;
+  answers: Record<string, AnswerValue>;
+  current_section: number;
+  audio_position: number;
+  max_audio_position: number;
+  status: string;
+  updated_at: string;
+};
+
+export type ListeningSubmitResult = {
+  schema_version: "testora.listening-submit.v1";
+  attempt_id: number;
+  test_id: number;
+  content_version: string;
+  mode: ListeningMode;
+  score: number;
+  total: number;
+  band: number | null;
+  accuracy: number;
+  breakdown: BreakdownItem[];
+  created_at: string;
+};
+
+export type ListeningReview = Omit<ListeningSubmitResult, "schema_version"> & {
+  schema_version: "testora.listening-review.v1";
+  test_title: string;
+  duration_seconds: number | null;
+  sections: {
+    id: number;
+    order: number;
+    title: string;
+    transcript_segments: { id: string; speaker: string; text: string; start: number; end: number }[];
+  }[];
+  answers: {
+    question_id: number;
+    order: number;
+    section_order: number;
+    text: string;
+    question_type: QuestionType;
+    user_answer: string | null;
+    correct_answer: string;
+    is_correct: boolean;
+    explanation: string | null;
+    target_skill: string | null;
+    evidence: { segment_id: string | null; start: number | null; end: number | null; quote: string }[];
+  }[];
 };
 
 export type NotebookPage = {
@@ -768,7 +859,7 @@ export const api = {
   getMistakes: (filters: { skill?: string; status?: string; page?: number; page_size?: number } = {}) =>
     request<NotebookPage>(`/learning/mistakes${queryString(filters)}`),
 
-  updateMistakeStatus: (skill: "writing" | "reading", sourceId: number, status: "new" | "reviewing" | "mastered") =>
+  updateMistakeStatus: (skill: "writing" | "reading" | "listening", sourceId: number, status: "new" | "reviewing" | "mastered") =>
     request<{ skill: string; source_id: number; status: string }>(`/learning/mistakes/${skill}/${sourceId}`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
@@ -791,6 +882,38 @@ export const api = {
   listAttempts: () => request<AttemptSummary[]>("/results"),
 
   getAttempt: (id: number) => request<AttemptResult>(`/results/${id}`),
+
+  listListeningTests: () => request<ListeningCatalogItem[]>("/listening/tests"),
+
+  getListeningTest: (id: number) => request<ListeningTest>(`/listening/tests/${id}`),
+
+  getListeningProgress: (id: number, content_version: string, mode: ListeningMode) =>
+    request<ListeningProgress | null>(`/listening/tests/${id}/progress${queryString({ content_version, mode })}`),
+
+  saveListeningProgress: (
+    id: number,
+    progress: Omit<ListeningProgress, "status" | "updated_at">
+  ) => request<ListeningProgress>(`/listening/tests/${id}/progress`, {
+    method: "PUT",
+    body: JSON.stringify(progress),
+  }),
+
+  submitListening: (
+    id: number,
+    payload: {
+      content_version: string;
+      mode: ListeningMode;
+      submission_key: string;
+      answers: { question_id: number; answer: AnswerValue; marked_for_review?: boolean }[];
+      duration_seconds?: number;
+    }
+  ) => request<ListeningSubmitResult>(`/listening/tests/${id}/submit`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }),
+
+  getListeningReview: (attemptId: number) =>
+    request<ListeningReview>(`/listening/attempts/${attemptId}`),
 
   listWritingTasks: () => request<WritingTask[]>("/writing/tasks"),
 

@@ -17,9 +17,9 @@ export default function ListeningLibraryPage() {
 
   useEffect(() => {
     if (!token) return;
-    Promise.all([api.listTests(), api.listAttempts()])
-      .then(([allTests, allAttempts]) => {
-        setTests(allTests.filter((test) => test.test_type === "listening"));
+    Promise.all([api.listListeningTests(), api.listAttempts()])
+      .then(([listeningTests, allAttempts]) => {
+        setTests(listeningTests.map((test) => ({ ...test, test_type: "listening" })));
         setAttempts(allAttempts.filter((attempt) => attempt.test_type === "listening"));
       })
       .catch((err) => setError(err.message))
@@ -49,10 +49,10 @@ export default function ListeningLibraryPage() {
           Listening
         </p>
         <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-slate-900">
-          IELTS Listening Practice
+          Testora Listening Practice
         </h1>
         <p className="mt-2 max-w-2xl text-slate-500">
-          Complete timed listening sections with audio, transcript-backed explanations, and band estimates.
+          Complete an original four-section test in Exam or Practice mode, then review timestamped evidence.
         </p>
       </header>
 
