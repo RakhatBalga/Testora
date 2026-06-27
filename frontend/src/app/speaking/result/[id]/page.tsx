@@ -154,6 +154,9 @@ export default function SpeakingResultPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
+        <LinkButton href={`/speaking/${submission.task_id}`}>
+          Try this part again
+        </LinkButton>
         <LinkButton href="/speaking">Back to speaking</LinkButton>
         <LinkButton href="/profile" variant="secondary">
           My results

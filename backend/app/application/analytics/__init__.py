@@ -10,6 +10,7 @@ from app.application.analytics.daily_plan import compute_daily_plan
 from app.application.analytics.blocker_history import compute_blocker_history
 from app.application.analytics.streak import compute_streak
 from app.application.analytics.recommendations import compute_recommendations
+from app.application.analytics.weekly import compute_weekly_weakest
 
 __all__ = [
     "HALF_LIFE_DAYS",
@@ -23,4 +24,5 @@ __all__ = [
     "compute_blocker_history",
     "compute_streak",
     "compute_recommendations",
+    "compute_weekly_weakest",
 ]

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { Loader2, Mic, RotateCcw, Square } from "lucide-react";
 import { api, SpeakingTask } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { Badge } from "@/shared/ui";
@@ -46,6 +47,7 @@ export default function SpeakingTaskPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -170,14 +172,29 @@ export default function SpeakingTaskPage() {
   const submitRecording = async () => {
     if (!task || !audioBlob || submitting) return;
     setSubmitting(true);
+    setUploadProgress(0);
     setError("");
     try {
-      const submission = await api.submitSpeaking(task.id, audioBlob);
+      const submission = await api.submitSpeaking(task.id, audioBlob, setUploadProgress);
       router.push(`/speaking/result/${submission.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Submit failed");
       setSubmitting(false);
     }
+  };
+
+  const resetAttempt = () => {
+    if (!task || submitting) return;
+    stopRecording();
+    setAudioBlob(null);
+    setAudioPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
+    setPrepLeft(task.prep_seconds);
+    setSpeakLeft(task.speak_seconds);
+    setPhase(task.prep_seconds > 0 ? "prep" : "ready");
+    setError("");
   };
 
   if (!ready || !token) return null;
@@ -237,15 +254,18 @@ export default function SpeakingTaskPage() {
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
       )}
 
-      <Card className="p-6">
+      <Card className={`p-6 ${task.part === 2 ? "border-slate-300" : ""}`}>
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
-          Questions
+          {task.part === 2 ? "Cue card" : "Examiner questions"}
         </h2>
+        {task.part === 2 && (
+          <p className="mb-4 text-sm font-medium text-slate-500">You should talk about this topic for one to two minutes.</p>
+        )}
         <div className="space-y-3">
           {task.questions.map((question, index) => (
             <p key={question} className="flex gap-3 text-slate-700">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-semibold text-blue-700">
-                {index + 1}
+                {task.part === 2 && index > 0 ? "•" : index + 1}
               </span>
               <span>{question}</span>
             </p>
@@ -276,12 +296,20 @@ export default function SpeakingTaskPage() {
             )}
             {phase !== "recording" && (
               <Button onClick={startRecording} disabled={submitting}>
+                <Mic className="h-4 w-4" />
                 {phase === "recorded" ? "Record again" : "Start recording"}
               </Button>
             )}
             {phase === "recording" && (
               <Button variant="secondary" onClick={stopRecording}>
+                <Square className="h-4 w-4" />
                 Stop
+              </Button>
+            )}
+            {phase === "recorded" && (
+              <Button variant="secondary" onClick={resetAttempt} disabled={submitting}>
+                <RotateCcw className="h-4 w-4" />
+                Restart with prep
               </Button>
             )}
           </div>
@@ -299,8 +327,18 @@ export default function SpeakingTaskPage() {
           size="lg"
           className="mt-5 w-full"
         >
-          {submitting ? "Submitting..." : "Submit recording"}
+          {submitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {uploadProgress < 100 ? `Uploading ${uploadProgress}%` : "Reviewing response"}
+            </>
+          ) : "Submit recording"}
         </Button>
+        {submitting && (
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-label={`Upload ${uploadProgress}%`}>
+            <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${uploadProgress}%` }} />
+          </div>
+        )}
       </Card>
     </div>
   );

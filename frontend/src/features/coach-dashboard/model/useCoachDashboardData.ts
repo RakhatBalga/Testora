@@ -9,6 +9,7 @@ import {
   type DailyPlanTask,
   type Streak,
   type Weakness,
+  type WeeklyWeakest,
 } from "@/shared/api";
 import { type ProgressMovement } from "@/entities/coach";
 import { IELTS_TARGET_BAND } from "@/shared/config";
@@ -21,6 +22,7 @@ export function useCoachDashboardData() {
   const [recentMovement, setRecentMovement] = useState<ProgressMovement[] | null>(null);
   const [todaysPlan, setTodaysPlan] = useState<DailyPlanTask[] | null>(null);
   const [streak, setStreak] = useState<Streak | null>(null);
+  const [weeklyWeakest, setWeeklyWeakest] = useState<WeeklyWeakest | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -50,6 +52,7 @@ export function useCoachDashboardData() {
       { generated_for: "", has_data: false, plan: [] }
     );
     settle(api.getStreak(), setStreak, { current_streak: 0, active_today: false });
+    settle(api.getWeeklyWeakest(), setWeeklyWeakest, { has_data: false, skill: null, band: null, attempts: 0, days: 7 });
 
     (async () => {
       try {
@@ -107,6 +110,7 @@ export function useCoachDashboardData() {
     recentMovement,
     todaysPlan,
     streak,
+    weeklyWeakest,
     primaryActionHref,
   };
 }

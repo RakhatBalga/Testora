@@ -18,6 +18,7 @@ from app.application.analytics import (
     compute_streak,
     compute_recommendations,
     generate_blockers,
+    compute_weekly_weakest,
 )
 from app.application.analytics.band_gap import DEFAULT_TARGET
 
@@ -61,6 +62,14 @@ def band_trajectory(
     current_user: User = Depends(get_current_user),
 ):
     return compute_band_trajectory(db, current_user.id)
+
+
+@router.get("/weekly-weakest")
+def weekly_weakest(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return compute_weekly_weakest(db, current_user.id)
 
 
 @router.get("/streak")

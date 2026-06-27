@@ -192,8 +192,28 @@ export type WritingTask = {
   title: string;
   prompt: string;
   image_url: string | null;
+  visual_data: WritingVisualData | null;
   min_words: number;
   duration_minutes: number;
+};
+
+export type WritingVisualSeries = {
+  name: string;
+  values: number[];
+};
+
+export type WritingVisualData = {
+  kind: "line" | "bar" | "table" | "pie" | "process" | "map";
+  title?: string;
+  unit?: string;
+  categories?: string[];
+  series?: WritingVisualSeries[];
+  columns?: string[];
+  rows?: (string | number)[][];
+  charts?: { title: string; values: { name: string; value: number }[] }[];
+  steps?: string[];
+  before?: string[];
+  after?: string[];
 };
 
 export type WritingSubmission = {
@@ -287,6 +307,14 @@ export type BandTrajectoryResult = {
   points: BandTrajectoryPoint[];
   delta: number | null;
   has_data: boolean;
+};
+
+export type WeeklyWeakest = {
+  has_data: boolean;
+  skill: "writing" | "speaking" | "reading" | "listening" | null;
+  band: number | null;
+  attempts: number;
+  days: number;
 };
 
 export type Streak = {
@@ -521,6 +549,37 @@ async function requestForm<T>(path: string, formData: FormData): Promise<T> {
   return res.json();
 }
 
+function requestFormWithProgress<T>(
+  path: string,
+  formData: FormData,
+  onProgress?: (percent: number) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open("POST", `${API_URL}${path}`);
+    const token = getStoredAuthToken();
+    if (token) request.setRequestHeader("Authorization", `Bearer ${token}`);
+    request.responseType = "json";
+    request.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100));
+    };
+    request.onerror = () => reject(new Error("Upload failed. Check your connection and try again."));
+    request.onload = () => {
+      if (request.status === 401) {
+        handleUnauthorized();
+        reject(new Error("Your session has expired. Please sign in again."));
+        return;
+      }
+      if (request.status < 200 || request.status >= 300) {
+        reject(new Error(request.response?.detail || "Request failed"));
+        return;
+      }
+      resolve(request.response as T);
+    };
+    request.send(formData);
+  });
+}
+
 export async function fetchAuthenticatedMedia(path: string | null): Promise<string | null> {
   const url = mediaUrl(path);
   if (!url) return null;
@@ -625,11 +684,13 @@ export const api = {
 
   getSpeakingTask: (id: number) => request<SpeakingTask>(`/speaking/tasks/${id}`),
 
-  submitSpeaking: (task_id: number, audio: Blob) => {
+  submitSpeaking: (task_id: number, audio: Blob, onProgress?: (percent: number) => void) => {
     const formData = new FormData();
     formData.append("task_id", String(task_id));
     formData.append("audio", audio, audioFilename(audio));
-    return requestForm<SpeakingSubmission>("/speaking/submit", formData);
+    return onProgress
+      ? requestFormWithProgress<SpeakingSubmission>("/speaking/submit", formData, onProgress)
+      : requestForm<SpeakingSubmission>("/speaking/submit", formData);
   },
 
   listSpeakingSubmissions: () =>
@@ -648,6 +709,8 @@ export const api = {
     request<BandGapResult>(`/analytics/band-gap${queryString({ target })}`),
 
   getBandTrajectory: () => request<BandTrajectoryResult>("/analytics/band-trajectory"),
+
+  getWeeklyWeakest: () => request<WeeklyWeakest>("/analytics/weekly-weakest"),
 
   getProgressImpact: (skill: "writing" | "speaking", submissionId: number) =>
     request<ProgressImpact>(`/analytics/progress-impact?skill=${skill}&submission_id=${submissionId}`),

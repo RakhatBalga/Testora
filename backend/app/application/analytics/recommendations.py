@@ -17,7 +17,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.domain.models.attempt import Attempt
-from app.domain.models.test import Test
+from app.domain.models.test import Question, Section, Test
 from app.domain.models.writing import WritingSubmission
 from app.domain.models.speaking import SpeakingSubmission
 from app.application.analytics.band_gap import compute_band_gap, generate_blockers, DEFAULT_TARGET
@@ -130,6 +130,17 @@ def _weakest_question_type(db: Session, user_id: int) -> dict | None:
     }
 
 
+def _test_for_question_type(db: Session, skill: str, question_type: str) -> Test | None:
+    return (
+        db.query(Test)
+        .join(Section, Section.test_id == Test.id)
+        .join(Question, Question.section_id == Section.id)
+        .filter(Test.test_type == skill, Question.question_type == question_type)
+        .order_by(Test.id)
+        .first()
+    )
+
+
 def compute_recommendations(
     db: Session,
     user_id: int,
@@ -231,6 +242,10 @@ def compute_recommendations(
         weakest_qt = _weakest_question_type(db, user_id)
         if weakest_qt:
             skill = weakest_qt["skill"]
+            matched_test = _test_for_question_type(db, skill, weakest_qt["question_type"])
+            matched_href = (
+                f"/{skill}/{matched_test.id}" if matched_test else practice_href(skill)
+            )
             recs.append(
                 _rec(
                     f"qt-{skill}-{weakest_qt['question_type']}",
@@ -239,7 +254,7 @@ def compute_recommendations(
                     "question_type",
                     skill,
                     priority,
-                    practice_href(skill),
+                    matched_href,
                 )
             )
             seen_skills.add(skill)

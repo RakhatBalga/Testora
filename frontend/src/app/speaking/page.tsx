@@ -8,6 +8,12 @@ import { Badge } from "@/shared/ui";
 import { Card } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
 
+const PARTS = [
+  { part: 1, label: "Part 1", detail: "Introduction" },
+  { part: 2, label: "Part 2", detail: "Long turn" },
+  { part: 3, label: "Part 3", detail: "Discussion" },
+];
+
 function partTone(part: number) {
   if (part === 1) return "blue";
   if (part === 2) return "violet";
@@ -19,6 +25,7 @@ export default function SpeakingPage() {
   const [tasks, setTasks] = useState<SpeakingTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activePart, setActivePart] = useState(1);
 
   useEffect(() => {
     if (!token) return;
@@ -52,6 +59,26 @@ export default function SpeakingPage() {
         </p>
       </div>
 
+      <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="Speaking exam part">
+        {PARTS.map((item) => (
+          <button
+            key={item.part}
+            type="button"
+            role="tab"
+            aria-selected={activePart === item.part}
+            onClick={() => setActivePart(item.part)}
+            className={`min-h-14 rounded-lg border px-3 py-2 text-left transition ${
+              activePart === item.part
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+            }`}
+          >
+            <span className="block text-sm font-semibold">{item.label}</span>
+            <span className={`block text-xs ${activePart === item.part ? "text-slate-300" : "text-slate-500"}`}>{item.detail}</span>
+          </button>
+        ))}
+      </div>
+
       {error && (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
       )}
@@ -68,13 +95,13 @@ export default function SpeakingPage() {
             </Card>
           ))}
         </div>
-      ) : tasks.length === 0 && !error ? (
+      ) : tasks.filter((task) => task.part === activePart).length === 0 && !error ? (
         <Card className="p-8 text-center text-slate-500">
           No speaking tasks available yet.
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-3">
-          {tasks.map((task, i) => (
+          {tasks.filter((task) => task.part === activePart).map((task, i) => (
             <Link
               key={task.id}
               href={`/speaking/${task.id}`}

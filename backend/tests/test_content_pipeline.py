@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import import_content
 import validate_listening
+import validate_writing
 from app.domain.scoring import grade_attempt, question_type_label
 
 
@@ -21,6 +22,46 @@ def test_importer_accepts_expanded_ielts_question_types():
 
     assert question.question_type == "matching_headings"
     assert question.correct_answer == ["B"]
+
+
+def test_importer_keeps_structured_task1_visual_data():
+    task = import_content._build_writing(
+        {
+            "task_type": 1,
+            "title": "Line chart",
+            "prompt": "Summarise the chart.",
+            "min_words": 150,
+            "duration_minutes": 20,
+            "visual_data": {
+                "kind": "line",
+                "categories": ["2024", "2025"],
+                "series": [{"name": "A", "values": [10, 12]}],
+            },
+        }
+    )
+
+    assert task.visual_data["kind"] == "line"
+    assert task.visual_data["series"][0]["values"] == [10, 12]
+
+
+def test_writing_validator_rejects_misaligned_chart_series():
+    errors = validate_writing.validate_task(
+        {
+            "task_type": 1,
+            "title": "Broken chart",
+            "prompt": "Summarise.",
+            "min_words": 150,
+            "duration_minutes": 20,
+            "visual_data": {
+                "kind": "bar",
+                "categories": ["A", "B"],
+                "series": [{"name": "2025", "values": [1]}],
+            },
+        },
+        "test.json",
+    )
+
+    assert any("series must match" in error for error in errors)
 
 
 def test_importer_discovers_nested_content_files(tmp_path, monkeypatch):
