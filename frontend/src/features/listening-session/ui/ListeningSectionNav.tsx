@@ -11,7 +11,7 @@ type Props = {
  *  a time. Each tab shows its question range + answered count. */
 export function ListeningSectionNav({ sections, active, answers, onSelect }: Props) {
   return (
-    <div className="flex gap-1 rounded-lg border border-[var(--border)] bg-slate-50 p-0.5">
+    <div className="grid grid-cols-4 gap-1 rounded-lg border border-[var(--border)] bg-slate-50 p-0.5">
       {sections.map((g, i) => {
         const answered = g.questions.filter((q) => isAnswered(answers[q.id])).length;
         const done = answered === g.questions.length;
@@ -21,12 +21,12 @@ export function ListeningSectionNav({ sections, active, answers, onSelect }: Pro
             key={g.section.id}
             type="button"
             onClick={() => onSelect(i)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-center transition ${
+            className={`flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-1 py-1.5 text-center transition sm:flex-row sm:gap-1.5 sm:px-2 ${
               isActive ? "bg-white shadow-sm" : "hover:bg-white/60"
             }`}
           >
-            <span className={`text-sm font-semibold ${isActive ? "text-[var(--brand)]" : "text-slate-600"}`}>
-              Section {i + 1}
+            <span className={`text-xs font-semibold sm:text-sm ${isActive ? "text-[var(--brand)]" : "text-slate-600"}`}>
+              <span className="sm:hidden">S{i + 1}</span><span className="hidden sm:inline">Section {i + 1}</span>
             </span>
             <span
               className={`text-[11px] tabular-nums ${

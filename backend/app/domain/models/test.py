@@ -12,6 +12,8 @@ class Test(Base):
     description = Column(Text, nullable=True)
     duration_minutes = Column(Integer, nullable=False, default=30)
     difficulty = Column(String, nullable=True)  # "Easy" | "Medium" | "Hard"
+    content_version = Column(String, nullable=False, default="legacy")
+    content_metadata = Column(JSON, nullable=True)
 
     sections = relationship(
         "Section",
@@ -31,6 +33,7 @@ class Section(Base):
     instructions = Column(Text, nullable=True)
     passage = Column(Text, nullable=True)  # reading passage
     audio_url = Column(String, nullable=True)  # listening audio
+    section_metadata = Column(JSON, nullable=True)
 
     test = relationship("Test", back_populates="sections")
     questions = relationship(
@@ -57,5 +60,6 @@ class Question(Base):
     # spans, used by Reading Review to highlight evidence. Null for question
     # types with no passage support (e.g. Not Given) or un-authored content.
     evidence = Column(JSON, nullable=True)
+    question_metadata = Column(JSON, nullable=True)
 
     section = relationship("Section", back_populates="questions")

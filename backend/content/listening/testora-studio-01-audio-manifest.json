@@ -1,0 +1,1730 @@
+{
+  "schema_version": "testora.listening-audio-manifest.v1",
+  "content_version": "1.0.0",
+  "audio_path": "static/audio/listening/testora-studio-01.m4a",
+  "intro_script": "This is a Testora Studio Listening Practice Test. The test will begin in five seconds.",
+  "intro_silence_seconds": 5.0,
+  "neutral_cue": "880 Hz sine, 300 ms, faded",
+  "encoding": {
+    "codec": "AAC",
+    "sample_rate": 44100,
+    "channels": 1,
+    "bitrate": "128k"
+  },
+  "loudness_target": {
+    "integrated_lufs": -16,
+    "true_peak_db": -2.5,
+    "lra": 7
+  },
+  "duration_seconds": 650.5,
+  "voices": {
+    "Narrator": {
+      "voice": "Daniel",
+      "accent": "British English",
+      "rate": 150
+    },
+    "Maya": {
+      "voice": "Karen",
+      "accent": "Australian English",
+      "rate": 157
+    },
+    "Naomi": {
+      "voice": "Samantha",
+      "accent": "North American English",
+      "rate": 155
+    },
+    "Mina": {
+      "voice": "Karen",
+      "accent": "Australian English",
+      "rate": 158
+    },
+    "Lucas": {
+      "voice": "Daniel",
+      "accent": "British English",
+      "rate": 154
+    },
+    "Dr Okafor": {
+      "voice": "Tessa",
+      "accent": "South African English",
+      "rate": 151
+    },
+    "Lecturer": {
+      "voice": "Moira",
+      "accent": "Irish English",
+      "rate": 150
+    }
+  },
+  "events": [
+    {
+      "id": "intro",
+      "kind": "speech",
+      "speaker": "Narrator",
+      "text": "This is a Testora Studio Listening Practice Test. The test will begin in five seconds.",
+      "start": 0.0,
+      "end": 5.975
+    },
+    {
+      "id": "intro-silence",
+      "kind": "silence",
+      "start": 5.975,
+      "end": 10.975,
+      "duration": 5.0
+    },
+    {
+      "id": "start-cue",
+      "kind": "cue",
+      "start": 10.975,
+      "end": 11.275,
+      "duration": 0.3
+    },
+    {
+      "id": "section-1-cue",
+      "kind": "speech",
+      "speaker": "Narrator",
+      "text": "Section One.",
+      "start": 11.275,
+      "end": 12.331
+    },
+    {
+      "id": "section-1-lead",
+      "kind": "silence",
+      "start": 12.331,
+      "end": 12.651,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-01",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "Good afternoon, Harbour Repair Workshop. Maya speaking. How can I help?",
+      "start": 12.651,
+      "end": 17.716
+    },
+    {
+      "id": "s1-01-gap",
+      "kind": "silence",
+      "start": 17.716,
+      "end": 18.036,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-02",
+      "kind": "speech",
+      "speaker": "Naomi",
+      "text": "Hello. I would like to book a place on the beginners' bicycle maintenance session.",
+      "start": 18.036,
+      "end": 22.445
+    },
+    {
+      "id": "s1-02-gap",
+      "kind": "silence",
+      "start": 22.445,
+      "end": 22.765,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-03",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "Certainly. Can I take your surname? Patel, that's P A T E L.",
+      "start": 22.765,
+      "end": 27.39
+    },
+    {
+      "id": "s1-03-gap",
+      "kind": "silence",
+      "start": 27.39,
+      "end": 27.71,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-04",
+      "kind": "speech",
+      "speaker": "Naomi",
+      "text": "Yes, that's right. I saw two dates online, but I was not sure which still had spaces.",
+      "start": 27.71,
+      "end": 33.38
+    },
+    {
+      "id": "s1-04-gap",
+      "kind": "silence",
+      "start": 33.38,
+      "end": 33.7,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-05",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "The page briefly showed the seventeenth of July, but that session is now reserved for a school group.",
+      "start": 33.7,
+      "end": 39.161
+    },
+    {
+      "id": "s1-05-gap",
+      "kind": "silence",
+      "start": 39.161,
+      "end": 39.481,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-06",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "The public beginners' session is on the eighteenth of July, and there are three places left.",
+      "start": 39.481,
+      "end": 44.234
+    },
+    {
+      "id": "s1-06-gap",
+      "kind": "silence",
+      "start": 44.234,
+      "end": 44.554,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-07",
+      "kind": "speech",
+      "speaker": "Naomi",
+      "text": "Perfect. I finish work at five thirty, so I hope it is not too early.",
+      "start": 44.554,
+      "end": 48.848
+    },
+    {
+      "id": "s1-07-gap",
+      "kind": "silence",
+      "start": 48.848,
+      "end": 49.168,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-08",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "You will be fine. The workshop starts at six thirty and the doors remain open until six twenty-five.",
+      "start": 49.168,
+      "end": 54.835
+    },
+    {
+      "id": "s1-08-gap",
+      "kind": "silence",
+      "start": 54.835,
+      "end": 55.155,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-09",
+      "kind": "speech",
+      "speaker": "Naomi",
+      "text": "Do I need to bring tools? I have a small pump, but nothing for removing a wheel.",
+      "start": 55.155,
+      "end": 59.872
+    },
+    {
+      "id": "s1-09-gap",
+      "kind": "silence",
+      "start": 59.872,
+      "end": 60.192,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-10",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "We provide all the tools, and an apron is included as well.",
+      "start": 60.192,
+      "end": 63.601
+    },
+    {
+      "id": "s1-10-gap",
+      "kind": "silence",
+      "start": 63.601,
+      "end": 63.921,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-11",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "You only need to bring gloves. Ordinary gardening ones are suitable.",
+      "start": 63.921,
+      "end": 67.685
+    },
+    {
+      "id": "s1-11-gap",
+      "kind": "silence",
+      "start": 67.685,
+      "end": 68.005,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-12",
+      "kind": "speech",
+      "speaker": "Naomi",
+      "text": "Good. What does the session cost?",
+      "start": 68.005,
+      "end": 69.996
+    },
+    {
+      "id": "s1-12-gap",
+      "kind": "silence",
+      "start": 69.996,
+      "end": 70.316,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-13",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "It is forty-two pounds, including replacement cables to practise with. There is no separate deposit.",
+      "start": 70.316,
+      "end": 76.708
+    },
+    {
+      "id": "s1-13-gap",
+      "kind": "silence",
+      "start": 76.708,
+      "end": 77.028,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-14",
+      "kind": "speech",
+      "speaker": "Naomi",
+      "text": "I was planning to drive. Is there parking behind the workshop?",
+      "start": 77.028,
+      "end": 80.345
+    },
+    {
+      "id": "s1-14-gap",
+      "kind": "silence",
+      "start": 80.345,
+      "end": 80.665,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-15",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "There are only two spaces and both are needed for staff vans. The train station is a long walk.",
+      "start": 80.665,
+      "end": 86.052
+    },
+    {
+      "id": "s1-15-gap",
+      "kind": "silence",
+      "start": 86.052,
+      "end": 86.372,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-16",
+      "kind": "speech",
+      "speaker": "Naomi",
+      "text": "In that case I will take the bus. Route twelve stops across the road, doesn't it?",
+      "start": 86.372,
+      "end": 91.025
+    },
+    {
+      "id": "s1-16-gap",
+      "kind": "silence",
+      "start": 91.025,
+      "end": 91.345,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-17",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "It does. The main doors will be locked by then because the shop closes at six.",
+      "start": 91.345,
+      "end": 95.543
+    },
+    {
+      "id": "s1-17-gap",
+      "kind": "silence",
+      "start": 95.543,
+      "end": 95.863,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-18",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "Use the side entrance, beside the blue loading bay. We will put a workshop sign there.",
+      "start": 95.863,
+      "end": 100.836
+    },
+    {
+      "id": "s1-18-gap",
+      "kind": "silence",
+      "start": 100.836,
+      "end": 101.156,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-19",
+      "kind": "speech",
+      "speaker": "Naomi",
+      "text": "Could you text me if anything changes?",
+      "start": 101.156,
+      "end": 103.151
+    },
+    {
+      "id": "s1-19-gap",
+      "kind": "silence",
+      "start": 103.151,
+      "end": 103.471,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-20",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "Of course. I have zero seven nine two zero, six zero seven nine, from your online enquiry.",
+      "start": 103.471,
+      "end": 109.831
+    },
+    {
+      "id": "s1-20-gap",
+      "kind": "silence",
+      "start": 109.831,
+      "end": 110.151,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-21",
+      "kind": "speech",
+      "speaker": "Naomi",
+      "text": "The last four digits should be six zero seven four, not six zero seven nine.",
+      "start": 110.151,
+      "end": 114.877
+    },
+    {
+      "id": "s1-21-gap",
+      "kind": "silence",
+      "start": 114.877,
+      "end": 115.197,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-22",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "Thanks, I have corrected that. We also invite people to bring one damaged object for the recycling demonstration.",
+      "start": 115.197,
+      "end": 122.272
+    },
+    {
+      "id": "s1-22-gap",
+      "kind": "silence",
+      "start": 122.272,
+      "end": 122.592,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-23",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "A steel or aluminium part is useful, but please bring aluminium if you have a choice because it is easier to cut safely.",
+      "start": 122.592,
+      "end": 129.346
+    },
+    {
+      "id": "s1-23-gap",
+      "kind": "silence",
+      "start": 129.346,
+      "end": 129.666,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-24",
+      "kind": "speech",
+      "speaker": "Naomi",
+      "text": "I have an old aluminium bottle cage. That should work.",
+      "start": 129.666,
+      "end": 132.89
+    },
+    {
+      "id": "s1-24-gap",
+      "kind": "silence",
+      "start": 132.89,
+      "end": 133.21,
+      "duration": 0.32
+    },
+    {
+      "id": "s1-25",
+      "kind": "speech",
+      "speaker": "Maya",
+      "text": "Yes. I will email the booking confirmation today. If you need to cancel, reply to that email at least twenty-four hours beforehand.",
+      "start": 133.21,
+      "end": 141.27
+    },
+    {
+      "id": "section-1-transition",
+      "kind": "cue",
+      "start": 141.27,
+      "end": 141.57,
+      "duration": 0.3
+    },
+    {
+      "id": "section-2-cue",
+      "kind": "speech",
+      "speaker": "Narrator",
+      "text": "Section Two.",
+      "start": 141.57,
+      "end": 142.661
+    },
+    {
+      "id": "section-2-lead",
+      "kind": "silence",
+      "start": 142.661,
+      "end": 142.981,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-01",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Welcome to Northhaven Coast Discovery Centre. Before you explore, I will describe the site using the map on your screen.",
+      "start": 142.981,
+      "end": 151.097
+    },
+    {
+      "id": "s2-01-gap",
+      "kind": "silence",
+      "start": 151.097,
+      "end": 151.417,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-02",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "You are standing at the entrance at the bottom of the map. The main path runs straight towards the shore.",
+      "start": 151.417,
+      "end": 157.373
+    },
+    {
+      "id": "s2-02-gap",
+      "kind": "silence",
+      "start": 157.373,
+      "end": 157.693,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-03",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Reception is on the right as you enter, but you do not need to go there if you already have a ticket.",
+      "start": 157.693,
+      "end": 163.244
+    },
+    {
+      "id": "s2-03-gap",
+      "kind": "silence",
+      "start": 163.244,
+      "end": 163.564,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-04",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "The ticket kiosk is immediately on your left, at point B, before the path reaches the first junction.",
+      "start": 163.564,
+      "end": 170.331
+    },
+    {
+      "id": "s2-04-gap",
+      "kind": "silence",
+      "start": 170.331,
+      "end": 170.651,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-05",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Continue to the wooden footbridge. Just after crossing it, a narrow path turns right towards the reed beds.",
+      "start": 170.651,
+      "end": 177.831
+    },
+    {
+      "id": "s2-05-gap",
+      "kind": "silence",
+      "start": 177.831,
+      "end": 178.151,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-06",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Follow that narrow path to point D, where you will find the bird hide.",
+      "start": 178.151,
+      "end": 182.652
+    },
+    {
+      "id": "s2-06-gap",
+      "kind": "silence",
+      "start": 182.652,
+      "end": 182.972,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-07",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Back on the main path, the education garden is beside the pond.",
+      "start": 182.972,
+      "end": 187.35
+    },
+    {
+      "id": "s2-07-gap",
+      "kind": "silence",
+      "start": 187.35,
+      "end": 187.67,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-08",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "The picnic shelter is opposite the garden at point F, not beside the pond as an older leaflet suggests.",
+      "start": 187.67,
+      "end": 194.31
+    },
+    {
+      "id": "s2-08-gap",
+      "kind": "silence",
+      "start": 194.31,
+      "end": 194.63,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-09",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "For the kayak launch, keep going until the main path bends left around the laboratory.",
+      "start": 194.63,
+      "end": 200.496
+    },
+    {
+      "id": "s2-09-gap",
+      "kind": "silence",
+      "start": 200.496,
+      "end": 200.816,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-10",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Take the short path on the seaward side of that bend. The kayak point is H, close to the beach.",
+      "start": 200.816,
+      "end": 207.313
+    },
+    {
+      "id": "s2-10-gap",
+      "kind": "silence",
+      "start": 207.313,
+      "end": 207.633,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-11",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "The toilets are not in the laboratory. Walk past the laboratory and the outdoor showers.",
+      "start": 207.633,
+      "end": 213.248
+    },
+    {
+      "id": "s2-11-gap",
+      "kind": "silence",
+      "start": 213.248,
+      "end": 213.568,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-12",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "They are at point G, at the end of the paved path, just before the dunes.",
+      "start": 213.568,
+      "end": 218.919
+    },
+    {
+      "id": "s2-12-gap",
+      "kind": "silence",
+      "start": 218.919,
+      "end": 219.239,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-13",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Now, a few suggestions for planning your visit.",
+      "start": 219.239,
+      "end": 222.542
+    },
+    {
+      "id": "s2-13-gap",
+      "kind": "silence",
+      "start": 222.542,
+      "end": 222.862,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-14",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Families often head directly to the beach, while the short film is popular when people are tired.",
+      "start": 222.862,
+      "end": 228.93
+    },
+    {
+      "id": "s2-14-gap",
+      "kind": "silence",
+      "start": 228.93,
+      "end": 229.25,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-15",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "For younger children, however, begin at the touch pool. A guide is always there to help them handle the animals gently.",
+      "start": 229.25,
+      "end": 236.835
+    },
+    {
+      "id": "s2-15-gap",
+      "kind": "silence",
+      "start": 236.835,
+      "end": 237.155,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-16",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "The seal talk normally starts at two o'clock on weekdays.",
+      "start": 237.155,
+      "end": 240.962
+    },
+    {
+      "id": "s2-16-gap",
+      "kind": "silence",
+      "start": 240.962,
+      "end": 241.282,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-17",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Today the rescue team is returning late from a survey, so the talk cannot begin at its usual time.",
+      "start": 241.282,
+      "end": 247.737
+    },
+    {
+      "id": "s2-17-gap",
+      "kind": "silence",
+      "start": 247.737,
+      "end": 248.057,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-18",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "It has been moved to two thirty. The feeding demonstration will follow at three.",
+      "start": 248.057,
+      "end": 253.237
+    },
+    {
+      "id": "s2-18-gap",
+      "kind": "silence",
+      "start": 253.237,
+      "end": 253.557,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-19",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "You may photograph wildlife and use binoculars throughout the site.",
+      "start": 253.557,
+      "end": 257.551
+    },
+    {
+      "id": "s2-19-gap",
+      "kind": "silence",
+      "start": 257.551,
+      "end": 257.871,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-20",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Please do not feed the birds, even with food bought in our cafe, because it changes their natural behaviour.",
+      "start": 257.871,
+      "end": 264.907
+    },
+    {
+      "id": "s2-20-gap",
+      "kind": "silence",
+      "start": 264.907,
+      "end": 265.227,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-21",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Our outdoor programme changes with the weather.",
+      "start": 265.227,
+      "end": 267.888
+    },
+    {
+      "id": "s2-21-gap",
+      "kind": "silence",
+      "start": 267.888,
+      "end": 268.208,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-22",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Light rain does not stop the shore walk, and in heavy rain we use the covered observation deck.",
+      "start": 268.208,
+      "end": 273.91
+    },
+    {
+      "id": "s2-22-gap",
+      "kind": "silence",
+      "start": 273.91,
+      "end": 274.23,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-23",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Strong wind is different: the shore path closes, and the activity moves into the indoor laboratory.",
+      "start": 274.23,
+      "end": 280.859
+    },
+    {
+      "id": "s2-23-gap",
+      "kind": "silence",
+      "start": 280.859,
+      "end": 281.179,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-24",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Entry to the centre is free. You may see a suggested donation at reception.",
+      "start": 281.179,
+      "end": 286.278
+    },
+    {
+      "id": "s2-24-gap",
+      "kind": "silence",
+      "start": 286.278,
+      "end": 286.598,
+      "duration": 0.32
+    },
+    {
+      "id": "s2-25",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "That donation pays for fuel and maintenance for the small rescue boat, rather than the exhibits inside the centre.",
+      "start": 286.598,
+      "end": 293.665
+    },
+    {
+      "id": "section-2-transition",
+      "kind": "cue",
+      "start": 293.665,
+      "end": 293.965,
+      "duration": 0.3
+    },
+    {
+      "id": "section-3-cue",
+      "kind": "speech",
+      "speaker": "Narrator",
+      "text": "Section Three.",
+      "start": 293.965,
+      "end": 295.137
+    },
+    {
+      "id": "section-3-lead",
+      "kind": "silence",
+      "start": 295.137,
+      "end": 295.457,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-01",
+      "kind": "speech",
+      "speaker": "Dr Okafor",
+      "text": "Let's review your proposed study of food waste in the campus dining hall. What have you decided so far?",
+      "start": 295.457,
+      "end": 302.834
+    },
+    {
+      "id": "s3-01-gap",
+      "kind": "silence",
+      "start": 302.834,
+      "end": 303.154,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-02",
+      "kind": "speech",
+      "speaker": "Mina",
+      "text": "We first planned to compare all three dining halls, but that would give us too much data for a six-week project.",
+      "start": 303.154,
+      "end": 309.303
+    },
+    {
+      "id": "s3-02-gap",
+      "kind": "silence",
+      "start": 309.303,
+      "end": 309.623,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-03",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "I still think two sites would make the results stronger.",
+      "start": 309.623,
+      "end": 312.9
+    },
+    {
+      "id": "s3-03-gap",
+      "kind": "silence",
+      "start": 312.9,
+      "end": 313.22,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-04",
+      "kind": "speech",
+      "speaker": "Mina",
+      "text": "I would rather study one hall properly. A shallow comparison would not tell the catering team what to change.",
+      "start": 313.22,
+      "end": 319.289
+    },
+    {
+      "id": "s3-04-gap",
+      "kind": "silence",
+      "start": 319.289,
+      "end": 319.609,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-05",
+      "kind": "speech",
+      "speaker": "Dr Okafor",
+      "text": "A single site is acceptable if you explain the limitation.",
+      "start": 319.609,
+      "end": 323.634
+    },
+    {
+      "id": "s3-05-gap",
+      "kind": "silence",
+      "start": 323.634,
+      "end": 323.954,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-06",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "My concern is that students may behave differently when they notice us measuring what they leave.",
+      "start": 323.954,
+      "end": 329.273
+    },
+    {
+      "id": "s3-06-gap",
+      "kind": "silence",
+      "start": 329.273,
+      "end": 329.593,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-07",
+      "kind": "speech",
+      "speaker": "Mina",
+      "text": "We could put the scales behind the tray-return screen, so nobody sees the measurements.",
+      "start": 329.593,
+      "end": 334.604
+    },
+    {
+      "id": "s3-07-gap",
+      "kind": "silence",
+      "start": 334.604,
+      "end": 334.924,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-08",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "That solves part of it, and I agree that we should avoid questioning people while they eat.",
+      "start": 334.924,
+      "end": 340.124
+    },
+    {
+      "id": "s3-08-gap",
+      "kind": "silence",
+      "start": 340.124,
+      "end": 340.444,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-09",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "But I still want short interviews afterwards, because the weights alone cannot explain why food was left.",
+      "start": 340.444,
+      "end": 347.272
+    },
+    {
+      "id": "s3-09-gap",
+      "kind": "silence",
+      "start": 347.272,
+      "end": 347.592,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-10",
+      "kind": "speech",
+      "speaker": "Mina",
+      "text": "I offered to conduct the interviews because I wrote the draft questions.",
+      "start": 347.592,
+      "end": 351.384
+    },
+    {
+      "id": "s3-10-gap",
+      "kind": "silence",
+      "start": 351.384,
+      "end": 351.704,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-11",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "You also know the weighing equipment. I have used interview software before and can code the responses faster.",
+      "start": 351.704,
+      "end": 358.393
+    },
+    {
+      "id": "s3-11-gap",
+      "kind": "silence",
+      "start": 358.393,
+      "end": 358.713,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-12",
+      "kind": "speech",
+      "speaker": "Mina",
+      "text": "Fair point. You take the interviews, then, and I will manage the measurements instead.",
+      "start": 358.713,
+      "end": 363.854
+    },
+    {
+      "id": "s3-12-gap",
+      "kind": "silence",
+      "start": 363.854,
+      "end": 364.174,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-13",
+      "kind": "speech",
+      "speaker": "Dr Okafor",
+      "text": "Good. Make sure your categories separate food that was unpopular from portions that were simply too large.",
+      "start": 364.174,
+      "end": 371.63
+    },
+    {
+      "id": "s3-13-gap",
+      "kind": "silence",
+      "start": 371.63,
+      "end": 371.95,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-14",
+      "kind": "speech",
+      "speaker": "Mina",
+      "text": "Portion size matters because the same serving is given to everyone.",
+      "start": 371.95,
+      "end": 375.589
+    },
+    {
+      "id": "s3-14-gap",
+      "kind": "silence",
+      "start": 375.589,
+      "end": 375.909,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-15",
+      "kind": "speech",
+      "speaker": "Dr Okafor",
+      "text": "Exactly. That is the strongest reason to record meal type as well as total weight; soup and bread cannot be compared as if they were identical.",
+      "start": 375.909,
+      "end": 386.126
+    },
+    {
+      "id": "s3-15-gap",
+      "kind": "silence",
+      "start": 386.126,
+      "end": 386.446,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-16",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Should our title be 'How much food do students waste'?",
+      "start": 386.446,
+      "end": 389.777
+    },
+    {
+      "id": "s3-16-gap",
+      "kind": "silence",
+      "start": 389.777,
+      "end": 390.097,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-17",
+      "kind": "speech",
+      "speaker": "Dr Okafor",
+      "text": "That only describes quantity, while your interviews investigate motives.",
+      "start": 390.097,
+      "end": 395.459
+    },
+    {
+      "id": "s3-17-gap",
+      "kind": "silence",
+      "start": 395.459,
+      "end": 395.779,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-18",
+      "kind": "speech",
+      "speaker": "Dr Okafor",
+      "text": "Frame the main focus as the causes of edible food waste. The total weight becomes supporting evidence.",
+      "start": 395.779,
+      "end": 402.885
+    },
+    {
+      "id": "s3-18-gap",
+      "kind": "silence",
+      "start": 402.885,
+      "end": 403.205,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-19",
+      "kind": "speech",
+      "speaker": "Mina",
+      "text": "For the method, we could ask diners to estimate how much they left.",
+      "start": 403.205,
+      "end": 406.964
+    },
+    {
+      "id": "s3-19-gap",
+      "kind": "silence",
+      "start": 406.964,
+      "end": 407.284,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-20",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "Self-reported estimates are unreliable. Photographs might be better, although classifying them would take time.",
+      "start": 407.284,
+      "end": 414.598
+    },
+    {
+      "id": "s3-20-gap",
+      "kind": "silence",
+      "start": 414.598,
+      "end": 414.918,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-21",
+      "kind": "speech",
+      "speaker": "Dr Okafor",
+      "text": "Use direct observation of returned plates, supported by weighing. Save interviews for explaining the patterns.",
+      "start": 414.918,
+      "end": 422.861
+    },
+    {
+      "id": "s3-21-gap",
+      "kind": "silence",
+      "start": 422.861,
+      "end": 423.181,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-22",
+      "kind": "speech",
+      "speaker": "Mina",
+      "text": "We tested the observation sheet with twelve diners yesterday.",
+      "start": 423.181,
+      "end": 426.497
+    },
+    {
+      "id": "s3-22-gap",
+      "kind": "silence",
+      "start": 426.497,
+      "end": 426.817,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-23",
+      "kind": "speech",
+      "speaker": "Dr Okafor",
+      "text": "For the main study, collect data from sixty diners across lunch and dinner. Twelve is only enough for the pilot.",
+      "start": 426.817,
+      "end": 434.828
+    },
+    {
+      "id": "s3-23-gap",
+      "kind": "silence",
+      "start": 434.828,
+      "end": 435.148,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-24",
+      "kind": "speech",
+      "speaker": "Lucas",
+      "text": "I can clean the spreadsheet and send it to you on Wednesday.",
+      "start": 435.148,
+      "end": 438.508
+    },
+    {
+      "id": "s3-24-gap",
+      "kind": "silence",
+      "start": 438.508,
+      "end": 438.828,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-25",
+      "kind": "speech",
+      "speaker": "Dr Okafor",
+      "text": "Wednesday was the date in your old plan, before the dining hall changed its menu cycle.",
+      "start": 438.828,
+      "end": 444.913
+    },
+    {
+      "id": "s3-25-gap",
+      "kind": "silence",
+      "start": 444.913,
+      "end": 445.233,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-26",
+      "kind": "speech",
+      "speaker": "Dr Okafor",
+      "text": "Send the final data on Thursday instead, after you have captured the vegetarian menu.",
+      "start": 445.233,
+      "end": 451.682
+    },
+    {
+      "id": "s3-26-gap",
+      "kind": "silence",
+      "start": 451.682,
+      "end": 452.002,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-27",
+      "kind": "speech",
+      "speaker": "Mina",
+      "text": "And our final assessment is a written report, correct?",
+      "start": 452.002,
+      "end": 455.08
+    },
+    {
+      "id": "s3-27-gap",
+      "kind": "silence",
+      "start": 455.08,
+      "end": 455.4,
+      "duration": 0.32
+    },
+    {
+      "id": "s3-28",
+      "kind": "speech",
+      "speaker": "Dr Okafor",
+      "text": "The report is for the catering manager. For this module, your assessed output is a poster, which you will present in week eight.",
+      "start": 455.4,
+      "end": 464.206
+    },
+    {
+      "id": "section-3-transition",
+      "kind": "cue",
+      "start": 464.206,
+      "end": 464.506,
+      "duration": 0.3
+    },
+    {
+      "id": "section-4-cue",
+      "kind": "speech",
+      "speaker": "Narrator",
+      "text": "Section Four.",
+      "start": 464.506,
+      "end": 465.632
+    },
+    {
+      "id": "section-4-lead",
+      "kind": "silence",
+      "start": 465.632,
+      "end": 465.952,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-01",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Today we will look at soundscape ecology, a field that treats environmental sound as data rather than background.",
+      "start": 465.952,
+      "end": 473.398
+    },
+    {
+      "id": "s4-01-gap",
+      "kind": "silence",
+      "start": 473.398,
+      "end": 473.718,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-02",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "A soundscape contains biological sounds, physical sounds such as wind and water, and sounds created by people.",
+      "start": 473.718,
+      "end": 481.67
+    },
+    {
+      "id": "s4-02-gap",
+      "kind": "silence",
+      "start": 481.67,
+      "end": 481.99,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-03",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "The key idea is not merely to list those sounds, but to study the relationships between living things and their environment through sound.",
+      "start": 481.99,
+      "end": 490.265
+    },
+    {
+      "id": "s4-03-gap",
+      "kind": "silence",
+      "start": 490.265,
+      "end": 490.585,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-04",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Animal calls perform several ecological functions.",
+      "start": 490.585,
+      "end": 494.334
+    },
+    {
+      "id": "s4-04-gap",
+      "kind": "silence",
+      "start": 494.334,
+      "end": 494.654,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-05",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "They can attract mates, warn of predators, coordinate a group, or defend territories.",
+      "start": 494.654,
+      "end": 501.032
+    },
+    {
+      "id": "s4-05-gap",
+      "kind": "silence",
+      "start": 501.032,
+      "end": 501.352,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-06",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "A recording therefore tells us more than whether a place seems pleasant to a human listener.",
+      "start": 501.352,
+      "end": 506.611
+    },
+    {
+      "id": "s4-06-gap",
+      "kind": "silence",
+      "start": 506.611,
+      "end": 506.931,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-07",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "When analysing a recording, loudness describes the strength of a sound.",
+      "start": 506.931,
+      "end": 511.705
+    },
+    {
+      "id": "s4-07-gap",
+      "kind": "silence",
+      "start": 511.705,
+      "end": 512.025,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-08",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Frequency, by contrast, helps distinguish a low engine hum from a high insect call.",
+      "start": 512.025,
+      "end": 518.3
+    },
+    {
+      "id": "s4-08-gap",
+      "kind": "silence",
+      "start": 518.3,
+      "end": 518.62,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-09",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Researchers often display both time and frequency as a coloured image.",
+      "start": 518.62,
+      "end": 523.205
+    },
+    {
+      "id": "s4-09-gap",
+      "kind": "silence",
+      "start": 523.205,
+      "end": 523.525,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-10",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "This image is called a spectrogram. It can reveal repeated calls that are difficult to notice by ear.",
+      "start": 523.525,
+      "end": 529.954
+    },
+    {
+      "id": "s4-10-gap",
+      "kind": "silence",
+      "start": 529.954,
+      "end": 530.274,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-11",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "One short recording can confirm that a species called at a particular moment, but long-term monitoring is more powerful.",
+      "start": 530.274,
+      "end": 538.206
+    },
+    {
+      "id": "s4-11-gap",
+      "kind": "silence",
+      "start": 538.206,
+      "end": 538.526,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-12",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "If recorders sample the same locations over months or years, researchers can compare seasonal patterns.",
+      "start": 538.526,
+      "end": 545.749
+    },
+    {
+      "id": "s4-12-gap",
+      "kind": "silence",
+      "start": 545.749,
+      "end": 546.069,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-13",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Repeated detections may also provide an indicator of abundance, although they are not a direct count of individual animals.",
+      "start": 546.069,
+      "end": 554.195
+    },
+    {
+      "id": "s4-13-gap",
+      "kind": "silence",
+      "start": 554.195,
+      "end": 554.515,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-14",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Human noise is one reason those comparisons require care.",
+      "start": 554.515,
+      "end": 558.178
+    },
+    {
+      "id": "s4-14-gap",
+      "kind": "silence",
+      "start": 558.178,
+      "end": 558.498,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-15",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "A road does not necessarily cause birds to leave the entire area.",
+      "start": 558.498,
+      "end": 562.839
+    },
+    {
+      "id": "s4-15-gap",
+      "kind": "silence",
+      "start": 562.839,
+      "end": 563.159,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-16",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Traffic may instead mask their calls, making communication and detection more difficult even when the birds remain present.",
+      "start": 563.159,
+      "end": 571.185
+    },
+    {
+      "id": "s4-16-gap",
+      "kind": "silence",
+      "start": 571.185,
+      "end": 571.505,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-17",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "A good monitoring design reduces avoidable differences between samples.",
+      "start": 571.505,
+      "end": 576.172
+    },
+    {
+      "id": "s4-17-gap",
+      "kind": "silence",
+      "start": 576.172,
+      "end": 576.492,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-18",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Recording whenever a researcher happens to be free would mix dawn, midday, and evening soundscapes.",
+      "start": 576.492,
+      "end": 582.877
+    },
+    {
+      "id": "s4-18-gap",
+      "kind": "silence",
+      "start": 582.877,
+      "end": 583.197,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-19",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Recording at the same time each day makes samples more comparable and separates daily cycles from longer changes.",
+      "start": 583.197,
+      "end": 590.243
+    },
+    {
+      "id": "s4-19-gap",
+      "kind": "silence",
+      "start": 590.243,
+      "end": 590.563,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-20",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Interpretation must also remain cautious.",
+      "start": 590.563,
+      "end": 593.65
+    },
+    {
+      "id": "s4-20-gap",
+      "kind": "silence",
+      "start": 593.65,
+      "end": 593.97,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-21",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Suppose a frog appears in Monday's recording but not Tuesday's.",
+      "start": 593.97,
+      "end": 598.05
+    },
+    {
+      "id": "s4-21-gap",
+      "kind": "silence",
+      "start": 598.05,
+      "end": 598.37,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-22",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "We should say it was not recorded on Tuesday, not that it was absent. Wind or another sound may have hidden its call.",
+      "start": 598.37,
+      "end": 605.861
+    },
+    {
+      "id": "s4-22-gap",
+      "kind": "silence",
+      "start": 605.861,
+      "end": 606.181,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-23",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Consider a small city park monitored beside a road.",
+      "start": 606.181,
+      "end": 609.678
+    },
+    {
+      "id": "s4-23-gap",
+      "kind": "silence",
+      "start": 609.678,
+      "end": 609.998,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-24",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "The weekday recordings contain steady traffic from the morning commute.",
+      "start": 609.998,
+      "end": 614.279
+    },
+    {
+      "id": "s4-24-gap",
+      "kind": "silence",
+      "start": 614.279,
+      "end": 614.599,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-25",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "At the same hour on weekends, traffic falls and more short bird calls can be detected. That pattern may reflect reduced masking, not an instant rise in bird numbers.",
+      "start": 614.599,
+      "end": 625.965
+    },
+    {
+      "id": "s4-25-gap",
+      "kind": "silence",
+      "start": 625.965,
+      "end": 626.285,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-26",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "Finally, sound recordings are valuable because they can be stored and checked again by different analysts.",
+      "start": 626.285,
+      "end": 633.024
+    },
+    {
+      "id": "s4-26-gap",
+      "kind": "silence",
+      "start": 633.024,
+      "end": 633.344,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-27",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "They can reveal ecological change across time, but microphones do not explain every cause.",
+      "start": 633.344,
+      "end": 639.826
+    },
+    {
+      "id": "s4-27-gap",
+      "kind": "silence",
+      "start": 639.826,
+      "end": 640.146,
+      "duration": 0.32
+    },
+    {
+      "id": "s4-28",
+      "kind": "speech",
+      "speaker": "Lecturer",
+      "text": "The strongest conclusion is therefore that acoustic evidence is a repeatable measure which must be interpreted alongside habitat, weather, and human activity.",
+      "start": 640.146,
+      "end": 650.441
+    }
+  ],
+  "editorial_sources": [
+    "https://www.nps.gov/yell/learn/nature/soundscape.htm",
+    "https://www.nps.gov/lewi/learn/nature/soundscape.htm",
+    "https://www.nps.gov/ever/learn/nature/soundscape.htm"
+  ],
+  "source_note": "Section 4 uses general factual background from public National Park Service educational pages; all wording, examples, questions, and audio are original Testora content."
+}

@@ -121,6 +121,8 @@ def _build_test(data: dict) -> Test:
         description=data.get("description"),
         duration_minutes=int(data.get("duration_minutes", 30)),
         difficulty=data.get("difficulty"),
+        content_version=data.get("content_version", "legacy"),
+        content_metadata=data.get("metadata"),
     )
 
     sections = _require(data, "sections", f"test '{title}'")
@@ -136,6 +138,7 @@ def _build_section(data: dict, test_title: str, default_order: int) -> Section:
         instructions=data.get("instructions"),
         passage=data.get("passage"),
         audio_url=data.get("audio_url"),
+        section_metadata=data.get("metadata"),
     )
     questions = _require(data, "questions", where)
     section.questions = [
@@ -164,6 +167,7 @@ def _build_question(data: dict, where: str, default_order: int) -> Question:
         correct_answer=correct,
         explanation=data.get("explanation"),
         evidence=_normalize_evidence(data.get("evidence")),
+        question_metadata=data.get("metadata"),
     )
 
 

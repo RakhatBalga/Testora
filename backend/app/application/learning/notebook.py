@@ -96,6 +96,42 @@ def _reading_items(db: Session, user_id: int, statuses: dict) -> list[dict]:
     ]
 
 
+def _listening_items(db: Session, user_id: int, statuses: dict) -> list[dict]:
+    rows = (
+        db.query(AnswerRecord, Attempt, Question, Section, Test)
+        .join(Attempt, AnswerRecord.attempt_id == Attempt.id)
+        .join(Question, AnswerRecord.question_id == Question.id)
+        .join(Section, Question.section_id == Section.id)
+        .join(Test, Section.test_id == Test.id)
+        .filter(Attempt.user_id == user_id, Test.test_type == "listening", AnswerRecord.is_correct.is_(False))
+        .order_by(Attempt.created_at.desc(), AnswerRecord.id.desc())
+        .all()
+    )
+    return [
+        {
+            "id": f"listening-{record.id}",
+            "source_id": record.id,
+            "skill": "listening",
+            "status": statuses.get(("listening", record.id), "new"),
+            "category": (question.question_metadata or {}).get("target_skill", question.question_type),
+            "label": (question.question_metadata or {}).get("target_skill", question.question_type).replace("_", " ").title(),
+            "quote": None,
+            "user_answer": record.user_answer,
+            "correct_answer": _display_answer(question.correct_answer),
+            "explanation": question.explanation,
+            "evidence": [
+                span for span in (question.evidence or [])
+                if isinstance(span, dict) and isinstance(span.get("text"), str)
+                and span["text"] in (section.passage or "")
+            ] or None,
+            "source_href": f"/listening/result/{attempt.id}",
+            "source_title": test.title,
+            "created_at": attempt.created_at,
+        }
+        for record, attempt, question, section, test in rows
+    ]
+
+
 def list_notebook(
     db: Session,
     user_id: int,
@@ -110,6 +146,8 @@ def list_notebook(
         items.extend(_writing_items(db, user_id, statuses))
     if skill in (None, "reading"):
         items.extend(_reading_items(db, user_id, statuses))
+    if skill in (None, "listening"):
+        items.extend(_listening_items(db, user_id, statuses))
     if status:
         items = [item for item in items if item["status"] == status]
     items.sort(key=lambda item: (item["created_at"], item["id"]), reverse=True)
@@ -134,6 +172,7 @@ def set_mistake_status(db: Session, user_id: int, skill: str, source_id: int, st
             .first()
         )
     else:
+        test_type = "listening" if skill == "listening" else "reading"
         owned = (
             db.query(AnswerRecord)
             .join(Attempt, AnswerRecord.attempt_id == Attempt.id)
@@ -143,7 +182,7 @@ def set_mistake_status(db: Session, user_id: int, skill: str, source_id: int, st
             .filter(
                 AnswerRecord.id == source_id,
                 Attempt.user_id == user_id,
-                Test.test_type == "reading",
+                Test.test_type == test_type,
                 AnswerRecord.is_correct.is_(False),
             )
             .first()

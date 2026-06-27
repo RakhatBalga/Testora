@@ -26,6 +26,11 @@ def submit_attempt(
     test = db.query(Test).filter(Test.id == payload.test_id).first()
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
+    if test.test_type == "listening" and (test.content_metadata or {}).get("published") is True:
+        raise HTTPException(
+            status_code=409,
+            detail="Use the versioned Listening submission endpoint for this test",
+        )
 
     questions = (
         db.query(Question)
