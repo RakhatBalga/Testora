@@ -58,8 +58,11 @@ export default function HistoryPage() {
   const [skillFilter, setSkillFilter] = useState<Skill>("all");
   const [sort, setSort] = useState<Sort>("newest");
   const [items, setItems] = useState<HistoryItem[] | null>(null);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     if (!token) return;
@@ -68,15 +71,15 @@ export default function HistoryPage() {
       setError(null);
       setSelected([]);
       api
-        .getHistory(skillFilter === "all" ? undefined : skillFilter, sort)
-        .then((r) => setItems(r.items))
+        .getHistory(skillFilter === "all" ? undefined : skillFilter, sort, page, pageSize)
+        .then((r) => { setItems(r.items); setTotal(r.total); })
         .catch((e) => {
           setError(e.message);
           setItems([]);
         });
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [token, skillFilter, sort]);
+  }, [token, skillFilter, sort, page]);
 
   const toggleSelect = (item: HistoryItem) => {
     setSelected((prev) => {
@@ -137,7 +140,7 @@ export default function HistoryPage() {
           {SKILL_TABS.map((t) => (
             <button
               key={t.value}
-              onClick={() => setSkillFilter(t.value)}
+              onClick={() => { setSkillFilter(t.value); setPage(1); }}
               className={`rounded-xl px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 skillFilter === t.value
                   ? "bg-[var(--brand)] text-white"
@@ -153,7 +156,7 @@ export default function HistoryPage() {
           <SlidersHorizontal className="h-4 w-4" />
           <select
             value={sort}
-            onChange={(e) => setSort(e.target.value as Sort)}
+            onChange={(e) => { setSort(e.target.value as Sort); setPage(1); }}
             className="rounded-lg border border-[var(--border)] bg-white px-2.5 py-1.5 text-sm font-medium text-[var(--text-primary)] outline-none hover:border-slate-300"
           >
             {SORT_OPTIONS.map((o) => (
@@ -204,6 +207,14 @@ export default function HistoryPage() {
               />
             );
           })}
+        </div>
+      )}
+
+      {items && total > pageSize && (
+        <div className="flex items-center justify-center gap-3">
+          <button type="button" disabled={page === 1} onClick={() => setPage((value) => value - 1)} className="rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-40">Previous</button>
+          <span className="text-sm text-[var(--text-secondary)]">Page {page} of {Math.ceil(total / pageSize)}</span>
+          <button type="button" disabled={page * pageSize >= total} onClick={() => setPage((value) => value + 1)} className="rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-40">Next</button>
         </div>
       )}
     </div>

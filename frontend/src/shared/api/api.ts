@@ -184,6 +184,102 @@ export type Feedback = {
 export type UserProfile = {
   username: string;
   target_band: number;
+  current_level: number | null;
+  current_level_source: string | null;
+  exam_date: string | null;
+  weekly_study_days: number;
+  daily_study_minutes: 15 | 30 | 45 | 60 | 90;
+  primary_focus: "writing" | "reading" | "speaking" | "balanced";
+  onboarding_completed: boolean;
+};
+
+export type UserProfileUpdate = Partial<Omit<UserProfile, "username" | "current_level_source">>;
+
+export type DiagnosticState = {
+  id: number | null;
+  status: "not_started" | "in_progress" | "completed" | "skipped";
+  skills: ("writing" | "reading")[];
+  writing_submission_id: number | null;
+  reading_attempt_id: number | null;
+  provisional_level: number | null;
+  started_at: string | null;
+  completed_at: string | null;
+  writing_task_id: number | null;
+  reading_test_id: number | null;
+};
+
+export type StudyPlanItem = {
+  id: number;
+  stable_id: string;
+  title: string;
+  reason: string;
+  minutes: number;
+  skill: "writing" | "reading";
+  action_type: "practice" | "review" | "diagnostic";
+  href: string;
+  status: "pending" | "completed" | "skipped";
+  scheduled_date: string;
+  source: { type: string; ref: string | null };
+};
+
+export type StudyPlan = {
+  week_start: string;
+  week_end: string;
+  completed: number;
+  total: number;
+  progress: number;
+  items: StudyPlanItem[];
+};
+
+export type NotebookItem = {
+  id: string;
+  source_id: number;
+  skill: "writing" | "reading";
+  status: "new" | "reviewing" | "mastered";
+  category: string;
+  label: string;
+  quote: string | null;
+  user_answer: string | null;
+  correct_answer: string | null;
+  explanation: string | null;
+  evidence: EvidenceSpan[] | null;
+  source_href: string;
+  source_title: string;
+  created_at: string;
+};
+
+export type NotebookPage = {
+  items: NotebookItem[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export type LearningDashboard = {
+  profile: {
+    target_band: number;
+    current_level: number | null;
+    current_level_source: string | null;
+    exam_date: string | null;
+    days_to_exam: number | null;
+    onboarding_completed: boolean;
+  };
+  weekly_plan: StudyPlan;
+  today: StudyPlanItem | null;
+  weaknesses: {
+    writing: { label: string; value: number; href: string } | null;
+    reading: { label: string; value: number; href: string } | null;
+  };
+  recent: {
+    id: string;
+    skill: "writing" | "reading";
+    title: string;
+    band: number | null;
+    created_at: string;
+    href: string;
+  }[];
+  mistakes: { total: number; new: number; reviewing: number; mastered: number };
+  diagnostic: DiagnosticState;
 };
 
 export type WritingTask = {
@@ -635,10 +731,47 @@ export const api = {
 
   getProfile: () => request<UserProfile>("/auth/me"),
 
-  updateProfile: (target_band: number) =>
+  updateProfile: (update: number | UserProfileUpdate) =>
     request<UserProfile>("/auth/me", {
       method: "PATCH",
-      body: JSON.stringify({ target_band }),
+      body: JSON.stringify(typeof update === "number" ? { target_band: update } : update),
+    }),
+
+  getLearningDashboard: () => request<LearningDashboard>("/learning/dashboard"),
+
+  getDiagnostic: () => request<DiagnosticState>("/learning/diagnostic"),
+
+  startDiagnostic: (skills: ("writing" | "reading")[]) =>
+    request<DiagnosticState>("/learning/diagnostic/start", {
+      method: "POST",
+      body: JSON.stringify({ skills }),
+    }),
+
+  refreshDiagnostic: () => request<DiagnosticState>("/learning/diagnostic/refresh", { method: "POST" }),
+
+  acceptDiagnosticLevel: () => request<DiagnosticState>("/learning/diagnostic/accept-level", { method: "POST" }),
+
+  skipDiagnostic: () => request<DiagnosticState>("/learning/diagnostic/skip", { method: "POST" }),
+
+  getStudyPlan: () => request<StudyPlan>("/learning/study-plan"),
+
+  recalculateStudyPlan: () => request<StudyPlan>("/learning/study-plan/recalculate", { method: "POST" }),
+
+  resetStudyPlan: () => request<StudyPlan>("/learning/study-plan/reset", { method: "POST" }),
+
+  updateStudyPlanItem: (id: number, status: "completed" | "skipped") =>
+    request<StudyPlanItem>(`/learning/study-plan/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+
+  getMistakes: (filters: { skill?: string; status?: string; page?: number; page_size?: number } = {}) =>
+    request<NotebookPage>(`/learning/mistakes${queryString(filters)}`),
+
+  updateMistakeStatus: (skill: "writing" | "reading", sourceId: number, status: "new" | "reviewing" | "mastered") =>
+    request<{ skill: string; source_id: number; status: string }>(`/learning/mistakes/${skill}/${sourceId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
     }),
 
   listTests: () => request<Test[]>("/tests"),
@@ -730,10 +863,10 @@ export const api = {
       `/analytics/recommendations${queryString({ target, limit })}`
     ),
 
-  getHistory: (skill?: string, sort = "newest") => {
-    const params = new URLSearchParams({ sort });
+  getHistory: (skill?: string, sort = "newest", page = 1, pageSize = 10) => {
+    const params = new URLSearchParams({ sort, page: String(page), page_size: String(pageSize) });
     if (skill) params.set("skill", skill);
-    return request<{ items: HistoryItem[]; total: number }>(`/history?${params}`);
+    return request<{ items: HistoryItem[]; total: number; page?: number; page_size?: number }>(`/history?${params}`);
   },
 
   getHistoryItem: (itemId: string) => request<HistoryItem & { feedback?: Feedback | null; breakdown?: BreakdownItem[] }>(`/history/${itemId}`),

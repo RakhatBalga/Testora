@@ -599,7 +599,7 @@
             {
               "order": 27,
               "text": "The writer says prediction is difficult partly because some systems are complex and adaptive.",
-              "question_type": "true_false_notgiven",
+              "question_type": "yes_no_not_given",
               "options": [
                 "Yes",
                 "No",
@@ -620,7 +620,7 @@
             {
               "order": 28,
               "text": "Weather forecasts are now perfectly accurate for several months ahead.",
-              "question_type": "true_false_notgiven",
+              "question_type": "yes_no_not_given",
               "options": [
                 "Yes",
                 "No",
@@ -641,7 +641,7 @@
             {
               "order": 29,
               "text": "People can change their behaviour after hearing a prediction.",
-              "question_type": "true_false_notgiven",
+              "question_type": "yes_no_not_given",
               "options": [
                 "Yes",
                 "No",
@@ -662,7 +662,7 @@
             {
               "order": 30,
               "text": "The passage says all large datasets are deliberately dishonest.",
-              "question_type": "true_false_notgiven",
+              "question_type": "yes_no_not_given",
               "options": [
                 "Yes",
                 "No",
@@ -677,7 +677,7 @@
             {
               "order": 31,
               "text": "A prediction can be useful even if it does not explain the cause.",
-              "question_type": "true_false_notgiven",
+              "question_type": "yes_no_not_given",
               "options": [
                 "Yes",
                 "No",
@@ -698,7 +698,7 @@
             {
               "order": 32,
               "text": "Good forecasters update their views when new evidence arrives.",
-              "question_type": "true_false_notgiven",
+              "question_type": "yes_no_not_given",
               "options": [
                 "Yes",
                 "No",

@@ -19,6 +19,8 @@ router = APIRouter()
 def history_list(
     skill: str | None = Query(None, pattern="^(writing|speaking|reading|listening)$"),
     sort: str = Query("newest", pattern="^(newest|oldest|highest|lowest)$"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -32,7 +34,9 @@ def history_list(
         items.sort(key=lambda x: (x["band"] is None, x["band"] or 0))
     # "newest" is the default (already sorted by list_history)
 
-    return {"items": items, "total": len(items)}
+    total = len(items)
+    start = (page - 1) * page_size
+    return {"items": items[start : start + page_size], "total": total, "page": page, "page_size": page_size}
 
 
 @router.get("/compare")

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import { api, WritingTask } from "@/shared/api";
-import { useRequireAuth } from "@/shared/auth";
+import { useAuth, useRequireAuth } from "@/shared/auth";
 import { Badge } from "@/shared/ui";
 import { Button } from "@/shared/ui";
 import { Card } from "@/shared/ui";
@@ -36,6 +36,7 @@ const MIN_REVIEW_DISPLAY_MS = 6500;
 
 export default function WritingTaskPage() {
   const { token, ready } = useRequireAuth();
+  const { username } = useAuth();
   const params = useParams();
   const router = useRouter();
   const taskId = Number(params?.id);
@@ -46,6 +47,8 @@ export default function WritingTaskPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [draftRecovered, setDraftRecovered] = useState(false);
+  const draftKey = `testora.writing.draft.${username ?? "anonymous"}.${taskId}`;
 
   useEffect(() => {
     if (!token) return;
@@ -54,10 +57,24 @@ export default function WritingTaskPage() {
       .then((data) => {
         setTask(data);
         setTimeLeft(data.duration_minutes * 60);
+        const saved = localStorage.getItem(draftKey);
+        if (saved) {
+          setAnswer(saved);
+          setDraftRecovered(true);
+        }
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [token, taskId]);
+  }, [token, taskId, draftKey]);
+
+  useEffect(() => {
+    if (!task || submitting) return;
+    const timer = window.setTimeout(() => {
+      if (answer.trim()) localStorage.setItem(draftKey, answer);
+      else localStorage.removeItem(draftKey);
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [answer, draftKey, submitting, task]);
 
   useEffect(() => {
     if (timeLeft === null || timeLeft <= 0 || submitting) return;
@@ -78,6 +95,7 @@ export default function WritingTaskPage() {
     try {
       const startedAt = Date.now();
       const submission = await api.submitWriting(task.id, answer.trim());
+      localStorage.removeItem(draftKey);
       const elapsed = Date.now() - startedAt;
       if (elapsed < MIN_REVIEW_DISPLAY_MS) {
         await new Promise((resolve) => {
@@ -160,6 +178,15 @@ export default function WritingTaskPage() {
 
       {error && (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+      )}
+
+      {draftRecovered && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <span>Your saved draft was restored.</span>
+          <button type="button" onClick={() => { setAnswer(""); setDraftRecovered(false); localStorage.removeItem(draftKey); }} className="inline-flex items-center gap-1.5 font-semibold text-blue-800 hover:underline">
+            <Trash2 className="h-4 w-4" /> Discard draft
+          </button>
+        </div>
       )}
 
       <Card className="p-6">

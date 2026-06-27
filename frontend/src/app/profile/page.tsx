@@ -62,6 +62,8 @@ type RecentItem = {
   createdAt: string | null;
 };
 
+const TOMORROW = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+
 export default function ProfilePage() {
   const { token, ready } = useRequireAuth();
   const { username, logout } = useAuth();
@@ -73,6 +75,8 @@ export default function ProfilePage() {
   const [speaking, setSpeaking] = useState<SpeakingSubmissionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingTarget, setSavingTarget] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [resettingPlan, setResettingPlan] = useState(false);
   const [error, setError] = useState("");
   const [targetError, setTargetError] = useState("");
 
@@ -165,10 +169,14 @@ export default function ProfilePage() {
 
   const handleTargetChange = async (band: number) => {
     if (savingTarget || band === targetBand) return;
+    if (profile?.current_level !== null && profile?.current_level !== undefined && band < profile.current_level) {
+      setTargetError("Target band cannot be below your current level.");
+      return;
+    }
     const previous = profile;
     setTargetError("");
     setSavingTarget(true);
-    setProfile({ username: previous?.username ?? username ?? "Student", target_band: band });
+    if (previous) setProfile({ ...previous, target_band: band });
     try {
       const updated = await api.updateProfile(band);
       setProfile(updated);
@@ -177,6 +185,39 @@ export default function ProfilePage() {
       setTargetError(err instanceof Error ? err.message : "Target band failed to save.");
     } finally {
       setSavingTarget(false);
+    }
+  };
+
+  const handleSettingsSave = async () => {
+    if (!profile || savingSettings) return;
+    setSavingSettings(true);
+    setTargetError("");
+    try {
+      setProfile(await api.updateProfile({
+        current_level: profile.current_level,
+        exam_date: profile.exam_date,
+        weekly_study_days: profile.weekly_study_days,
+        daily_study_minutes: profile.daily_study_minutes,
+        primary_focus: profile.primary_focus,
+        onboarding_completed: true,
+      }));
+    } catch (err) {
+      setTargetError(err instanceof Error ? err.message : "Study settings failed to save.");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handlePlanReset = async () => {
+    if (!window.confirm("Reset this week's study plan and its completion status?")) return;
+    setResettingPlan(true);
+    setTargetError("");
+    try {
+      await api.resetStudyPlan();
+    } catch (err) {
+      setTargetError(err instanceof Error ? err.message : "Study plan failed to reset.");
+    } finally {
+      setResettingPlan(false);
     }
   };
 
@@ -258,6 +299,40 @@ export default function ProfilePage() {
           <p className="mt-3 text-sm text-[var(--text-secondary)]">Saving target...</p>
         )}
       </section>
+
+      {profile && (
+        <section className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div><h2 className="font-semibold text-slate-900">Study settings</h2><p className="mt-1 text-sm text-slate-500">Used for your diagnostic baseline and weekly plan.</p></div>
+            <div className="flex flex-wrap gap-2"><Button variant="secondary" disabled={resettingPlan} onClick={handlePlanReset}>{resettingPlan ? "Resetting..." : "Reset plan"}</Button><Button disabled={savingSettings} onClick={handleSettingsSave}>{savingSettings ? "Saving..." : "Save settings"}</Button></div>
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <label className="text-sm font-medium text-slate-700">Current level
+              <select value={profile.current_level ?? ""} onChange={(event) => setProfile({ ...profile, current_level: event.target.value ? Number(event.target.value) : null })} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900">
+                <option value="">Not sure</option>
+                {Array.from({ length: 10 }, (_, index) => 4 + index * 0.5).map((band) => <option key={band} value={band}>{band.toFixed(1)}</option>)}
+              </select>
+            </label>
+            <label className="text-sm font-medium text-slate-700">Exam date
+              <input type="date" min={TOMORROW} value={profile.exam_date ?? ""} onChange={(event) => setProfile({ ...profile, exam_date: event.target.value || null })} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900" />
+            </label>
+            <label className="text-sm font-medium text-slate-700">Primary focus
+              <select value={profile.primary_focus} onChange={(event) => setProfile({ ...profile, primary_focus: event.target.value as UserProfile["primary_focus"] })} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 capitalize text-slate-900">
+                {(["writing", "reading", "speaking", "balanced"] as const).map((focus) => <option key={focus} value={focus}>{focus}</option>)}
+              </select>
+            </label>
+            <label className="text-sm font-medium text-slate-700">Study days per week
+              <input type="number" min={1} max={7} value={profile.weekly_study_days} onChange={(event) => setProfile({ ...profile, weekly_study_days: Number(event.target.value) })} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900" />
+            </label>
+            <label className="text-sm font-medium text-slate-700">Minutes per day
+              <select value={profile.daily_study_minutes} onChange={(event) => setProfile({ ...profile, daily_study_minutes: Number(event.target.value) as UserProfile["daily_study_minutes"] })} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900">
+                {[15, 30, 45, 60, 90].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}
+              </select>
+            </label>
+          </div>
+          <Link href="/diagnostic" className="mt-5 inline-flex text-sm font-semibold text-[var(--brand)] hover:underline">Review diagnostic</Link>
+        </section>
+      )}
 
       <section className="grid animate-fade-up gap-4 [animation-delay:60ms] sm:grid-cols-2 lg:grid-cols-4">
         <ProfileMetric label="Sessions" value={loading ? null : String(totalSessions)} />

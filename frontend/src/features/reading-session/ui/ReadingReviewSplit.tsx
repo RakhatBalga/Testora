@@ -1,11 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   CheckCircle2,
   XCircle,
   CircleDashed,
   MapPin,
+  ChevronLeft,
+  ChevronRight,
+  ListFilter,
   RotateCcw,
 } from "lucide-react";
 import type { AttemptResult } from "@/shared/api";
@@ -37,11 +41,16 @@ export function ReadingReviewSplit({ result, groups, onRetake }: Props) {
     [result.answers]
   );
   const flat = useMemo(() => groups.flatMap((g) => g.questions), [groups]);
+  const [incorrectOnly, setIncorrectOnly] = useState(false);
+  const visible = useMemo(
+    () => incorrectOnly ? flat.filter((question) => !byId.get(question.id)?.is_correct) : flat,
+    [byId, flat, incorrectOnly]
+  );
   const [activeId, setActiveId] = useState<number | null>(flat[0]?.id ?? null);
 
   const active = useMemo(
-    () => flat.find((q) => q.id === activeId) ?? flat[0],
-    [flat, activeId]
+    () => visible.find((q) => q.id === activeId) ?? visible[0],
+    [visible, activeId]
   );
   const activeGroup = useMemo(
     () => groups.find((g) => g.questions.some((q) => q.id === active?.id)) ?? groups[0],
@@ -50,6 +59,7 @@ export function ReadingReviewSplit({ result, groups, onRetake }: Props) {
   const activeSpans = active?.evidence ?? [];
 
   const leftRef = useRef<HTMLDivElement>(null);
+  const activeIndex = visible.findIndex((question) => question.id === active?.id);
 
   // Auto-scroll the passage to the active question's evidence (or top).
   useEffect(() => {
@@ -98,10 +108,30 @@ export function ReadingReviewSplit({ result, groups, onRetake }: Props) {
             </span>
           </div>
         </div>
-        <Button variant="secondary" size="sm" onClick={onRetake}>
-          <RotateCcw className="h-4 w-4" /> Retake
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant={incorrectOnly ? "primary" : "secondary"} size="sm" disabled={result.incorrect === 0} onClick={() => setIncorrectOnly((value) => !value)}>
+            <ListFilter className="h-4 w-4" /> Incorrect only
+          </Button>
+          {incorrectOnly && <><Button aria-label="Previous mistake" variant="secondary" size="sm" disabled={activeIndex <= 0} onClick={() => setActiveId(visible[activeIndex - 1]?.id ?? active.id)}><ChevronLeft className="h-4 w-4" /></Button><Button aria-label="Next mistake" variant="secondary" size="sm" disabled={activeIndex >= visible.length - 1} onClick={() => setActiveId(visible[activeIndex + 1]?.id ?? active.id)}><ChevronRight className="h-4 w-4" /></Button></>}
+          <Button variant="secondary" size="sm" onClick={onRetake}>
+            <RotateCcw className="h-4 w-4" /> Retake
+          </Button>
+        </div>
       </div>
+
+      {result.breakdown.length > 0 && (
+        <div className="mb-3 flex flex-shrink-0 flex-wrap items-center gap-2 text-xs">
+          <span className="font-semibold text-slate-500">By question type</span>
+          {result.breakdown.slice(0, 4).map((item) => (
+            <span key={item.question_type} className="rounded-md bg-slate-100 px-2 py-1 text-slate-600">
+              {item.label}: <strong>{item.accuracy}%</strong>
+            </span>
+          ))}
+          <Link href={`/reading/${result.test_id}`} className="ml-auto font-semibold text-[var(--brand)] hover:underline">
+            Practice {result.breakdown[0].label}
+          </Link>
+        </div>
+      )}
 
       {/* Split: passage (with highlight) + review cards */}
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] gap-4 lg:grid-cols-[60fr_40fr] lg:gap-5 2xl:grid-cols-[65fr_35fr]">
@@ -119,7 +149,7 @@ export function ReadingReviewSplit({ result, groups, onRetake }: Props) {
                 {rangeLabel(g.start, g.end)}
               </p>
               <div className="space-y-2.5">
-                {g.questions.map((q) => (
+                {g.questions.filter((q) => !incorrectOnly || !byId.get(q.id)?.is_correct).map((q) => (
                   <ReviewCard
                     key={q.id}
                     question={q}

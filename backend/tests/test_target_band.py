@@ -1,4 +1,5 @@
 import pytest
+from datetime import date, timedelta
 from pydantic import ValidationError
 
 from app.api.routers.analytics import _target_for
@@ -36,3 +37,19 @@ def test_analytics_target_falls_back_for_legacy_user_without_value():
     user.target_band = None
 
     assert _target_for(user, None) == DEFAULT_TARGET
+
+
+def test_profile_rejects_target_below_current_level():
+    with pytest.raises(ValidationError, match="greater than or equal"):
+        UserProfileUpdate(target_band=6.5, current_level=7.0)
+
+
+def test_profile_rejects_past_exam_date():
+    with pytest.raises(ValidationError, match="future"):
+        UserProfileUpdate(exam_date=date.today() - timedelta(days=1))
+
+
+def test_profile_accepts_not_sure_current_level():
+    payload = UserProfileUpdate(target_band=7.5, current_level=None)
+
+    assert payload.current_level is None

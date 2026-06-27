@@ -30,6 +30,10 @@ WORD_RANGES = [(800, 900), (900, 1000), (950, 1100)]
 TOTAL_WORD_RANGE = (2150, 2750)
 PLACEHOLDER_PATTERNS = re.compile(r"\b(lorem ipsum|todo|fixme|placeholder|xxxx|tbd)\b", re.I)
 NOT_GIVEN = {"not given", "notgiven"}
+POLARITY_ANSWERS = {
+    "true_false_notgiven": {"true", "false", "not given"},
+    "yes_no_not_given": {"yes", "no", "not given"},
+}
 QUESTION_TYPES = {
     "single_choice",
     "multiple_choice",
@@ -117,6 +121,14 @@ def validate_test(data: dict, where: str, rep: Report) -> None:
             if not answers or not isinstance(answers, list):
                 rep.err(f"{qid}: missing/invalid correct_answer")
                 answers = []
+            allowed_answers = POLARITY_ANSWERS.get(qtype)
+            if allowed_answers:
+                normalized_answers = {str(answer).strip().lower() for answer in answers}
+                normalized_options = {str(option).strip().lower() for option in (q.get("options") or [])}
+                if not normalized_answers <= allowed_answers:
+                    rep.err(f"{qid}: answers do not match {qtype}")
+                if normalized_options and normalized_options != allowed_answers:
+                    rep.err(f"{qid}: options do not match {qtype}")
             if not q.get("explanation"):
                 rep.err(f"{qid}: missing explanation")
 

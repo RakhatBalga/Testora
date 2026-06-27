@@ -115,13 +115,14 @@ export default function ReadingPage() {
           /* ignore corrupt storage */
         }
 
-        const savedResult = localStorage.getItem(`${storeKey}-result`);
+        const requestedResult = new URLSearchParams(window.location.search).get("attempt");
+        const savedResult = requestedResult || localStorage.getItem(`${storeKey}-result`);
         if (savedResult) {
           try {
             const attempt = await api.getAttempt(Number(savedResult));
-            if (!cancelled) setResult(attempt);
+            if (!cancelled && attempt.test_id === data.id && attempt.test_type === "reading") setResult(attempt);
           } catch {
-            localStorage.removeItem(`${storeKey}-result`);
+            if (!requestedResult) localStorage.removeItem(`${storeKey}-result`);
           }
         }
       } catch (err) {
@@ -149,6 +150,11 @@ export default function ReadingPage() {
   const handleAnswer = useCallback((questionId: number, value: AnswerValue) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   }, []);
+  const requestSubmit = () => {
+    const unanswered = flat.length - answeredCount;
+    const detail = unanswered > 0 ? ` ${unanswered} question${unanswered === 1 ? " is" : "s are"} unanswered.` : "";
+    if (window.confirm(`Submit this Reading test?${detail}`)) void handleSubmit();
+  };
 
   const selectPassage = useCallback(
     (index: number) => {
@@ -220,7 +226,7 @@ export default function ReadingPage() {
           <strong className="text-slate-900">{answeredCount}</strong>/{flat.length}
         </span>
         <ReadingTimer remaining={remaining} paused={paused} onPause={pause} onResume={resume} />
-        <Button onClick={handleSubmit} disabled={submitting}>
+        <Button onClick={requestSubmit} disabled={submitting}>
           {submitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
