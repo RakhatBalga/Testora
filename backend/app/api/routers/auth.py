@@ -62,8 +62,33 @@ def update_me(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    current_user.target_band = payload.target_band
+    fields = payload.model_dump(exclude_unset=True)
+    if "target_band" in fields and fields["target_band"] is None:
+        raise HTTPException(status_code=422, detail="Target band cannot be empty")
+    target = fields.get("target_band", current_user.target_band)
+    current = fields.get("current_level", current_user.current_level)
+    if current is not None and target < current:
+        raise HTTPException(
+            status_code=422,
+            detail="Target band must be greater than or equal to current level",
+        )
+    for field, value in fields.items():
+        setattr(current_user, field, value)
+    if "current_level" in fields:
+        current_user.current_level_source = "self_reported" if fields["current_level"] else None
     db.add(current_user)
-    db.commit()
+    if fields.keys() & {
+        "target_band",
+        "current_level",
+        "exam_date",
+        "weekly_study_days",
+        "daily_study_minutes",
+        "primary_focus",
+    }:
+        from app.application.learning.study_plan import get_weekly_plan
+
+        get_weekly_plan(db, current_user, recalculate=True)
+    else:
+        db.commit()
     db.refresh(current_user)
     return current_user

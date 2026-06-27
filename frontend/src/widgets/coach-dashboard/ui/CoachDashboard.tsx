@@ -1,305 +1,91 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Activity,
-  AlertTriangle,
   ArrowRight,
-  ArrowUpRight,
-  ListChecks,
-  Minus,
-  TrendingDown,
-  TrendingUp,
+  BookOpen,
+  CalendarClock,
+  Check,
+  ClipboardCheck,
+  NotebookTabs,
+  PenLine,
+  Target,
 } from "lucide-react";
-import { BandTrajectory } from "@/shared/ui/dashboard";
-import { StreakStatus } from "@/features/streak";
-import { useCoachDashboardData } from "@/features/coach-dashboard";
-import { type ProgressMovement } from "@/entities/coach";
+import { api, type LearningDashboard } from "@/shared/api";
+import { Card, Skeleton } from "@/shared/ui";
 import { formatDisplayName, greeting } from "@/shared/lib";
 
 export function CoachDashboard({ username }: { username: string | null }) {
-  const name = formatDisplayName(username);
-  const {
-    loading,
-    hasData,
-    current,
-    target,
-    gapValue,
-    mainBlocker,
-    topWeaknesses,
-    trajectory,
-    recentMovement,
-    todaysPlan,
-    streak,
-    weeklyWeakest,
-    primaryActionHref,
-  } = useCoachDashboardData();
+  const [data, setData] = useState<LearningDashboard | null>(null);
+  const [error, setError] = useState("");
+  const [completing, setCompleting] = useState(false);
+
+  const load = () => api.getLearningDashboard().then(setData).catch((err) => setError(err.message));
+  useEffect(() => { void load(); }, []);
+
+  if (!data) {
+    return error ? <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : <div className="space-y-4"><Skeleton className="h-44 w-full" /><Skeleton className="h-64 w-full" /></div>;
+  }
+
+  const current = data.profile.current_level;
+  const today = data.today;
+  const completeToday = async () => {
+    if (!today) return;
+    setCompleting(true);
+    try { await api.updateStudyPlanItem(today.id, "completed"); await load(); } finally { setCompleting(false); }
+  };
 
   return (
     <div className="space-y-6">
-      <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm shadow-slate-200/40 sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-              Dashboard
-            </p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-primary)]">
-              {greeting()}, {name}
-            </h1>
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">IELTS progress</p>
-          </div>
+      {!data.profile.onboarding_completed && (
+        <section className="flex flex-col gap-4 rounded-xl border border-blue-200 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div><p className="font-semibold text-blue-950">Personalize your plan</p><p className="mt-1 text-sm text-blue-800">Set your schedule and focus. Your existing practice remains available.</p></div>
+          <Link href="/onboarding" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">Set up profile <ArrowRight className="h-4 w-4" /></Link>
+        </section>
+      )}
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <StreakStatus
-              streak={streak}
-              href={streak?.active_today ? "/analytics" : primaryActionHref}
-            />
-            <Link
-              href={primaryActionHref}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-4 text-sm font-semibold text-white shadow-sm shadow-[var(--brand)]/25 transition-colors hover:bg-[var(--brand-dark)]"
-            >
-              {hasData ? "Continue practice" : "Start practising"}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+          <div><p className="text-sm font-semibold text-[var(--brand)]">Dashboard</p><h1 className="mt-1 text-3xl font-bold text-slate-950">{greeting()}, {formatDisplayName(username)}</h1><p className="mt-2 text-slate-600">Your next step is based on completed Writing and Reading work.</p></div>
+          <Link href="/study-plan" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"><CalendarClock className="h-4 w-4" /> Weekly plan</Link>
         </div>
-
-        <div className="mt-6 grid gap-5 border-t border-[var(--border)] pt-5 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric label="Current band" value={current != null ? current.toFixed(1) : "-"} hint={hasData ? "from graded attempts" : "no data yet"} />
-          <Metric label="Target" value={target.toFixed(1)} hint="goal band" />
-          <Metric label="Gap" value={gapValue != null ? `+${gapValue.toFixed(1)}` : "-"} hint="bands remaining" />
-          <Metric
-            label="Weakest this week"
-            value={weeklyWeakest?.skill ? weeklyWeakest.skill.charAt(0).toUpperCase() + weeklyWeakest.skill.slice(1) : "-"}
-            hint={weeklyWeakest?.band != null ? `Band ${weeklyWeakest.band.toFixed(1)} from ${weeklyWeakest.attempts} attempt${weeklyWeakest.attempts === 1 ? "" : "s"}` : "no graded attempts in 7 days"}
-          />
-        </div>
-
-        <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
-          <div
-            className="h-full rounded-full bg-[var(--brand)] transition-[width] duration-700 ease-out"
-            style={{
-              width: `${hasData && current != null ? Math.min(100, (current / target) * 100) : 0}%`,
-            }}
-          />
+        <div className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-3">
+          <Metric label="Target band" value={data.profile.target_band.toFixed(1)} hint="your goal" icon={<Target className="h-4 w-4" />} />
+          <Metric label="Current level" value={current === null ? "Not set" : current.toFixed(1)} hint={data.profile.current_level_source || "complete a diagnostic"} icon={<ClipboardCheck className="h-4 w-4" />} />
+          <Metric label="Exam countdown" value={data.profile.days_to_exam === null ? "No date" : `${data.profile.days_to_exam} days`} hint={data.profile.exam_date ? new Date(`${data.profile.exam_date}T12:00:00`).toLocaleDateString() : "set in profile"} icon={<CalendarClock className="h-4 w-4" />} />
         </div>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.85fr)]">
-        <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:100ms]">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">Main focus</h2>
-          </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
+        <Card className="p-6">
+          <div className="flex items-center justify-between"><div><p className="text-xs font-semibold uppercase text-slate-400">Today</p><h2 className="mt-1 text-xl font-bold text-slate-950">{today?.title || "You are caught up"}</h2></div>{today && <span className={`rounded-md px-2 py-1 text-xs font-semibold capitalize ${today.skill === "writing" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{today.skill}</span>}</div>
+          {today ? <><p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{today.reason}</p><p className="mt-3 text-sm font-medium text-slate-500">{today.minutes} minutes</p><div className="mt-5 flex flex-wrap gap-3"><Link href={today.href} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">Start task <ArrowRight className="h-4 w-4" /></Link><button type="button" disabled={completing} onClick={completeToday} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Check className="h-4 w-4" /> Mark complete</button></div></> : <p className="mt-3 text-sm text-slate-500">Recalculate your plan when you are ready for the next task.</p>}
+        </Card>
 
-          {loading ? (
-            <div className="mt-5">
-              <SkeletonCard />
-            </div>
-          ) : mainBlocker ? (
-            <div className="mt-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold capitalize text-[var(--text-secondary)]">
-                  {mainBlocker.skill}
-                </span>
-                <span className="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-600">
-                  Cap {mainBlocker.band_cap.toFixed(1)}
-                </span>
-              </div>
-              <h3 className="mt-3 text-xl font-bold text-[var(--text-primary)]">
-                {mainBlocker.criterion}
-              </h3>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
-                {mainBlocker.explanation}
-              </p>
-
-              {topWeaknesses.length > 0 && (
-                <div className="mt-5 border-t border-[var(--border)] pt-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-                    Related patterns
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {topWeaknesses.map((weakness) => (
-                      <span
-                        key={`${weakness.skill}-${weakness.subskill}`}
-                        className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-medium text-[var(--text-secondary)]"
-                      >
-                        {weakness.label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <Link
-                href={mainBlocker.fix_href}
-                className="mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--brand)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-dark)]"
-              >
-                Practice this
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          ) : (
-            <div className="mt-5">
-              <EmptyState
-                icon={<AlertTriangle className="h-5 w-5" />}
-                text="Complete a Writing task and I'll identify the single thing most likely to cap your band."
-              />
-            </div>
-          )}
-        </section>
-
-        <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:140ms]">
-          <div className="mb-4 flex items-center gap-2">
-            <ListChecks className="h-5 w-5 text-[var(--brand)]" />
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">Today&apos;s plan</h2>
-          </div>
-          {todaysPlan === null ? (
-            <div className="space-y-2.5">
-              <div className="h-16 animate-pulse rounded-2xl bg-slate-50" />
-              <div className="h-16 animate-pulse rounded-2xl bg-slate-50" />
-              <div className="h-16 animate-pulse rounded-2xl bg-slate-50" />
-            </div>
-          ) : todaysPlan.length > 0 ? (
-            <ol className="space-y-2.5">
-              {todaysPlan.map((task, index) => (
-                <li key={task.id}>
-                  <Link
-                    href={task.href}
-                    className="group flex items-start gap-3 rounded-2xl border border-[var(--border)] p-3.5 transition-colors hover:border-slate-300 hover:bg-slate-50"
-                  >
-                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[var(--brand)]/[0.1] text-xs font-bold text-[var(--brand)]">
-                      {index + 1}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold text-[var(--text-primary)]">{task.title}</span>
-                      {task.detail && (
-                        <span className="mt-0.5 block text-xs text-[var(--text-secondary)]">
-                          {task.detail}
-                          {task.estimated_minutes ? ` - ${task.estimated_minutes} min` : ""}
-                        </span>
-                      )}
-                    </span>
-                    <ArrowUpRight className="h-4 w-4 flex-shrink-0 text-slate-300 transition-colors group-hover:text-[var(--brand)]" />
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <EmptyState
-              icon={<ListChecks className="h-5 w-5" />}
-              text="Complete a task and I'll build tomorrow's plan from your weak spots."
-            />
-          )}
-        </section>
+        <Card className="p-6">
+          <div className="flex items-center justify-between"><h2 className="font-bold text-slate-950">This week</h2><span className="text-sm font-semibold text-emerald-700">{data.weekly_plan.completed}/{data.weekly_plan.total}</span></div>
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full bg-emerald-500" style={{ width: `${data.weekly_plan.progress}%` }} /></div>
+          <div className="mt-5 space-y-2">{data.weekly_plan.items.slice(0, 4).map((item) => <div key={item.id} className="flex items-center gap-2 text-sm"><span className={`h-2 w-2 rounded-full ${item.status === "completed" ? "bg-emerald-500" : item.status === "skipped" ? "bg-slate-300" : "bg-blue-500"}`} /><span className={item.status === "completed" ? "text-slate-400 line-through" : "text-slate-600"}>{item.title}</span></div>)}</div>
+          <Link href="/study-plan" className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[var(--brand)] hover:underline">Open full plan <ArrowRight className="h-3.5 w-3.5" /></Link>
+        </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:180ms] sm:p-7 lg:col-span-2">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">Band trajectory</h2>
-            {trajectory?.has_data && trajectory.delta != null && (
-              <span
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                  trajectory.delta >= 0 ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
-                }`}
-              >
-                {trajectory.delta >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                {trajectory.delta >= 0 ? "+" : ""}
-                {trajectory.delta.toFixed(1)} since you started
-              </span>
-            )}
-          </div>
-          {loading ? (
-            <div className="mt-5 h-60 animate-pulse rounded-2xl bg-slate-50" />
-          ) : trajectory && trajectory.points.length > 1 ? (
-            <BandTrajectory points={trajectory.points} target={target} />
-          ) : (
-            <EmptyState
-              icon={<TrendingUp className="h-5 w-5" />}
-              text="Complete a couple of graded tasks and your band trajectory will plot here."
-            />
-          )}
-        </section>
-
-        <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:220ms]">
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">Recent movement</h2>
-          <p className="mt-1 text-xs text-[var(--text-secondary)]">Change since your last Writing attempt</p>
-          {recentMovement === null ? (
-            <div className="mt-4 space-y-2.5">
-              <div className="h-11 animate-pulse rounded-xl bg-slate-50" />
-              <div className="h-11 animate-pulse rounded-xl bg-slate-50" />
-              <div className="h-11 animate-pulse rounded-xl bg-slate-50" />
-            </div>
-          ) : recentMovement.length > 0 ? (
-            <div className="mt-4 space-y-2.5">
-              {recentMovement.map((movement) => (
-                <MovementRow key={movement.label} movement={movement} />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-4">
-              <EmptyState
-                icon={<Activity className="h-5 w-5" />}
-                text="Submit a second Writing task to see how each criterion moved."
-              />
-            </div>
-          )}
-        </section>
+      <div className="grid gap-6 md:grid-cols-2">
+        <WeaknessCard icon={<PenLine className="h-5 w-5" />} title="Writing focus" weakness={data.weaknesses.writing} empty="Complete a Writing task to find your limiting criterion." suffix="Band" />
+        <WeaknessCard icon={<BookOpen className="h-5 w-5" />} title="Reading focus" weakness={data.weaknesses.reading} empty="Complete a Reading test to find your weakest question type." suffix="accuracy" />
       </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="p-6"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><NotebookTabs className="h-5 w-5 text-[var(--brand)]" /><h2 className="font-bold text-slate-950">Mistake notebook</h2></div><span className="text-sm font-semibold text-slate-500">{data.mistakes.total} total</span></div><div className="mt-5 grid grid-cols-3 gap-3 text-center"><MiniMetric label="New" value={data.mistakes.new} /><MiniMetric label="Reviewing" value={data.mistakes.reviewing} /><MiniMetric label="Mastered" value={data.mistakes.mastered} /></div><Link href="/mistakes" className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[var(--brand)] hover:underline">Review mistakes <ArrowRight className="h-3.5 w-3.5" /></Link></Card>
+        <Card className="p-6"><div className="flex items-center justify-between"><h2 className="font-bold text-slate-950">Recent practice</h2><Link href="/history" className="text-sm font-semibold text-[var(--brand)] hover:underline">History</Link></div>{data.recent.length ? <div className="mt-4 space-y-3">{data.recent.map((item) => <Link key={item.id} href={item.href} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 hover:bg-slate-50"><span><span className="block text-sm font-semibold text-slate-800">{item.title}</span><span className="text-xs capitalize text-slate-500">{item.skill}</span></span><span className="font-bold text-slate-900">{item.band?.toFixed(1) ?? "-"}</span></Link>)}</div> : <p className="mt-4 text-sm text-slate-500">Your first Writing or Reading result will appear here.</p>}</Card>
+      </div>
+
+      {data.diagnostic.status === "not_started" && <section className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-slate-900">Not sure about your current level?</p><p className="mt-1 text-sm text-slate-500">Run a Writing and/or Reading diagnostic, then choose whether to update it.</p></div><Link href="/diagnostic" className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Open diagnostic</Link></section>}
     </div>
   );
 }
 
-function Metric({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-[var(--text-secondary)]">{label}</p>
-      <p className="mt-1 text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">{value}</p>
-      {hint && <p className="mt-0.5 text-xs text-[var(--text-secondary)]">{hint}</p>}
-    </div>
-  );
-}
-
-function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] bg-white p-6 text-sm text-[var(--text-secondary)]">
-      <span className="text-slate-400">{icon}</span>
-      {text}
-    </div>
-  );
-}
-
-function SkeletonCard() {
-  return <div className="h-24 animate-pulse rounded-2xl border border-[var(--border)] bg-slate-50" />;
-}
-
-function MovementRow({ movement }: { movement: ProgressMovement }) {
-  const { label, from, to, direction } = movement;
-  const hasData = from != null && to != null;
-  const tone =
-    direction === "up"
-      ? "text-emerald-600"
-      : direction === "down"
-        ? "text-red-600"
-        : "text-[var(--text-secondary)]";
-  const Icon = direction === "up" ? TrendingUp : direction === "down" ? TrendingDown : Minus;
-
-  return (
-    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3.5 py-2.5">
-      <span className="text-sm font-medium text-[var(--text-primary)]">{label}</span>
-      <span className={`inline-flex items-center gap-1.5 text-sm font-semibold ${tone}`}>
-        <Icon className="h-4 w-4" />
-        {hasData ? `${from!.toFixed(1)} -> ${to!.toFixed(1)}` : "No change"}
-      </span>
-    </div>
-  );
-}
+function Metric({ label, value, hint, icon }: { label: string; value: string; hint: string; icon: React.ReactNode }) { return <div><p className="flex items-center gap-1.5 text-sm font-medium text-slate-500">{icon}{label}</p><p className="mt-1 text-2xl font-extrabold text-slate-950">{value}</p><p className="mt-0.5 text-xs text-slate-400">{hint}</p></div>; }
+function MiniMetric({ label, value }: { label: string; value: number }) { return <div className="rounded-xl bg-slate-50 p-3"><p className="text-xl font-bold text-slate-900">{value}</p><p className="text-xs text-slate-500">{label}</p></div>; }
+function WeaknessCard({ icon, title, weakness, empty, suffix }: { icon: React.ReactNode; title: string; weakness: { label: string; value: number; href: string } | null; empty: string; suffix: string }) { return <Card className="p-6"><div className="flex items-center gap-2 text-[var(--brand)]">{icon}<h2 className="font-bold text-slate-950">{title}</h2></div>{weakness ? <><p className="mt-4 text-lg font-bold text-slate-900">{weakness.label}</p><p className="mt-1 text-sm text-slate-500">{suffix === "Band" ? `Band ${weakness.value.toFixed(1)}` : `${weakness.value.toFixed(0)}% ${suffix}`}</p><Link href={weakness.href} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[var(--brand)] hover:underline">Review evidence <ArrowRight className="h-3.5 w-3.5" /></Link></> : <p className="mt-4 text-sm leading-6 text-slate-500">{empty}</p>}</Card>; }

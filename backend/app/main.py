@@ -13,7 +13,7 @@ from app.infrastructure.logging import configure_logging
 from app.infrastructure.errortracking import init_error_tracking
 from app.infrastructure.database import engine
 from app.infrastructure.ai.factory import effective_provider
-from app.api.routers import auth, tests, results, writing, speaking, analytics
+from app.api.routers import auth, tests, results, writing, speaking, analytics, learning
 from app.api.routers import history
 
 configure_logging()
@@ -93,6 +93,7 @@ app.include_router(writing.router, prefix="/writing", tags=["Writing"])
 app.include_router(speaking.router, prefix="/speaking", tags=["Speaking"])
 app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 app.include_router(history.router, prefix="/history", tags=["History"])
+app.include_router(learning.router, prefix="/learning", tags=["Learning"])
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 

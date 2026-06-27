@@ -65,7 +65,7 @@ export default function RegisterPage() {
       await api.register(username, password, targetBand);
       const res = await api.login(username, password);
       login(res.access_token, username);
-      router.push("/");
+      router.push("/onboarding");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Registration failed";
       // Surface a friendly modal instead of a raw "already taken" error.

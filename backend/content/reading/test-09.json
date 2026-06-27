@@ -598,7 +598,7 @@
             {
               "order": 27,
               "text": "The writer suggests that intelligence tests were attractive partly because they seemed objective.",
-              "question_type": "true_false_notgiven",
+              "question_type": "yes_no_not_given",
               "options": [
                 "Yes",
                 "No",
@@ -619,7 +619,7 @@
             {
               "order": 28,
               "text": "Early intelligence tests were designed only to select workers for jobs.",
-              "question_type": "true_false_notgiven",
+              "question_type": "yes_no_not_given",
               "options": [
                 "Yes",
                 "No",
@@ -640,7 +640,7 @@
             {
               "order": 29,
               "text": "The passage says general intelligence proves exactly what intelligence is.",
-              "question_type": "true_false_notgiven",
+              "question_type": "yes_no_not_given",
               "options": [
                 "Yes",
                 "No",
@@ -661,7 +661,7 @@
             {
               "order": 30,
               "text": "A perfectly culture-free test is described as more aspiration than reality.",
-              "question_type": "true_false_notgiven",
+              "question_type": "yes_no_not_given",
               "options": [
                 "Yes",
                 "No",
@@ -682,7 +682,7 @@
             {
               "order": 31,
               "text": "The writer says every child should take an intelligence test every year.",
-              "question_type": "true_false_notgiven",
+              "question_type": "yes_no_not_given",
               "options": [
                 "Yes",
                 "No",
@@ -697,7 +697,7 @@
             {
               "order": 32,
               "text": "A test score can influence the environment in which a person develops.",
-              "question_type": "true_false_notgiven",
+              "question_type": "yes_no_not_given",
               "options": [
                 "Yes",
                 "No",

@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, ArrowRight, RefreshCw, Target } from "lucide-react";
 import {
   api,
   type WritingSubmission,
   type ProgressImpact as ProgressImpactData,
+  type UserProfile,
 } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { FeedbackCard } from "@/features/feedback";
@@ -28,6 +29,7 @@ export default function WritingResultPage() {
   const [error, setError] = useState("");
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState("");
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -36,6 +38,7 @@ export default function WritingResultPage() {
       .then(setSubmission)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+    api.getProfile().then(setProfile).catch(() => setProfile(null));
     const impactTimer = window.setTimeout(() => {
       setImpactLoading(true);
       api
@@ -91,6 +94,9 @@ export default function WritingResultPage() {
   }
   if (!submission) return null;
   const isFailed = submission.status === "failed";
+  const scoredCriteria = Object.entries(submission.feedback?.criteria ?? {}).filter((entry): entry is [string, number] => typeof entry[1] === "number" && entry[1] > 0);
+  const limitingCriterion = scoredCriteria.sort((a, b) => a[1] - b[1])[0];
+  const gapToTarget = submission.band !== null && profile ? Math.max(0, profile.target_band - submission.band) : null;
 
   return (
     <div className="space-y-8">
@@ -140,6 +146,22 @@ export default function WritingResultPage() {
       ) : (
         <Card className="p-6 text-center text-slate-500">
           Feedback is not available yet.
+        </Card>
+      )}
+
+      {!isFailed && submission.band !== null && profile && (
+        <Card className="p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="flex items-center gap-2 font-semibold text-slate-900"><Target className="h-5 w-5 text-[var(--brand)]" /> Path to your target</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                You are {gapToTarget === 0 ? "at or above" : `${gapToTarget?.toFixed(1)} band${gapToTarget === 1 ? "" : "s"} below`} your target of {profile.target_band.toFixed(1)}.
+                {limitingCriterion ? ` ${limitingCriterion[0]} is currently the lowest criterion at Band ${limitingCriterion[1].toFixed(1)}.` : ""}
+              </p>
+            </div>
+            <LinkButton href={`/writing/${submission.task_id}`}>Practice again <ArrowRight className="h-4 w-4" /></LinkButton>
+          </div>
+          <LinkButton href="/mistakes?skill=writing" variant="secondary" className="mt-4">Review inline issues</LinkButton>
         </Card>
       )}
 
