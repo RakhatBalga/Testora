@@ -7,11 +7,8 @@ import {
   LayoutDashboard,
   Dumbbell,
   BarChart3,
-  CalendarDays,
-  History,
   LogOut,
   Menu,
-  NotebookTabs,
   UserRound,
   X,
 } from "lucide-react";
@@ -21,9 +18,6 @@ import { LinkButton } from "@/shared/ui";
 const LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/practice", label: "Practice", icon: Dumbbell },
-  { href: "/study-plan", label: "Plan", icon: CalendarDays },
-  { href: "/mistakes", label: "Mistakes", icon: NotebookTabs },
-  { href: "/history", label: "History", icon: History },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
 ];
 
