@@ -10,7 +10,7 @@ import {
   type UserProfile,
 } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
-import { FeedbackCard } from "@/features/feedback";
+import { FeedbackCard, EssayComparison } from "@/features/feedback";
 import { ProgressImpact } from "@/features/progress-impact";
 import { Badge } from "@/shared/ui";
 import { Button, Card } from "@/shared/ui";
@@ -172,25 +172,7 @@ export default function WritingResultPage() {
           <ProgressImpact data={impact} />
         ))}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="p-6">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Prompt
-          </h2>
-          <p className="whitespace-pre-line leading-relaxed text-slate-700">
-            {submission.task_prompt}
-          </p>
-        </Card>
-
-        <Card className="p-6">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Your response
-          </h2>
-          <p className="whitespace-pre-line leading-relaxed text-slate-700">
-            {submission.text}
-          </p>
-        </Card>
-      </div>
+      <EssayComparison prompt={submission.task_prompt} response={submission.text} />
 
       <div className="flex flex-wrap gap-3">
         <LinkButton href="/writing">Back to writing</LinkButton>

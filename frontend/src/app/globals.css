@@ -233,3 +233,97 @@ body {
   );
   animation: shimmer 1.4s infinite;
 }
+
+/* ---------------------------------------------------------------------- */
+/* Essay diff comparison: subtle highlights, one-time glow, hover tooltip */
+/* ---------------------------------------------------------------------- */
+.diff-mark {
+  position: relative;
+  border-radius: 6px;
+  padding: 0.05em 0.22em;
+  margin: 0 0.01em;
+  cursor: help;
+  transition:
+    background-color 0.25s ease,
+    filter 0.25s ease,
+    box-shadow 0.25s ease;
+}
+.diff-add {
+  background-color: #dcfce7;
+  --diff-glow: 134 239 172;
+}
+.diff-rep {
+  background-color: #dbeafe;
+  --diff-glow: 147 197 253;
+}
+.diff-del {
+  background-color: #fee2e2;
+  --diff-glow: 252 165 165;
+  text-decoration: line-through;
+  text-decoration-color: #f87171;
+  text-decoration-thickness: 1.5px;
+}
+.diff-mark:hover {
+  filter: brightness(1.06) saturate(1.08);
+}
+
+@keyframes diffGlow {
+  0% {
+    box-shadow:
+      0 0 0 5px rgba(var(--diff-glow), 0),
+      0 0 14px 2px rgba(var(--diff-glow), 0.65);
+    filter: brightness(1.12);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(var(--diff-glow), 0),
+      0 0 0 0 rgba(var(--diff-glow), 0);
+    filter: brightness(1);
+  }
+}
+.diff-glow {
+  animation: diffGlow 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Tooltip — appears gently above the highlighted span on hover */
+.diff-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, 4px);
+  white-space: nowrap;
+  background: #0f172a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  padding: 6px 9px;
+  border-radius: 8px;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 8px 20px -6px rgba(15, 23, 42, 0.4);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  z-index: 20;
+}
+.diff-tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: #0f172a;
+}
+.diff-mark:hover .diff-tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diff-glow {
+    animation: none;
+  }
+}
