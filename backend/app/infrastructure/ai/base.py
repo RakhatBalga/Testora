@@ -73,6 +73,14 @@ class WritingGrader(ABC):
     ) -> Feedback:
         ...
 
+    def improve(self, *, task_type: int, prompt: str, text: str) -> str | None:
+        """Rewrite the essay as a higher-band "Better Version" (plain text).
+
+        Optional capability: providers without an LLM (e.g. the mock grader)
+        return None, and the UI falls back to its deterministic diff engine.
+        """
+        return None
+
 
 class SpeakingGrader(ABC):
     @abstractmethod

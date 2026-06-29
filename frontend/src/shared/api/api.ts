@@ -413,6 +413,7 @@ export type WritingSubmission = {
   status: string;
   band: number | null;
   feedback: Feedback | null;
+  improved_text: string | null;
   created_at: string;
 };
 
