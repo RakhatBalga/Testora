@@ -35,6 +35,7 @@ class WritingSubmissionOut(BaseModel):
     status: str
     band: Optional[float] = None
     feedback: Optional[Any] = None
+    improved_text: Optional[str] = None
     created_at: datetime
 
 

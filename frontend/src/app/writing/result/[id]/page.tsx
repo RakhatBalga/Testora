@@ -172,7 +172,11 @@ export default function WritingResultPage() {
           <ProgressImpact data={impact} />
         ))}
 
-      <EssayComparison prompt={submission.task_prompt} response={submission.text} />
+      <EssayComparison
+        prompt={submission.task_prompt}
+        response={submission.text}
+        improved={submission.improved_text}
+      />
 
       <div className="flex flex-wrap gap-3">
         <LinkButton href="/writing">Back to writing</LinkButton>

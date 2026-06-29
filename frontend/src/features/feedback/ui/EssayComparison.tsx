@@ -144,6 +144,103 @@ function cleanText(segs: Segment[]): string {
     .join("");
 }
 
+// --------------------------------------------------------------------------
+// Real diff: used when a genuine AI "Better Version" rewrite is available. We
+// word-diff the student's text against the rewrite, so every highlight is a
+// real change. Tooltips/criteria are inferred heuristically from each edit.
+// --------------------------------------------------------------------------
+function tokenize(s: string): string[] {
+  return s.split(/(\s+)/).filter((t) => t.length > 0);
+}
+
+function categorizeEdit(
+  from: string,
+  to: string,
+  type: "added" | "removed" | "replaced",
+): { reason: string; criterion: Criterion } {
+  const f = from.trim().toLowerCase();
+  const t = to.trim().toLowerCase();
+  if (type === "removed") return { reason: "Trimmed for concision", criterion: "coherence" };
+  if (type === "added") {
+    if (/^(however|moreover|furthermore|in addition|therefore|consequently|nevertheless|thus|nonetheless|whereas|while|although)\b/.test(t))
+      return { reason: "Improved coherence", criterion: "coherence" };
+    return { reason: "Added supporting detail", criterion: "task" };
+  }
+  const alpha = (x: string) => x.replace(/[^a-z]/g, "");
+  if (/n't|'s|'re|'ll|'ve|'d/.test(f) || (alpha(f) === alpha(t) && f !== t))
+    return { reason: "Better grammar", criterion: "grammar" };
+  return { reason: "Stronger wording", criterion: "vocabulary" };
+}
+
+function diffParagraph(orig: string, imp: string): Segment[] {
+  const a = tokenize(orig);
+  const b = tokenize(imp);
+  const n = a.length;
+  const m = b.length;
+  // LCS length table
+  const dp: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = n - 1; i >= 0; i--)
+    for (let j = m - 1; j >= 0; j--)
+      dp[i][j] = a[i] === b[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+
+  type Op = { k: "eq" | "del" | "ins"; text: string };
+  const ops: Op[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < n && j < m) {
+    if (a[i] === b[j]) { ops.push({ k: "eq", text: a[i] }); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) { ops.push({ k: "del", text: a[i] }); i++; }
+    else { ops.push({ k: "ins", text: b[j] }); j++; }
+  }
+  while (i < n) ops.push({ k: "del", text: a[i++] });
+  while (j < m) ops.push({ k: "ins", text: b[j++] });
+
+  const segs: Segment[] = [];
+  const pushSame = (txt: string) => {
+    const last = segs[segs.length - 1];
+    if (last && last.t === "same") last.text += txt;
+    else segs.push({ t: "same", text: txt });
+  };
+  let k = 0;
+  while (k < ops.length) {
+    if (ops[k].k === "eq") { pushSame(ops[k].text); k++; continue; }
+    let dels = "";
+    let ins = "";
+    while (k < ops.length && ops[k].k === "del") dels += ops[k++].text;
+    while (k < ops.length && ops[k].k === "ins") ins += ops[k++].text;
+    const dt = dels.trim();
+    const it = ins.trim();
+    if (dt && it) {
+      const c = categorizeEdit(dels, ins, "replaced");
+      segs.push({ t: "replaced", from: dels, text: ins, reason: c.reason, criterion: c.criterion });
+    } else if (it) {
+      const c = categorizeEdit("", ins, "added");
+      segs.push({ t: "added", text: ins, reason: c.reason, criterion: c.criterion });
+    } else if (dt) {
+      const c = categorizeEdit(dels, "", "removed");
+      segs.push({ t: "removed", text: dels, reason: c.reason, criterion: c.criterion });
+    } else {
+      pushSame(ins || dels); // whitespace-only change
+    }
+  }
+  return segs;
+}
+
+function buildRealDiff(orig: string, imp: string): { originalParas: string[]; improvedParas: Segment[][] } {
+  const a = orig.split(/\n+/).map((p) => p.trim()).filter(Boolean);
+  const b = imp.split(/\n+/).map((p) => p.trim()).filter(Boolean);
+  const rows = Math.max(a.length, b.length);
+  const improvedParas: Segment[][] = [];
+  for (let i = 0; i < rows; i++) {
+    const o = a[i] ?? "";
+    const p = b[i] ?? "";
+    if (!o && p)
+      improvedParas.push([{ t: "added", text: p, reason: "Added paragraph", criterion: "task" }]);
+    else improvedParas.push(diffParagraph(o, p));
+  }
+  return { originalParas: a, improvedParas };
+}
+
 const CRITERIA: { key: Criterion; label: string; noun: string }[] = [
   { key: "vocabulary", label: "Vocabulary", noun: "stronger collocations" },
   { key: "grammar", label: "Grammar", noun: "grammar fixes" },
@@ -154,9 +251,12 @@ const CRITERIA: { key: Criterion; label: string; noun: string }[] = [
 type Props = {
   prompt: string;
   response: string;
+  /** Real AI "Better Version" rewrite. When present, the diff is computed
+   *  against it; otherwise a deterministic heuristic engine is used. */
+  improved?: string | null;
 };
 
-export function EssayComparison({ prompt, response }: Props) {
+export function EssayComparison({ prompt, response, improved }: Props) {
   const [clean, setClean] = useState(false);
   const [glow, setGlow] = useState(true);
 
@@ -167,11 +267,18 @@ export function EssayComparison({ prompt, response }: Props) {
   }, []);
 
   const { originalParas, improvedParas, counts, total } = useMemo(() => {
-    const original = response.split(/\n+/).map((p) => p.trim()).filter(Boolean);
-    const improved = original.map((p, i) => improveParagraph(p, i));
+    const hasRewrite = !!improved && improved.trim().length > 0 && improved.trim() !== response.trim();
+    let originalParas: string[];
+    let improvedParas: Segment[][];
+    if (hasRewrite) {
+      ({ originalParas, improvedParas } = buildRealDiff(response, improved!));
+    } else {
+      originalParas = response.split(/\n+/).map((p) => p.trim()).filter(Boolean);
+      improvedParas = originalParas.map((p, i) => improveParagraph(p, i));
+    }
     const counts: Record<Criterion, number> = { vocabulary: 0, grammar: 0, coherence: 0, task: 0 };
     let total = 0;
-    for (const segs of improved) {
+    for (const segs of improvedParas) {
       for (const s of segs) {
         if (s.t !== "same") {
           counts[s.criterion] += 1;
@@ -179,8 +286,8 @@ export function EssayComparison({ prompt, response }: Props) {
         }
       }
     }
-    return { originalParas: original, improvedParas: improved, counts, total };
-  }, [response]);
+    return { originalParas, improvedParas, counts, total };
+  }, [response, improved]);
 
   const rows = Math.max(originalParas.length, improvedParas.length);
 

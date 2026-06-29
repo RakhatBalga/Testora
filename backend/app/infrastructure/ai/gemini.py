@@ -264,6 +264,37 @@ class GeminiWritingGrader(WritingGrader):
         )
         return build_feedback(normalized, coaching, task_type=task_type)
 
+    def improve(self, *, task_type: int, prompt: str, text: str) -> str | None:
+        """Generate the higher-band "Better Version" as plain text.
+
+        Best-effort: a failure here must never fail the submission — the UI
+        falls back to its deterministic diff engine when this returns None.
+        """
+        from google.genai import types
+
+        try:
+            user = prompts.better_version_user_prompt(
+                task_type=task_type, prompt=prompt, text=text
+            )
+            cfg_kwargs = dict(
+                system_instruction=prompts.BETTER_VERSION_SYSTEM,
+                temperature=0.4,
+                max_output_tokens=2048,
+            )
+            if "pro" not in settings.GEMINI_MODEL.lower():
+                cfg_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+            client = _client()
+            resp = client.models.generate_content(
+                model=settings.GEMINI_MODEL,
+                contents=[user],
+                config=types.GenerateContentConfig(**cfg_kwargs),
+            )
+            out = (resp.text or "").strip()
+            return out or None
+        except Exception:  # noqa: BLE001 - never fail the submit endpoint
+            logger.exception("Gemini Better Version generation failed")
+            return None
+
     def _coach(
         self,
         task_type,

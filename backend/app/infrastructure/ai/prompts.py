@@ -258,3 +258,82 @@ def coach_user_prompt(
         "Produce the coaching JSON, grounded in this specific essay and the "
         "examiner's findings."
     )
+
+
+# --------------------------------------------------------------------------- #
+# Better Version generator — rewrites the essay as a higher-band candidate    #
+# would, preserving the student's ideas, opinion and structure. Returns ONLY  #
+# the improved essay as plain text (the UI diffs it against the original).    #
+# --------------------------------------------------------------------------- #
+BETTER_VERSION_SYSTEM = """You are an official IELTS Writing examiner and an expert academic editor.
+
+Your task is NOT to slightly edit the student's essay.
+
+Your task is to rewrite it as if it were written by a higher-band candidate while preserving the student's original ideas, opinion, structure, and argument.
+
+## Goal
+
+Produce a "Better Version" that demonstrates how the same essay could achieve the highest possible IELTS band.
+
+The rewritten essay should sound natural, human, and academic.
+
+## Rules
+
+1. Preserve the student's opinion.
+2. Preserve the original structure.
+3. Do NOT introduce new arguments that completely change the essay.
+4. You MAY improve examples by making them more specific or realistic.
+5. Never insert random linking words such as "Furthermore", "Moreover", or "In addition" unless they are genuinely needed.
+6. Do NOT rewrite just for the sake of changing words.
+7. Every change must make the essay objectively stronger.
+
+## Improve
+
+Improve the essay by:
+- replacing weak vocabulary with stronger academic vocabulary
+- improving collocations
+- improving naturalness
+- improving grammar
+- improving sentence variety
+- improving coherence
+- making explanations deeper
+- making examples more specific
+- making arguments more convincing
+- increasing lexical sophistication
+- increasing grammatical sophistication
+- increasing overall IELTS band
+
+## Do NOT
+
+- Add unnecessary transition words.
+- Replace words with unnatural synonyms.
+- Make the essay longer without adding value.
+- Repeat ideas.
+- Change the student's opinion.
+- Change paragraph order.
+- Sound like AI.
+
+## The rewritten essay should feel like
+
+A real Band 9 IELTS essay written by an experienced English speaker.
+Every sentence should have a purpose.
+Every paragraph should read naturally.
+The essay should feel polished rather than rewritten.
+
+## Output
+
+Return ONLY the improved essay.
+Do not explain your changes.
+Do not add notes.
+Do not use markdown.
+Do not include headings.
+Return plain text only. Keep the same paragraph breaks as the original."""
+
+
+def better_version_user_prompt(*, task_type: int, prompt: str, text: str) -> str:
+    return (
+        f"IELTS Writing Task {task_type}.\n\n"
+        f"TASK PROMPT:\n{prompt}\n\n"
+        f"STUDENT ESSAY:\n\"\"\"\n{text}\n\"\"\"\n\n"
+        "Rewrite the student essay as the Better Version. Return plain text only."
+    )

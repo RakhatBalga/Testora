@@ -130,6 +130,22 @@ async def _grade_and_persist(
     submission.band = feedback.band
     submission.status = "graded"
 
+    # Best-effort "Better Version" rewrite (Gemini only; mock returns None so the
+    # UI keeps its deterministic diff). A failure here must not fail the grade.
+    try:
+        improved = await run_grading(
+            get_writing_grader().improve,
+            task_type=task.task_type,
+            prompt=task.prompt,
+            text=submission.text,
+        )
+        if improved:
+            submission.improved_text = improved
+    except Exception:  # noqa: BLE001
+        logger.warning(
+            "Better Version generation failed for submission %s", submission.id
+        )
+
     record_mistakes(
         db,
         user_id=current_user.id,
@@ -223,5 +239,6 @@ def _to_out(sub: WritingSubmission, task: WritingTask) -> dict:
         "status": sub.status,
         "band": sub.band,
         "feedback": sub.feedback,
+        "improved_text": sub.improved_text,
         "created_at": sub.created_at,
     }

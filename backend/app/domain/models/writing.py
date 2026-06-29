@@ -28,6 +28,7 @@ class WritingSubmission(Base):
     status = Column(String, nullable=False, default="pending")  # pending | graded | failed
     band = Column(Float, nullable=True)
     feedback = Column(JSON, nullable=True)
+    improved_text = Column(Text, nullable=True)  # AI "Better Version" rewrite
     created_at = Column(DateTime, default=datetime.utcnow)
 
     task = relationship("WritingTask")
