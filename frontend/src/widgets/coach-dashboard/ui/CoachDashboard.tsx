@@ -4,12 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  BookOpen,
   CalendarClock,
   Check,
   ClipboardCheck,
-  NotebookTabs,
-  PenLine,
   Target,
 } from "lucide-react";
 import { api, type LearningDashboard } from "@/shared/api";
@@ -71,21 +68,9 @@ export function CoachDashboard({ username }: { username: string | null }) {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <WeaknessCard icon={<PenLine className="h-5 w-5" />} title="Writing focus" weakness={data.weaknesses.writing} empty="Complete a Writing task to find your limiting criterion." suffix="Band" />
-        <WeaknessCard icon={<BookOpen className="h-5 w-5" />} title="Reading focus" weakness={data.weaknesses.reading} empty="Complete a Reading test to find your weakest question type." suffix="accuracy" />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="p-6"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><NotebookTabs className="h-5 w-5 text-[var(--brand)]" /><h2 className="font-bold text-slate-950">Mistake notebook</h2></div><span className="text-sm font-semibold text-slate-500">{data.mistakes.total} total</span></div><div className="mt-5 grid grid-cols-3 gap-3 text-center"><MiniMetric label="New" value={data.mistakes.new} /><MiniMetric label="Reviewing" value={data.mistakes.reviewing} /><MiniMetric label="Mastered" value={data.mistakes.mastered} /></div><Link href="/mistakes" className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[var(--brand)] hover:underline">Review mistakes <ArrowRight className="h-3.5 w-3.5" /></Link></Card>
-        <Card className="p-6"><div className="flex items-center justify-between"><h2 className="font-bold text-slate-950">Recent practice</h2><Link href="/history" className="text-sm font-semibold text-[var(--brand)] hover:underline">History</Link></div>{data.recent.length ? <div className="mt-4 space-y-3">{data.recent.map((item) => <Link key={item.id} href={item.href} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 hover:bg-slate-50"><span><span className="block text-sm font-semibold text-slate-800">{item.title}</span><span className="text-xs capitalize text-slate-500">{item.skill}</span></span><span className="font-bold text-slate-900">{item.band?.toFixed(1) ?? "-"}</span></Link>)}</div> : <p className="mt-4 text-sm text-slate-500">Your first Writing or Reading result will appear here.</p>}</Card>
-      </div>
-
-      {data.diagnostic.status === "not_started" && <section className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between"><div><p className="font-semibold text-slate-900">Not sure about your current level?</p><p className="mt-1 text-sm text-slate-500">Run a Writing and/or Reading diagnostic, then choose whether to update it.</p></div><Link href="/diagnostic" className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Open diagnostic</Link></section>}
+      <Card className="p-6"><div className="flex items-center justify-between"><h2 className="font-bold text-slate-950">Recent practice</h2><Link href="/history" className="text-sm font-semibold text-[var(--brand)] hover:underline">History</Link></div>{data.recent.length ? <div className="mt-4 space-y-3">{data.recent.map((item) => <Link key={item.id} href={item.href} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 hover:bg-slate-50"><span><span className="block text-sm font-semibold text-slate-800">{item.title}</span><span className="text-xs capitalize text-slate-500">{item.skill}</span></span><span className="font-bold text-slate-900">{item.band?.toFixed(1) ?? "-"}</span></Link>)}</div> : <p className="mt-4 text-sm text-slate-500">Your first Writing or Reading result will appear here.</p>}</Card>
     </div>
   );
 }
 
 function Metric({ label, value, hint, icon }: { label: string; value: string; hint: string; icon: React.ReactNode }) { return <div><p className="flex items-center gap-1.5 text-sm font-medium text-slate-500">{icon}{label}</p><p className="mt-1 text-2xl font-extrabold text-slate-950">{value}</p><p className="mt-0.5 text-xs text-slate-400">{hint}</p></div>; }
-function MiniMetric({ label, value }: { label: string; value: number }) { return <div className="rounded-xl bg-slate-50 p-3"><p className="text-xl font-bold text-slate-900">{value}</p><p className="text-xs text-slate-500">{label}</p></div>; }
-function WeaknessCard({ icon, title, weakness, empty, suffix }: { icon: React.ReactNode; title: string; weakness: { label: string; value: number; href: string } | null; empty: string; suffix: string }) { return <Card className="p-6"><div className="flex items-center gap-2 text-[var(--brand)]">{icon}<h2 className="font-bold text-slate-950">{title}</h2></div>{weakness ? <><p className="mt-4 text-lg font-bold text-slate-900">{weakness.label}</p><p className="mt-1 text-sm text-slate-500">{suffix === "Band" ? `Band ${weakness.value.toFixed(1)}` : `${weakness.value.toFixed(0)}% ${suffix}`}</p><Link href={weakness.href} className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[var(--brand)] hover:underline">Review evidence <ArrowRight className="h-3.5 w-3.5" /></Link></> : <p className="mt-4 text-sm leading-6 text-slate-500">{empty}</p>}</Card>; }
