@@ -39,3 +39,27 @@ apply the hard caps (no overview / fabrication / off-topic / under-length).
 Populate the essay bodies from a calibrated bank (e.g. official IELTS sample
 answers with published examiner bands) before running. Track the mean absolute
 error vs expected bands across the set; investigate any case off by > 0.5.
+
+## Calibration bank + measured baseline (2026-06-30)
+
+A runnable corpus of real Task 2 essays lives in
+`tests/fixtures/writing_calibration_bank.jsonl` (id, prompt, text, expected
+window, notes). These have **floor windows**, not exact human labels — a strong
+sample essay must not fall *below* its floor; the weak one is capped. Run it
+against the live model:
+
+```bash
+cd backend && PYTHONPATH=. AI_PROVIDER=gemini venv/bin/python \
+  scripts/run_writing_calibration.py tests/fixtures/writing_calibration_bank.jsonl
+```
+
+**Measured 2026-06-30 (examiner = gemini-2.5-flash, deployed):** 8/8 within
+window, but every competent essay scores a flat **7.0** (all four criteria 7.0,
+spread 0) and the weak essay a flat **6.0**. flash compresses to one number and
+caps the top at ~7.
+
+**gemini-2.5-pro experiment (same essays):** band-8 essays correctly score
+**8.0**, and criteria vary when there is a real weakness (weak essay →
+Task6/Coh7/Lex6/Gram6). Cost: ~22s/grade and ~15x token price. Decision: stay on
+flash for now (speed/cost); revisit examiner=pro (coach/Better Version stay
+flash) when honest band-8.5/9 and per-criterion granularity become a priority.
