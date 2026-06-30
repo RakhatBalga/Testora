@@ -38,17 +38,25 @@ BAND CALIBRATION (apply strictly — use the full 0-9 range when warranted):
   paragraphing is effective. Vocabulary is wide, precise, and flexible with only
   occasional awkwardness or inappropriate choice. Grammar shows wide range and
   strong control; occasional non-systematic slips can still occur.
-- Band 9: Expert, fully native-like control across all four criteria. Award only
-  when there is essentially nothing to improve.
+- Band 9: Fully operational, native-like command of the criterion. Vocabulary is
+  wide, natural, and precise; the full range of structures is used flexibly and
+  accurately. Errors are rare and minor — the kind a careful educated native
+  writer might still make — and never affect communication. Band 9 does NOT mean
+  a flawless or unimprovable essay: real Band 9 exam scripts still contain
+  occasional slips. Do not withhold 8.5 or 9 simply because a stronger version of
+  a sentence could be imagined.
 
-CONSERVATISM RULE: If a script sits between two bands on a criterion, award the
-LOWER band. Do not reward effort, length, or topic familiarity. Penalise, do not
-overlook, errors. However, do not push a script down to Band 6 merely because it
-has minor errors or uneven support if it otherwise matches Band 7 descriptors.
-Likewise, do not push a script down to Band 6 merely because it has some spelling,
-word-choice, punctuation, or paragraphing lapses if the overall criterion evidence
-matches Band 7 or Band 8. Band 8 and 9 must be strong, but Band 8 does not require
-native-like perfection.
+CALIBRATION RULE: Match each criterion to the band descriptor its evidence MOST
+resembles, and use the full 0-9 range. When a script sits genuinely between two
+bands, award the band whose descriptors DOMINATE — round UP to the higher
+half-band when the higher-band features are clearly present and the remaining
+weaknesses are minor or non-impeding. Do not reward effort, length, or topic
+familiarity, and do not overlook errors — but remember that real Band 7, 8, AND 9
+exam scripts all contain visible mistakes. Minor, non-impeding errors are fully
+compatible with Band 7 and Band 8; occasional slips are compatible with Band
+8.5-9. Never cap a well-developed, fluent, well-organised script at Band 7 just
+because it is not perfect. Do not push a script down to Band 6 because of minor
+errors or uneven support if it otherwise matches Band 7 descriptors.
 """
 
 _SCORING_PROTOCOL = """\
@@ -79,8 +87,18 @@ SCORING PROTOCOL:
   there are visible but non-impeding errors.
 - Award Band 8-level criterion scores when the criterion is very strong overall,
   even if there is an occasional lapse, over-generalisation, awkward collocation,
-  spelling slip, or minor punctuation error. Reserve Band 9 for near-perfect
-  control, not Band 8.
+  spelling slip, or minor punctuation error.
+- Actively use the TOP of the scale when it is earned — do not cap at 8.0:
+  * a wide, precise, flexible vocabulary with only occasional awkwardness is LR 8;
+    natural, sophisticated, idiomatic usage with only rare slips is LR 8.5-9.
+  * a full range of structures with strong control and only occasional non-
+    systematic slips is GRA 8; near-consistent error-free, flexible grammar is
+    GRA 8.5-9.
+  * a well-sequenced essay with skilful paragraphing and unobtrusive cohesion is
+    CC 8-9.
+  A criterion does NOT need to be perfect to score 8.5 or 9 — it needs to be
+  highly effective with only rare, minor, non-impeding errors. 8.0 is not a
+  ceiling; award 8.5 or 9 when a criterion is genuinely excellent.
 - Extract concrete errors into the `errors` array. Each error must quote the
   offending text in `snippet` and give a corrected form in `correction`.
 - Put only genuine mistakes in `errors`: the correction must materially change
