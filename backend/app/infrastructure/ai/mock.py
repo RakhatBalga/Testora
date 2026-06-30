@@ -14,6 +14,23 @@ _STOPWORDS = {
 # Basic, non-academic words that cap Lexical Resource when overused.
 _BASIC_WORDS = {"good", "bad", "very", "thing", "things", "important", "big", "nice", "get", "lot"}
 
+# Cohesive devices that lift Coherence & Cohesion when used appropriately.
+_COHESIVE_WORDS = {
+    "however", "therefore", "furthermore", "moreover", "consequently", "nevertheless",
+    "nonetheless", "meanwhile", "additionally", "similarly", "conversely", "thus",
+    "hence", "firstly", "secondly", "finally", "subsequently", "accordingly", "instead",
+}
+_COHESIVE_PHRASES = (
+    "in contrast", "on the other hand", "for instance", "for example", "as a result",
+    "in conclusion", "to conclude", "in addition", "in particular", "to begin with",
+    "by contrast", "on balance",
+)
+# Subordinating words signalling complex sentence structures (Grammar range).
+_SUBORDINATORS = {
+    "because", "although", "though", "while", "whereas", "since", "unless", "despite",
+    "whether", "which", "that", "who", "whose", "if", "when", "once", "before", "after",
+}
+
 
 def _round_half(x: float) -> float:
     """Round to the nearest IELTS half-band (0.5 step), clamped to 0-9."""
@@ -40,47 +57,84 @@ class MockWritingGrader(WritingGrader):
         )
 
         suggestions: list[str] = []
-
-        # Task achievement: driven mostly by hitting the word count.
-        if words >= min_words:
-            task = 6.5
-        elif words >= min_words * 0.8:
-            task = 5.5
-            suggestions.append(
-                f"Write at least {min_words} words — you wrote {words}."
-            )
-        else:
-            task = 4.0
-            suggestions.append(
-                f"Your answer is too short ({words}/{min_words} words). Develop your ideas further."
-            )
-
-        # Coherence: reward a sensible number of paragraphs and sentence lengths.
+        tokens = [w.lower() for w in re.findall(r"\b[\w'-]+\b", text)]
+        token_set = set(tokens)
+        text_lower = text.lower()
         paragraphs = [p for p in text.split("\n") if p.strip()]
-        if len(paragraphs) >= 3 and 8 <= avg_sentence_len <= 25:
+        para_count = len(paragraphs)
+
+        # Task Achievement: smooth on length, rewarded for multi-paragraph development.
+        ratio = words / min_words if min_words else 1.0
+        if ratio >= 1.0:
+            task = 6.5
+            if para_count >= 4:
+                task += 0.5  # clear intro/body/body/conclusion development
+            if ratio >= 1.15 and para_count >= 4:
+                task += 0.5  # comfortably developed beyond the minimum
+        elif ratio >= 0.9:
+            task = 6.0 + (ratio - 0.9) / 0.1 * 0.5
+        elif ratio >= 0.8:
+            task = 5.5 + (ratio - 0.8) / 0.1 * 0.5
+            suggestions.append(f"Write at least {min_words} words — you wrote {words}.")
+        elif ratio >= 0.5:
+            task = 4.5 + (ratio - 0.5) / 0.3 * 1.0
+            suggestions.append(f"Your answer is short ({words}/{min_words} words). Develop your ideas further.")
+        else:
+            task = 3.5 + ratio / 0.5 * 1.0
+            suggestions.append(f"Your answer is far too short ({words}/{min_words} words).")
+
+        # Coherence & Cohesion: paragraph structure + cohesive devices.
+        cohesive = len(_COHESIVE_WORDS & token_set) + sum(1 for p in _COHESIVE_PHRASES if p in text_lower)
+        if para_count >= 4 and cohesive >= 4 and 8 <= avg_sentence_len <= 26:
+            coherence = 7.5
+        elif para_count >= 3 and cohesive >= 2:
             coherence = 6.5
-        elif len(paragraphs) >= 2:
+        elif para_count >= 3 or (para_count >= 2 and cohesive >= 1):
+            coherence = 6.0
+        elif para_count >= 2:
             coherence = 5.5
             suggestions.append("Organise your answer into clear paragraphs (intro, body, conclusion).")
         else:
             coherence = 4.5
-            suggestions.append("Split your text into paragraphs to improve structure.")
+            suggestions.append("Split your text into paragraphs and use linking words.")
 
-        # Lexical resource: vocabulary variety.
-        if unique_ratio >= 0.55:
+        # Lexical Resource: length-robust variety + sophistication, minus basic words.
+        sophisticated = sum(1 for w in token_set if len(w) >= 8 and w not in _STOPWORDS)
+        basic_hits = sum(1 for w in _BASIC_WORDS if w in token_set)
+        if unique_ratio >= 0.50:
             lexical = 6.5
-        elif unique_ratio >= 0.4:
+        elif unique_ratio >= 0.42:
+            lexical = 6.0
+        elif unique_ratio >= 0.34:
             lexical = 5.5
         else:
             lexical = 4.5
-            suggestions.append("Try to use a wider range of vocabulary and avoid repetition.")
+            suggestions.append("Use a wider range of vocabulary and avoid repetition.")
+        lexical += min(1.0, sophisticated / 12.0)
+        if basic_hits >= 3:
+            lexical -= 0.5
+            suggestions.append("Replace basic words (e.g. good, bad, big) with academic alternatives.")
+        # A very short answer cannot demonstrate lexical range, whatever its ratio.
+        if words < min_words * 0.6:
+            lexical = min(lexical, 5.0)
 
-        # Grammar: rough proxy via sentence-length variety.
-        if 10 <= avg_sentence_len <= 22:
+        # Grammatical Range & Accuracy: complex structures + sentence variety.
+        subordinators = len(_SUBORDINATORS & token_set)
+        sent_lengths = [len(s.split()) for s in sentences] or [0]
+        length_spread = max(sent_lengths) - min(sent_lengths)
+        if 10 <= avg_sentence_len <= 24:
             grammar = 6.0
+        elif 8 <= avg_sentence_len <= 28:
+            grammar = 5.5
         else:
             grammar = 5.0
             suggestions.append("Vary your sentence length and structure for better flow.")
+        grammar += min(1.0, subordinators / 6.0)
+        if length_spread >= 10:
+            grammar += 0.5
+        article_count = tokens.count("a") + tokens.count("an") + tokens.count("the")
+        if words and article_count / words < 0.02:
+            grammar -= 0.5
 
         criteria = {
             "Task Achievement": _round_half(task),
