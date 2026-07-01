@@ -136,7 +136,7 @@ export default function WritingPage() {
               className="group animate-fade-up"
               style={{ animationDelay: `${i * 80}ms` }}
             >
-              <Card className="h-full p-5 transition duration-300 group-hover:-translate-y-1 group-hover:border-emerald-300 group-hover:shadow-lg">
+              <Card className="h-full p-5 transition duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
                 <Badge tone={taskTone(task.task_type)}>
                   Task {task.task_type}
                 </Badge>

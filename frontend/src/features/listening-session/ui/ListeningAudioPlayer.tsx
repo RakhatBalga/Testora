@@ -108,7 +108,7 @@ export function ListeningAudioPlayer({
   const displayDuration = mode === "practice" ? sectionEnd - sectionStart : sliderMax;
 
   return (
-    <div className="flex min-h-14 items-center gap-3 rounded-lg bg-slate-950 px-3 py-2 text-white">
+    <div className="flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-700 shadow-sm">
       <audio
         ref={audioRef}
         src={resolvedSrc}
@@ -124,20 +124,20 @@ export function ListeningAudioPlayer({
         title={mode === "exam" && playing ? "Audio cannot be paused in Exam mode" : playing ? "Pause" : "Play"}
         disabled={mode === "exam" && playing}
         onClick={playing ? pause : play}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white text-slate-950 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--brand)] text-white hover:opacity-90 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
       >
         {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
       </button>
       {mode === "practice" && (
-        <button type="button" aria-label="Restart section audio" title="Restart section" onClick={restart} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-white/10 hover:bg-white/20">
+        <button type="button" aria-label="Restart section audio" title="Restart section" onClick={restart} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200">
           <RotateCcw className="h-4 w-4" />
         </button>
       )}
       <Volume2 className="hidden h-4 w-4 shrink-0 text-slate-400 sm:block" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3 text-xs">
-          <span className="truncate font-semibold">{sectionTitle}</span>
-          <span className="shrink-0 tabular-nums text-slate-300">{clock(displayPosition)} / {clock(displayDuration)}</span>
+          <span className="truncate font-semibold text-slate-800">{sectionTitle}</span>
+          <span className="shrink-0 tabular-nums text-slate-500">{clock(displayPosition)} / {clock(displayDuration)}</span>
         </div>
         <input
           aria-label="Audio position"
@@ -148,10 +148,10 @@ export function ListeningAudioPlayer({
           value={Math.min(Math.max(position, sliderMin), sliderMax)}
           disabled={mode === "exam"}
           onChange={(event) => seek(Number(event.target.value))}
-          className="mt-1 h-1.5 w-full accent-teal-400 disabled:cursor-default"
+          className="mt-1 h-1.5 w-full accent-[var(--brand)] disabled:cursor-default"
         />
       </div>
-      <span className="hidden rounded-md bg-white/10 px-2 py-1 text-[11px] font-semibold uppercase sm:block">{mode}</span>
+      <span className="hidden rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold uppercase text-slate-500 sm:block">{mode}</span>
     </div>
   );
 }

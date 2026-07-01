@@ -1,0 +1,1014 @@
+{
+  "tests": [
+    {
+      "title": "Testora Studio Listening Practice Test 02",
+      "test_type": "listening",
+      "difficulty": "Medium-Hard",
+      "description": "Original IELTS-style practice test created by Testora. Four sections, 40 questions, eight distinct voices.",
+      "duration_minutes": 12,
+      "content_version": "1.0.0",
+      "metadata": {
+        "schema_version": "testora.listening-content.v1",
+        "slug": "testora-studio-listening-02",
+        "published": true,
+        "calibration_status": "provisional",
+        "authorship": "Original IELTS-style practice test created by Testora.",
+        "audio_duration": 651.4,
+        "voices": {
+          "Narrator": {
+            "voice": "Charon",
+            "accent": "neutral narrator"
+          },
+          "Officer": {
+            "voice": "Kore",
+            "accent": "British English"
+          },
+          "Caller": {
+            "voice": "Puck",
+            "accent": "North American English"
+          },
+          "Guide": {
+            "voice": "Rasalgethi",
+            "accent": "Indian English"
+          },
+          "Tutor": {
+            "voice": "Gacrux",
+            "accent": "Irish English"
+          },
+          "Tom": {
+            "voice": "Fenrir",
+            "accent": "North American English"
+          },
+          "Lena": {
+            "voice": "Leda",
+            "accent": "North American English"
+          },
+          "Lecturer": {
+            "voice": "Sulafat",
+            "accent": "South African English"
+          }
+        }
+      },
+      "sections": [
+        {
+          "order": 1,
+          "title": "Section 1 - Community centre hall hire",
+          "instructions": "Questions 1-10. Complete the booking form. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+          "audio_url": "/static/audio/listening/testora-studio-02.m4a",
+          "passage": "Officer: Good morning, Riverside Community Centre, Diane speaking. How can I help you?\nCaller: Hello. I'd like to hire one of your halls for a party, if any are free next month.\nOfficer: Of course. Let me take a few details and start a booking form. Can I have your surname please?\nCaller: Yes, it's Hartley.\nOfficer: Could you spell that for me?\nCaller: Certainly. H, A, R, T, L, E, Y.\nOfficer: Hartley, thank you. And what kind of event is it?\nCaller: It's a retirement party for my father. He's finishing work after forty years.\nOfficer: How lovely. What date were you thinking of?\nCaller: The sixth of May, a Saturday.\nOfficer: Let me check. I'm afraid the sixth is already booked for a wedding.\nCaller: Oh. What about the following Saturday then?\nOfficer: The sixteenth of May? Yes, that's completely free.\nCaller: Great, let's say the sixteenth of May.\nOfficer: We have two rooms available that day. The Oak Room holds forty people, and the larger Garden Room holds up to a hundred.\nCaller: We're expecting about seventy guests, so the Oak Room would be too small.\nOfficer: In that case I'll put you down for the Garden Room. And roughly how many guests did you say?\nCaller: Seventy. Maybe a few more, but seventy to be safe.\nOfficer: That's fine. Now, the cost. On weekdays the hall is thirty pounds an hour, but on Saturdays it's forty pounds an hour.\nCaller: Forty an hour on the Saturday, understood.\nOfficer: There's also a refundable deposit of sixty pounds, which you get back if there's no damage.\nCaller: No problem. Do you provide any equipment?\nOfficer: We have a projector available, but most people hiring the Garden Room ask for a microphone, as it's quite a big space.\nCaller: Yes, we'll definitely need a microphone for the speeches. We won't need the projector.\nOfficer: I'll note down a microphone. One more thing about access: parking is not at the front, it's at the rear of the building.\nCaller: At the rear, got it.\nOfficer: And finally, a mobile number so I can confirm the booking?\nCaller: It's 0, 7, 8, 1, 1, 9, 0, 4, 2, 1, 7.\nOfficer: Let me read that back: 0 7 8 1 1, 9 0 4 2 1 7. Perfect. I'll send a confirmation shortly.\nCaller: Thank you very much. Goodbye.",
+          "metadata": {
+            "section": 1,
+            "audio_start": 14.471,
+            "audio_end": 164.991,
+            "map_asset": null
+          },
+          "questions": [
+            {
+              "order": 1,
+              "text": "Surname:",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "Hartley"
+              ],
+              "explanation": "The caller spells out his surname: H A R T L E Y.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "H, A, R, T, L, E, Y."
+                }
+              ],
+              "metadata": {
+                "question": 1,
+                "section": 1
+              }
+            },
+            {
+              "order": 2,
+              "text": "Type of event:",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "retirement party"
+              ],
+              "explanation": "It is a retirement party for the caller's father.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "It's a retirement party for my father."
+                }
+              ],
+              "metadata": {
+                "question": 2,
+                "section": 1
+              }
+            },
+            {
+              "order": 3,
+              "text": "Date of event:",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "16 May",
+                "16th May",
+                "the 16th of May",
+                "sixteenth of May"
+              ],
+              "explanation": "The 6th is booked, so they agree on the 16th of May.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "The sixteenth of May? Yes, that's completely free."
+                }
+              ],
+              "metadata": {
+                "question": 3,
+                "section": 1
+              }
+            },
+            {
+              "order": 4,
+              "text": "Room booked:",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "Garden Room"
+              ],
+              "explanation": "Seventy guests means the Oak Room is too small, so the Garden Room is chosen.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "I'll put you down for the Garden Room."
+                }
+              ],
+              "metadata": {
+                "question": 4,
+                "section": 1
+              }
+            },
+            {
+              "order": 5,
+              "text": "Number of guests:",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "70",
+                "seventy"
+              ],
+              "explanation": "He expects about seventy guests.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "We're expecting about seventy guests."
+                }
+              ],
+              "metadata": {
+                "question": 5,
+                "section": 1
+              }
+            },
+            {
+              "order": 6,
+              "text": "Cost on Saturday (per hour): £",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "40",
+                "forty"
+              ],
+              "explanation": "Saturday rate is forty pounds an hour (weekday is thirty).",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "on Saturdays it's forty pounds an hour."
+                }
+              ],
+              "metadata": {
+                "question": 6,
+                "section": 1
+              }
+            },
+            {
+              "order": 7,
+              "text": "Refundable deposit: £",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "60",
+                "sixty"
+              ],
+              "explanation": "There is a refundable deposit of sixty pounds.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "a refundable deposit of sixty pounds."
+                }
+              ],
+              "metadata": {
+                "question": 7,
+                "section": 1
+              }
+            },
+            {
+              "order": 8,
+              "text": "Equipment required:",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "microphone",
+                "a microphone"
+              ],
+              "explanation": "They need a microphone for the speeches, not the projector.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "we'll definitely need a microphone for the speeches."
+                }
+              ],
+              "metadata": {
+                "question": 8,
+                "section": 1
+              }
+            },
+            {
+              "order": 9,
+              "text": "Parking located at the:",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "rear"
+              ],
+              "explanation": "Parking is at the rear of the building, not the front.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "parking is not at the front, it's at the rear of the building."
+                }
+              ],
+              "metadata": {
+                "question": 9,
+                "section": 1
+              }
+            },
+            {
+              "order": 10,
+              "text": "Contact mobile number:",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "07811 904217",
+                "07811904217"
+              ],
+              "explanation": "He gives his mobile number, read back as 07811 904217.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "0 7 8 1 1, 9 0 4 2 1 7."
+                }
+              ],
+              "metadata": {
+                "question": 10,
+                "section": 1
+              }
+            }
+          ]
+        },
+        {
+          "order": 2,
+          "title": "Section 2 - Greenfield Country Park",
+          "instructions": "Questions 11-15: Choose the correct answer. Questions 16-20: Match each facility to the area where it is located.",
+          "audio_url": "/static/audio/listening/testora-studio-02.m4a",
+          "passage": "Guide: Good morning everyone, and welcome to Greenfield Country Park. My name is Sanjay and I'll give you a quick introduction before you explore.\nGuide: A little history first. People often assume this land was once farmland, but in fact, for most of the nineteenth century it was a working stone quarry. The lake you can see today was the main pit, which slowly filled with water after the quarry closed.\nGuide: Let's talk about opening times. The park itself is open from dawn until dusk all year round. The visitor centre, however, has shorter hours. In winter it closes at four, but in summer, which is now, it stays open until six in the evening, so you have plenty of time.\nGuide: A word about dogs, because many of you have brought them. Dogs are welcome across most of the park and can run freely in the woodland. However, near the lake they must be kept on leads at all times, because of the nesting birds.\nGuide: Now, people enjoy lots of activities here. We have walking trails, fishing, and cycling. But by far the most popular activity, especially with families, is bird watching. The lake attracts dozens of rare species and our hides are busy every weekend.\nGuide: And some news. We're always improving the park. Last year we resurfaced the car park, and next month we're very excited to be opening a brand new café overlooking the water. So do come back and visit it.\nGuide: Right, let me tell you where to find things, because the park is large. If you'd like to hire a bicycle, the hire point is down at the Lakeside, next to the boats.\nGuide: The picnic area is the opposite direction, tucked away in the Woodland, where there's plenty of shade on a hot day like today.\nGuide: For the best views, climb up to the Hilltop, where you'll find our observation tower. On a clear day you can see for miles.\nGuide: If you need the toilets, the nearest ones are right here at the North Gate, where you came in.\nGuide: And finally, for souvenirs and postcards, the gift shop is housed in the beautifully restored Old Mill, just across the bridge. Enjoy your visit!",
+          "metadata": {
+            "section": 2,
+            "audio_start": 167.991,
+            "audio_end": 304.623,
+            "map_asset": null
+          },
+          "questions": [
+            {
+              "order": 11,
+              "text": "In the nineteenth century the site was",
+              "question_type": "single_choice",
+              "options": [
+                "a farm",
+                "a quarry",
+                "a railway yard"
+              ],
+              "correct_answer": [
+                "a quarry"
+              ],
+              "explanation": "The guide says it was a working stone quarry, not farmland.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "for most of the nineteenth century it was a working stone quarry."
+                }
+              ],
+              "metadata": {
+                "question": 11,
+                "section": 2
+              }
+            },
+            {
+              "order": 12,
+              "text": "In summer the visitor centre closes at",
+              "question_type": "single_choice",
+              "options": [
+                "four o'clock",
+                "five o'clock",
+                "six o'clock"
+              ],
+              "correct_answer": [
+                "six o'clock"
+              ],
+              "explanation": "In summer it stays open until six in the evening.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "in summer ... it stays open until six in the evening."
+                }
+              ],
+              "metadata": {
+                "question": 12,
+                "section": 2
+              }
+            },
+            {
+              "order": 13,
+              "text": "Near the lake, dogs must",
+              "question_type": "single_choice",
+              "options": [
+                "be left at home",
+                "be kept on leads",
+                "run freely"
+              ],
+              "correct_answer": [
+                "be kept on leads"
+              ],
+              "explanation": "Near the lake dogs must be kept on leads because of nesting birds.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "near the lake they must be kept on leads at all times."
+                }
+              ],
+              "metadata": {
+                "question": 13,
+                "section": 2
+              }
+            },
+            {
+              "order": 14,
+              "text": "The most popular activity in the park is",
+              "question_type": "single_choice",
+              "options": [
+                "fishing",
+                "cycling",
+                "bird watching"
+              ],
+              "correct_answer": [
+                "bird watching"
+              ],
+              "explanation": "The most popular activity is bird watching.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "the most popular activity ... is bird watching."
+                }
+              ],
+              "metadata": {
+                "question": 14,
+                "section": 2
+              }
+            },
+            {
+              "order": 15,
+              "text": "Next month the park will open a new",
+              "question_type": "single_choice",
+              "options": [
+                "café",
+                "car park",
+                "boat house"
+              ],
+              "correct_answer": [
+                "café"
+              ],
+              "explanation": "Next month they are opening a new café overlooking the water.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "next month we're very excited to be opening a brand new café."
+                }
+              ],
+              "metadata": {
+                "question": 15,
+                "section": 2
+              }
+            },
+            {
+              "order": 16,
+              "text": "Bicycle hire",
+              "question_type": "matching_information",
+              "options": [
+                "North Gate",
+                "Lakeside",
+                "Hilltop",
+                "Woodland",
+                "Old Mill"
+              ],
+              "correct_answer": [
+                "Lakeside"
+              ],
+              "explanation": "Bicycle hire is at the Lakeside, next to the boats.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "the hire point is down at the Lakeside."
+                }
+              ],
+              "metadata": {
+                "question": 16,
+                "section": 2
+              }
+            },
+            {
+              "order": 17,
+              "text": "Picnic area",
+              "question_type": "matching_information",
+              "options": [
+                "North Gate",
+                "Lakeside",
+                "Hilltop",
+                "Woodland",
+                "Old Mill"
+              ],
+              "correct_answer": [
+                "Woodland"
+              ],
+              "explanation": "The picnic area is in the Woodland.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "The picnic area ... in the Woodland."
+                }
+              ],
+              "metadata": {
+                "question": 17,
+                "section": 2
+              }
+            },
+            {
+              "order": 18,
+              "text": "Observation tower",
+              "question_type": "matching_information",
+              "options": [
+                "North Gate",
+                "Lakeside",
+                "Hilltop",
+                "Woodland",
+                "Old Mill"
+              ],
+              "correct_answer": [
+                "Hilltop"
+              ],
+              "explanation": "The observation tower is up at the Hilltop.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "climb up to the Hilltop, where you'll find our observation tower."
+                }
+              ],
+              "metadata": {
+                "question": 18,
+                "section": 2
+              }
+            },
+            {
+              "order": 19,
+              "text": "Toilets",
+              "question_type": "matching_information",
+              "options": [
+                "North Gate",
+                "Lakeside",
+                "Hilltop",
+                "Woodland",
+                "Old Mill"
+              ],
+              "correct_answer": [
+                "North Gate"
+              ],
+              "explanation": "The nearest toilets are at the North Gate.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "the nearest ones are right here at the North Gate."
+                }
+              ],
+              "metadata": {
+                "question": 19,
+                "section": 2
+              }
+            },
+            {
+              "order": 20,
+              "text": "Gift shop",
+              "question_type": "matching_information",
+              "options": [
+                "North Gate",
+                "Lakeside",
+                "Hilltop",
+                "Woodland",
+                "Old Mill"
+              ],
+              "correct_answer": [
+                "Old Mill"
+              ],
+              "explanation": "The gift shop is in the Old Mill.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "the gift shop is housed in the ... Old Mill."
+                }
+              ],
+              "metadata": {
+                "question": 20,
+                "section": 2
+              }
+            }
+          ]
+        },
+        {
+          "order": 3,
+          "title": "Section 3 - Geography field-trip report",
+          "instructions": "Questions 21-25: Choose the correct answer. Questions 26-30: Decide who will do each task.",
+          "audio_url": "/static/audio/listening/testora-studio-02.m4a",
+          "passage": "Tutor: Come in, Tom, Lena. So, how did the river field trip go? I've read your draft report.\nTom: It went well overall, but honestly the hardest part wasn't the writing. It was collecting the data, because it rained heavily on both days and our equipment kept slipping.\nLena: Yes, the weather really slowed us down. The analysis afterwards was actually fine.\nTutor: I see. Well, the report reads clearly, but my main suggestion is that you add more graphs. At the moment you describe the numbers in words, and a couple of charts would make the trends much easier to follow.\nTom: That's fair. We can turn the tables into bar charts.\nTutor: Good. Now, your central finding. What would you say your main conclusion is?\nLena: That the water quality actually improved as we moved downstream, which surprised us, because we expected it to get worse near the town.\nTutor: That's a strong conclusion, and worth highlighting. For the next stage, what do you think you need to do?\nTom: I thought we should collect more samples.\nTutor: You have enough samples, actually. What's missing is the human side. I'd like you to interview some local residents about how they use the river. That would add real depth.\nLena: Okay, interviewing residents, that makes sense.\nTutor: And remember the deadline. The full report is due at the end of the month, so don't leave the interviews too late.\nTom: End of the month, noted. Should we divide the remaining work?\nTutor: Good idea. Let's agree who does what. Who'll write the introduction?\nTom: I'll do the introduction. I've already started it.\nLena: And I'm happy to draw the maps, since I did the GPS work.\nTutor: Perfect. Now, someone needs to contact the council for the historical pollution figures.\nTom: We could both do that. Lena knows the office and I've got the reference numbers.\nLena: Yes, let's contact the council together.\nTutor: Fine. And the reference list, that's fiddly. Tom, can you check the references?\nTom: Sure, I'll check all the references.\nTutor: Which leaves the presentation slides. Lena?\nLena: Yes, I'll prepare the presentation. I enjoy that part.\nTutor: Excellent. That's a clear plan. See me again next week.",
+          "metadata": {
+            "section": 3,
+            "audio_start": 307.623,
+            "audio_end": 456.397,
+            "map_asset": null
+          },
+          "questions": [
+            {
+              "order": 21,
+              "text": "According to the students, the most difficult part of the project was",
+              "question_type": "single_choice",
+              "options": [
+                "writing the report",
+                "analysing the data",
+                "collecting the data"
+              ],
+              "correct_answer": [
+                "collecting the data"
+              ],
+              "explanation": "Tom and Lena agree the hardest part was collecting data in heavy rain.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "It was collecting the data, because it rained heavily."
+                }
+              ],
+              "metadata": {
+                "question": 21,
+                "section": 3
+              }
+            },
+            {
+              "order": 22,
+              "text": "The tutor's main suggestion is to add more",
+              "question_type": "single_choice",
+              "options": [
+                "words",
+                "graphs",
+                "samples"
+              ],
+              "correct_answer": [
+                "graphs"
+              ],
+              "explanation": "The tutor suggests adding more graphs to show the trends.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "my main suggestion is that you add more graphs."
+                }
+              ],
+              "metadata": {
+                "question": 22,
+                "section": 3
+              }
+            },
+            {
+              "order": 23,
+              "text": "The students' main conclusion is that water quality",
+              "question_type": "single_choice",
+              "options": [
+                "improved downstream",
+                "stayed the same",
+                "got worse near the town"
+              ],
+              "correct_answer": [
+                "improved downstream"
+              ],
+              "explanation": "Water quality improved downstream, which surprised them.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "the water quality actually improved as we moved downstream."
+                }
+              ],
+              "metadata": {
+                "question": 23,
+                "section": 3
+              }
+            },
+            {
+              "order": 24,
+              "text": "For the next stage, the tutor wants them to",
+              "question_type": "single_choice",
+              "options": [
+                "collect more samples",
+                "redo the analysis",
+                "interview residents"
+              ],
+              "correct_answer": [
+                "interview residents"
+              ],
+              "explanation": "The tutor wants them to interview local residents.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "I'd like you to interview some local residents."
+                }
+              ],
+              "metadata": {
+                "question": 24,
+                "section": 3
+              }
+            },
+            {
+              "order": 25,
+              "text": "The full report must be handed in by",
+              "question_type": "single_choice",
+              "options": [
+                "next week",
+                "the end of the month",
+                "the end of term"
+              ],
+              "correct_answer": [
+                "the end of the month"
+              ],
+              "explanation": "The deadline is the end of the month.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "The full report is due at the end of the month."
+                }
+              ],
+              "metadata": {
+                "question": 25,
+                "section": 3
+              }
+            },
+            {
+              "order": 26,
+              "text": "Write the introduction",
+              "question_type": "matching_information",
+              "options": [
+                "Tom",
+                "Lena",
+                "both Tom and Lena"
+              ],
+              "correct_answer": [
+                "Tom"
+              ],
+              "explanation": "Tom will write the introduction.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "I'll do the introduction."
+                }
+              ],
+              "metadata": {
+                "question": 26,
+                "section": 3
+              }
+            },
+            {
+              "order": 27,
+              "text": "Draw the maps",
+              "question_type": "matching_information",
+              "options": [
+                "Tom",
+                "Lena",
+                "both Tom and Lena"
+              ],
+              "correct_answer": [
+                "Lena"
+              ],
+              "explanation": "Lena will draw the maps.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "I'm happy to draw the maps."
+                }
+              ],
+              "metadata": {
+                "question": 27,
+                "section": 3
+              }
+            },
+            {
+              "order": 28,
+              "text": "Contact the council",
+              "question_type": "matching_information",
+              "options": [
+                "Tom",
+                "Lena",
+                "both Tom and Lena"
+              ],
+              "correct_answer": [
+                "both Tom and Lena"
+              ],
+              "explanation": "Tom and Lena will contact the council together.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "let's contact the council together."
+                }
+              ],
+              "metadata": {
+                "question": 28,
+                "section": 3
+              }
+            },
+            {
+              "order": 29,
+              "text": "Check the references",
+              "question_type": "matching_information",
+              "options": [
+                "Tom",
+                "Lena",
+                "both Tom and Lena"
+              ],
+              "correct_answer": [
+                "Tom"
+              ],
+              "explanation": "Tom will check the references.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "I'll check all the references."
+                }
+              ],
+              "metadata": {
+                "question": 29,
+                "section": 3
+              }
+            },
+            {
+              "order": 30,
+              "text": "Prepare the presentation",
+              "question_type": "matching_information",
+              "options": [
+                "Tom",
+                "Lena",
+                "both Tom and Lena"
+              ],
+              "correct_answer": [
+                "Lena"
+              ],
+              "explanation": "Lena will prepare the presentation.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "I'll prepare the presentation."
+                }
+              ],
+              "metadata": {
+                "question": 30,
+                "section": 3
+              }
+            }
+          ]
+        },
+        {
+          "order": 4,
+          "title": "Section 4 - Lecture on green roofs",
+          "instructions": "Questions 31-40. Complete the notes. Write ONE WORD ONLY for each answer.",
+          "audio_url": "/static/audio/listening/testora-studio-02.m4a",
+          "passage": "Lecturer: Good afternoon. Today we're looking at green roofs, roofs that are deliberately covered with growing plants, and why cities are increasingly adopting them.\nLecturer: Although the idea is ancient, the modern green roof movement really began in Germany in the nineteen sixties and seventies. German engineers developed most of the early standards, and the country still has more green roofs than anywhere else.\nLecturer: So why build them? The first major benefit is temperature. Cities are much hotter than the countryside, a problem we call the urban heat island. Green roofs absorb less heat than concrete, and so they help to reduce this island effect across a city.\nLecturer: Let's look at how one is built, from the bottom up. Directly on the roof deck goes a waterproof layer. Above that, crucially, sits a special membrane, whose job is to stop plant roots from damaging the waterproofing below. Without it, roots would eventually cause leaks.\nLecturer: On top of that go a drainage layer, a thin growing medium, and finally the plants. Now, the plants are chosen very carefully. Because the soil is shallow and dries quickly, designers favour succulents, plants that store water in their leaves and so survive long dry periods with almost no maintenance.\nLecturer: Beyond cooling, green roofs bring other benefits. When it rains, an ordinary roof sends water straight into the drains all at once. A green roof soaks up much of the rain, which significantly reduces runoff and helps prevent urban flooding.\nLecturer: There's an ecological benefit too. In dense cities with few gardens, these roofs create surprising islands of life. They provide a habitat for insects, particularly bees and butterflies, which struggle to find flowers at street level.\nLecturer: Of course, there are drawbacks. The most obvious one is money. While they save on energy bills over time, the main disadvantage of a green roof is the high installation cost, which can deter building owners.\nLecturer: Maintenance matters as well. Although low, it isn't zero. In particular, the roof must be inspected regularly for leaks, because water damage can be expensive and hard to trace once it spreads.\nLecturer: Let me summarise the climate benefits. In summer, the layer of soil and plants insulates the building and keeps the rooms below noticeably cool, cutting air-conditioning use. In winter, the same layer helps keep heat in.\nLecturer: Looking ahead, I think the trend is clear. Several cities already offer grants, and I predict that within a decade green roofs will become a legal requirement for many new buildings, just as insulation is today. We'll stop there for now.",
+          "metadata": {
+            "section": 4,
+            "audio_start": 459.397,
+            "audio_end": 648.309,
+            "map_asset": null
+          },
+          "questions": [
+            {
+              "order": 31,
+              "text": "The modern green-roof movement began in ____ in the 1960s.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "Germany"
+              ],
+              "explanation": "The movement began in Germany in the 1960s and 70s.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "the modern green roof movement really began in Germany."
+                }
+              ],
+              "metadata": {
+                "question": 31,
+                "section": 4
+              }
+            },
+            {
+              "order": 32,
+              "text": "Green roofs help reduce the urban heat ____ effect.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "island"
+              ],
+              "explanation": "They reduce the urban heat island effect.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "a problem we call the urban heat island."
+                }
+              ],
+              "metadata": {
+                "question": 32,
+                "section": 4
+              }
+            },
+            {
+              "order": 33,
+              "text": "A special ____ stops roots from damaging the waterproofing.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "membrane"
+              ],
+              "explanation": "A membrane stops roots from damaging the waterproofing.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "sits a special membrane, whose job is to stop plant roots."
+                }
+              ],
+              "metadata": {
+                "question": 33,
+                "section": 4
+              }
+            },
+            {
+              "order": 34,
+              "text": "Designers usually choose ____ because they store water and need little care.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "succulents"
+              ],
+              "explanation": "Succulents store water in their leaves and need little maintenance.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "designers favour succulents, plants that store water in their leaves."
+                }
+              ],
+              "metadata": {
+                "question": 34,
+                "section": 4
+              }
+            },
+            {
+              "order": 35,
+              "text": "Green roofs significantly reduce rainwater ____.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "runoff"
+              ],
+              "explanation": "They reduce runoff and help prevent flooding.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "significantly reduces runoff and helps prevent urban flooding."
+                }
+              ],
+              "metadata": {
+                "question": 35,
+                "section": 4
+              }
+            },
+            {
+              "order": 36,
+              "text": "They provide a ____ for insects such as bees.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "habitat"
+              ],
+              "explanation": "They provide a habitat for insects such as bees.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "They provide a habitat for insects, particularly bees."
+                }
+              ],
+              "metadata": {
+                "question": 36,
+                "section": 4
+              }
+            },
+            {
+              "order": 37,
+              "text": "The main disadvantage is the high ____ cost.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "installation"
+              ],
+              "explanation": "The main disadvantage is the high installation cost.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "the main disadvantage of a green roof is the high installation cost."
+                }
+              ],
+              "metadata": {
+                "question": 37,
+                "section": 4
+              }
+            },
+            {
+              "order": 38,
+              "text": "The roof must be checked regularly for ____.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "leaks"
+              ],
+              "explanation": "The roof must be inspected regularly for leaks.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "the roof must be inspected regularly for leaks."
+                }
+              ],
+              "metadata": {
+                "question": 38,
+                "section": 4
+              }
+            },
+            {
+              "order": 39,
+              "text": "In summer, green roofs keep the rooms below ____.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "cool"
+              ],
+              "explanation": "In summer they keep the rooms below cool.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "keeps the rooms below noticeably cool."
+                }
+              ],
+              "metadata": {
+                "question": 39,
+                "section": 4
+              }
+            },
+            {
+              "order": 40,
+              "text": "The lecturer predicts green roofs will become a legal ____.",
+              "question_type": "fill_blank",
+              "options": null,
+              "correct_answer": [
+                "requirement"
+              ],
+              "explanation": "He predicts they will become a legal requirement for new buildings.",
+              "evidence": [
+                {
+                  "paragraph": 1,
+                  "quote": "green roofs will become a legal requirement for many new buildings."
+                }
+              ],
+              "metadata": {
+                "question": 40,
+                "section": 4
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

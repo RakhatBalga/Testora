@@ -108,7 +108,7 @@ export default function SpeakingPage() {
               className="group animate-fade-up"
               style={{ animationDelay: `${i * 80}ms` }}
             >
-              <Card className="h-full p-5 transition duration-300 group-hover:-translate-y-1 group-hover:border-amber-300 group-hover:shadow-lg">
+              <Card className="h-full p-5 transition duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
                 <Badge tone={partTone(task.part)}>Part {task.part}</Badge>
                 <h2 className="mt-3 text-lg font-semibold text-slate-900">
                   Speaking Part {task.part}
