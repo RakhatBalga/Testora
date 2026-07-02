@@ -15,10 +15,12 @@ from app.api.schemas.writing import (
 from app.infrastructure.ai import get_writing_grader
 from app.infrastructure.ai.concurrency import run_grading
 from app.application.mistakes import clear_mistakes, record_mistakes
+from app.application.quota import enforce_free_quota
 from app.application.writing_precheck import (
     validate_writing_submission,
     zero_band_feedback,
 )
+from app.infrastructure.config import settings
 
 router = APIRouter()
 logger = logging.getLogger("testora.writing")
@@ -53,6 +55,11 @@ async def submit(
     task = db.query(WritingTask).filter(WritingTask.id == payload.task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    enforce_free_quota(
+        db, WritingSubmission, current_user,
+        settings.FREE_WRITING_SUBMISSIONS, "writing",
+    )
 
     precheck = validate_writing_submission(
         task_type=task.task_type,

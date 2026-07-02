@@ -51,6 +51,18 @@ class Settings(BaseSettings):
     # Disable to halve Writing grading cost/latency (examiner scores still return).
     WRITING_COACH_ENABLED: bool = True
 
+    # Free-tier AI grading quotas (per account, lifetime, until subscriptions
+    # exist). Failed gradings do not consume quota. 0 = feature disabled
+    # entirely; negative = unlimited (dev).
+    FREE_WRITING_SUBMISSIONS: int = 2
+    FREE_SPEAKING_SUBMISSIONS: int = 2
+    # Comma-separated usernames exempt from quotas (owner/demo accounts).
+    QUOTA_EXEMPT_USERS: str = ""
+
+    @property
+    def quota_exempt_users(self) -> set[str]:
+        return {u.strip() for u in self.QUOTA_EXEMPT_USERS.split(",") if u.strip()}
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
