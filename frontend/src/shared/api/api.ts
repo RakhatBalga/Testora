@@ -384,6 +384,14 @@ export type WritingTask = {
   duration_minutes: number;
 };
 
+/** Free-tier AI review allowance (writing / speaking). */
+export type FreeQuota = {
+  limit: number;
+  used: number;
+  remaining: number;
+  exempt: boolean;
+};
+
 export type WritingVisualSeries = {
   name: string;
   values: number[];
@@ -919,6 +927,10 @@ export const api = {
   listWritingTasks: () => request<WritingTask[]>("/writing/tasks"),
 
   getWritingTask: (id: number) => request<WritingTask>(`/writing/tasks/${id}`),
+
+  getWritingQuota: () => request<FreeQuota>("/writing/quota"),
+
+  getSpeakingQuota: () => request<FreeQuota>("/speaking/quota"),
 
   submitWriting: (task_id: number, text: string) =>
     request<WritingSubmission>("/writing/submit", {

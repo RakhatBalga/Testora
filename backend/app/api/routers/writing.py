@@ -15,7 +15,7 @@ from app.api.schemas.writing import (
 from app.infrastructure.ai import get_writing_grader
 from app.infrastructure.ai.concurrency import run_grading
 from app.application.mistakes import clear_mistakes, record_mistakes
-from app.application.quota import enforce_free_quota
+from app.application.quota import enforce_free_quota, quota_status
 from app.application.writing_precheck import (
     validate_writing_submission,
     zero_band_feedback,
@@ -44,6 +44,16 @@ def get_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
+
+
+@router.get("/quota")
+def get_quota(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return quota_status(
+        db, WritingSubmission, current_user, settings.FREE_WRITING_SUBMISSIONS
+    )
 
 
 @router.post("/submit", response_model=WritingSubmissionOut)
