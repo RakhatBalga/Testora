@@ -49,6 +49,9 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:?set GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      FREE_WRITING_SUBMISSIONS: ${FREE_WRITING_SUBMISSIONS:-2}
+      FREE_SPEAKING_SUBMISSIONS: ${FREE_SPEAKING_SUBMISSIONS:-2}
+      QUOTA_EXEMPT_USERS: ${QUOTA_EXEMPT_USERS:-}
     volumes:
       - audio:/app/private/audio_submissions
     ports:
