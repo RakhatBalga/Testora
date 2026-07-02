@@ -12,6 +12,40 @@ from sqlalchemy.orm import Session
 from app.infrastructure.config import settings
 
 
+def _consumed_count(db: Session, model, user_id: int) -> int:
+    """Count quota-consuming submissions for a user.
+
+    Writing has a `status` column ("failed" rows never produced a grade);
+    speaking has no status, so an ungraded/failed row is `band` NULL or 0.
+    Either way, only gradings the user actually received are counted.
+    """
+    q = db.query(model).filter(model.user_id == user_id)
+    if hasattr(model, "status"):
+        q = q.filter(model.status != "failed")
+    else:
+        q = q.filter(model.band > 0)
+    return q.count()
+
+
+def quota_status(db: Session, model, user, limit: int) -> dict:
+    """Return the user's free-quota state for a submission model.
+
+    Shape: {"limit", "used", "remaining", "exempt"}. Exempt users and
+    negative limits report unlimited via exempt=True (remaining stays at
+    limit so UIs don't render a countdown).
+    """
+    exempt = limit < 0 or user.username in settings.quota_exempt_users
+    if exempt:
+        return {"limit": limit, "used": 0, "remaining": limit, "exempt": True}
+    used = _consumed_count(db, model, user.id)
+    return {
+        "limit": limit,
+        "used": used,
+        "remaining": max(0, limit - used),
+        "exempt": False,
+    }
+
+
 def enforce_free_quota(db: Session, model, user, limit: int, skill: str) -> None:
     """Raise 403 if the user has used up their free gradings for this skill.
 
@@ -24,11 +58,7 @@ def enforce_free_quota(db: Session, model, user, limit: int, skill: str) -> None
         return
     if user.username in settings.quota_exempt_users:
         return
-    used = (
-        db.query(model)
-        .filter(model.user_id == user.id, model.status != "failed")
-        .count()
-    )
+    used = _consumed_count(db, model, user.id)
     if used >= limit:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

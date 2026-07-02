@@ -29,7 +29,7 @@ from app.api.schemas.speaking import (
 from app.infrastructure.ai import get_speaking_grader
 from app.infrastructure.ai.concurrency import run_grading
 from app.application.mistakes import record_mistakes
-from app.application.quota import enforce_free_quota
+from app.application.quota import enforce_free_quota, quota_status
 
 router = APIRouter()
 logger = logging.getLogger("testora.speaking")
@@ -79,6 +79,16 @@ def get_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
+
+
+@router.get("/quota")
+def get_quota(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return quota_status(
+        db, SpeakingSubmission, current_user, settings.FREE_SPEAKING_SUBMISSIONS
+    )
 
 
 @router.post("/submit", response_model=SpeakingSubmissionOut)

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Trash2 } from "lucide-react";
-import { api, WritingTask } from "@/shared/api";
+import { Loader2, Lock, Sparkles, Trash2 } from "lucide-react";
+import { api, FreeQuota, WritingTask } from "@/shared/api";
 import { useAuth, useRequireAuth } from "@/shared/auth";
 import { Badge } from "@/shared/ui";
 import { Button } from "@/shared/ui";
@@ -48,6 +48,7 @@ export default function WritingTaskPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [draftRecovered, setDraftRecovered] = useState(false);
+  const [quota, setQuota] = useState<FreeQuota | null>(null);
   const draftKey = `testora.writing.draft.${username ?? "anonymous"}.${taskId}`;
 
   useEffect(() => {
@@ -65,6 +66,9 @@ export default function WritingTaskPage() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+    // Quota is informational — if the call fails we just skip the banner
+    // (the backend still enforces the limit on submit).
+    api.getWritingQuota().then(setQuota).catch(() => setQuota(null));
   }, [token, taskId, draftKey]);
 
   useEffect(() => {
@@ -87,6 +91,8 @@ export default function WritingTaskPage() {
   const wordCount = countWords(answer);
   const meetsMinimum = task ? wordCount >= task.min_words : false;
   const lowTime = timeLeft !== null && timeLeft < 60;
+  const quotaExhausted = quota !== null && !quota.exempt && quota.remaining <= 0;
+  const lastFreeReview = quota !== null && !quota.exempt && quota.remaining === 1;
 
   const handleSubmit = async () => {
     if (!task || submitting || answer.trim() === "") return;
@@ -176,6 +182,32 @@ export default function WritingTaskPage() {
         </Card>
       </div>
 
+      {quota && quotaExhausted && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-4">
+          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+            <Lock className="h-4.5 w-4.5" />
+          </span>
+          <div className="text-sm leading-relaxed text-amber-900">
+            <p className="font-semibold">You&apos;ve used your {quota.limit} free AI reviews</p>
+            <p className="mt-0.5 text-amber-800">
+              Every review runs a real AI examiner, so the free plan includes {quota.limit} of
+              them. Paid plans are coming soon — you can still write and save drafts in the
+              meantime. Thanks for trying Testora!
+            </p>
+          </div>
+        </div>
+      )}
+
+      {lastFreeReview && !quotaExhausted && (
+        <div className="flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <Sparkles className="h-4 w-4 shrink-0 text-blue-600" />
+          <span>
+            <span className="font-semibold">1 free AI review left.</span> Make this essay
+            count — polish it before submitting.
+          </span>
+        </div>
+      )}
+
       {error && (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
       )}
@@ -230,11 +262,13 @@ export default function WritingTaskPage() {
         />
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-500">
-            Aim for at least {task.min_words} words before submitting.
+            {quotaExhausted
+              ? "Free AI reviews used — drafts still save automatically."
+              : `Aim for at least ${task.min_words} words before submitting.`}
           </p>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || answer.trim() === ""}
+            disabled={submitting || answer.trim() === "" || quotaExhausted}
             size="lg"
             className="sm:min-w-36"
           >
@@ -242,6 +276,11 @@ export default function WritingTaskPage() {
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Reviewing
+              </>
+            ) : quotaExhausted ? (
+              <>
+                <Lock className="h-4 w-4" />
+                Limit reached
               </>
             ) : (
               "Submit"
