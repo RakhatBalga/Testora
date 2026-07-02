@@ -29,6 +29,7 @@ from app.api.schemas.speaking import (
 from app.infrastructure.ai import get_speaking_grader
 from app.infrastructure.ai.concurrency import run_grading
 from app.application.mistakes import record_mistakes
+from app.application.quota import enforce_free_quota
 
 router = APIRouter()
 logger = logging.getLogger("testora.speaking")
@@ -90,6 +91,11 @@ async def submit(
     task = db.query(SpeakingTask).filter(SpeakingTask.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    enforce_free_quota(
+        db, SpeakingSubmission, current_user,
+        settings.FREE_SPEAKING_SUBMISSIONS, "speaking",
+    )
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     suffix = _safe_suffix(audio.filename)
