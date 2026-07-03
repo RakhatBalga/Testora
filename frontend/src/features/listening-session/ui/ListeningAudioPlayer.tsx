@@ -108,7 +108,7 @@ export function ListeningAudioPlayer({
   const displayDuration = mode === "practice" ? sectionEnd - sectionStart : sliderMax;
 
   return (
-    <div className="flex min-h-14 items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-700 shadow-sm">
+    <div className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-slate-700">
       <audio
         ref={audioRef}
         src={resolvedSrc}
@@ -124,12 +124,12 @@ export function ListeningAudioPlayer({
         title={mode === "exam" && playing ? "Audio cannot be paused in Exam mode" : playing ? "Pause" : "Play"}
         disabled={mode === "exam" && playing}
         onClick={playing ? pause : play}
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--brand)] text-white hover:opacity-90 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--brand)] text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
       >
         {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
       </button>
       {mode === "practice" && (
-        <button type="button" aria-label="Restart section audio" title="Restart section" onClick={restart} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200">
+        <button type="button" aria-label="Restart section audio" title="Restart section" onClick={restart} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 transition hover:bg-slate-200">
           <RotateCcw className="h-4 w-4" />
         </button>
       )}
@@ -151,7 +151,7 @@ export function ListeningAudioPlayer({
           className="mt-1 h-1.5 w-full accent-[var(--brand)] disabled:cursor-default"
         />
       </div>
-      <span className="hidden rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold uppercase text-slate-500 sm:block">{mode}</span>
+      <span className="hidden rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-semibold uppercase text-slate-500 sm:block">{mode}</span>
     </div>
   );
 }
