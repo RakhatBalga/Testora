@@ -5,7 +5,7 @@
       "test_type": "listening",
       "difficulty": "Medium-Hard",
       "description": "Original IELTS-style practice test created by Testora. Four sections, 40 questions, eight distinct voices.",
-      "duration_minutes": 12,
+      "duration_minutes": 24,
       "content_version": "1.0.0",
       "metadata": {
         "schema_version": "testora.listening-content.v1",
