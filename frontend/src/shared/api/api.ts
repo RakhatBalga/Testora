@@ -690,6 +690,28 @@ function handleUnauthorized(): void {
   }
 }
 
+/** FastAPI errors carry `detail` as either a string or, for validation
+ *  failures (422), an array of {loc, msg} objects. Render both as readable
+ *  text instead of the dreaded "[object Object]". */
+function detailToMessage(detail: unknown, fallback = "Request failed"): string {
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (Array.isArray(detail)) {
+    const parts = detail
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") {
+          const { loc, msg } = item as { loc?: unknown[]; msg?: string };
+          const field = Array.isArray(loc) ? String(loc[loc.length - 1] ?? "") : "";
+          if (msg) return field && field !== "body" ? `${field}: ${msg}` : msg;
+        }
+        return "";
+      })
+      .filter(Boolean);
+    if (parts.length) return parts.join("; ");
+  }
+  return fallback;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getStoredAuthToken();
   const headers: Record<string, string> = {
@@ -705,14 +727,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new Error("Your session has expired. Please sign in again.");
   }
   if (!res.ok) {
-    let detail = "Request failed";
+    let message = "Request failed";
     try {
       const data = await res.json();
-      detail = data.detail || detail;
+      message = detailToMessage(data.detail);
     } catch {
       // ignore non-JSON error bodies
     }
-    throw new Error(detail);
+    throw new Error(message);
   }
   return res.json();
 }
@@ -733,14 +755,14 @@ async function requestForm<T>(path: string, formData: FormData): Promise<T> {
     throw new Error("Your session has expired. Please sign in again.");
   }
   if (!res.ok) {
-    let detail = "Request failed";
+    let message = "Request failed";
     try {
       const data = await res.json();
-      detail = data.detail || detail;
+      message = detailToMessage(data.detail);
     } catch {
       // ignore non-JSON error bodies
     }
-    throw new Error(detail);
+    throw new Error(message);
   }
   return res.json();
 }
@@ -767,7 +789,7 @@ function requestFormWithProgress<T>(
         return;
       }
       if (request.status < 200 || request.status >= 300) {
-        reject(new Error(request.response?.detail || "Request failed"));
+        reject(new Error(detailToMessage(request.response?.detail)));
         return;
       }
       resolve(request.response as T);
