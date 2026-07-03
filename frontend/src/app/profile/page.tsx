@@ -303,7 +303,7 @@ export default function ProfilePage() {
       {profile && (
         <section className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40">
           <div className="flex flex-wrap items-start justify-between gap-4">
-            <div><h2 className="font-semibold text-slate-900">Study settings</h2><p className="mt-1 text-sm text-slate-500">Used for your diagnostic baseline and weekly plan.</p></div>
+            <div><h2 className="font-semibold text-slate-900">Study settings</h2><p className="mt-1 text-sm text-slate-500">Used for your weekly plan.</p></div>
             <div className="flex flex-wrap gap-2"><Button variant="secondary" disabled={resettingPlan} onClick={handlePlanReset}>{resettingPlan ? "Resetting..." : "Reset plan"}</Button><Button disabled={savingSettings} onClick={handleSettingsSave}>{savingSettings ? "Saving..." : "Save settings"}</Button></div>
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -330,7 +330,6 @@ export default function ProfilePage() {
               </select>
             </label>
           </div>
-          <Link href="/diagnostic" className="mt-5 inline-flex text-sm font-semibold text-[var(--brand)] hover:underline">Review diagnostic</Link>
         </section>
       )}
 
