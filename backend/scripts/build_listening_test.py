@@ -421,7 +421,9 @@ def build() -> None:
         "test_type": "listening",
         "difficulty": "Medium-Hard",
         "description": "Original IELTS-style practice test created by Testora. Four sections, 40 questions, eight distinct voices.",
-        "duration_minutes": round(total / 60) + 1,
+        # Audio length + time to read questions and transfer answers (real IELTS
+        # gives ~10 extra minutes; 1 minute would auto-expire mid-test).
+        "duration_minutes": round(total / 60) + 13,
         "content_version": "1.0.0",
         "metadata": {
             "schema_version": "testora.listening-content.v1",

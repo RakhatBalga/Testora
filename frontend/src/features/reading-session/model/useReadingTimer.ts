@@ -49,20 +49,28 @@ export function useReadingTimer(
     [key]
   );
 
-  // Initialise from storage or start fresh.
+  // Initialise from storage or start fresh. A deadline that already expired
+  // while the page was closed is treated as a stale session and restarted —
+  // firing onExpire on mount would auto-submit an empty attempt the moment
+  // the user re-opens the test (a phantom 0-score result). Expiry only
+  // counts when the clock ticks down to zero during a live session.
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const saved = load(key);
       const now = Date.now();
-      if (saved?.pausedRemaining != null) {
+      const fresh = () => {
+        persist({ deadline: now + durationSeconds * 1000, pausedRemaining: null });
+        setRemaining(durationSeconds);
+      };
+      if (saved?.pausedRemaining != null && saved.pausedRemaining > 0) {
         setRemaining(saved.pausedRemaining);
         setPaused(true);
       } else if (saved?.deadline != null) {
-        setRemaining(Math.max(0, Math.round((saved.deadline - now) / 1000)));
+        const left = Math.round((saved.deadline - now) / 1000);
+        if (left > 0) setRemaining(left);
+        else fresh();
       } else {
-        const deadline = now + durationSeconds * 1000;
-        persist({ deadline, pausedRemaining: null });
-        setRemaining(durationSeconds);
+        fresh();
       }
     }, 0);
     return () => window.clearTimeout(timer);
