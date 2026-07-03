@@ -35,13 +35,6 @@ export function CoachDashboard({ username }: { username: string | null }) {
 
   return (
     <div className="space-y-6">
-      {!data.profile.onboarding_completed && (
-        <section className="flex flex-col gap-4 rounded-xl border border-blue-200 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div><p className="font-semibold text-blue-950">Personalize your plan</p><p className="mt-1 text-sm text-blue-800">Set your schedule and focus. Your existing practice remains available.</p></div>
-          <Link href="/onboarding" className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">Set up profile <ArrowRight className="h-4 w-4" /></Link>
-        </section>
-      )}
-
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div><p className="text-sm font-semibold text-[var(--brand)]">Dashboard</p><h1 className="mt-1 text-3xl font-bold text-slate-950">{greeting()}, {formatDisplayName(username)}</h1><p className="mt-2 text-slate-600">Your next step is based on completed Writing and Reading work.</p></div>
@@ -49,7 +42,7 @@ export function CoachDashboard({ username }: { username: string | null }) {
         </div>
         <div className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-3">
           <Metric label="Target band" value={data.profile.target_band.toFixed(1)} hint="your goal" icon={<Target className="h-4 w-4" />} />
-          <Metric label="Current level" value={current === null ? "Not set" : current.toFixed(1)} hint={data.profile.current_level_source || "complete a diagnostic"} icon={<ClipboardCheck className="h-4 w-4" />} />
+          <Metric label="Current level" value={current === null ? "Not set" : current.toFixed(1)} hint={data.profile.current_level_source || "set in profile"} icon={<ClipboardCheck className="h-4 w-4" />} />
           <Metric label="Exam countdown" value={data.profile.days_to_exam === null ? "No date" : `${data.profile.days_to_exam} days`} hint={data.profile.exam_date ? new Date(`${data.profile.exam_date}T12:00:00`).toLocaleDateString() : "set in profile"} icon={<CalendarClock className="h-4 w-4" />} />
         </div>
       </section>

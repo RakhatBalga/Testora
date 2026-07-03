@@ -95,6 +95,14 @@
       "image_url": null,
       "min_words": 250,
       "duration_minutes": 40
+    },
+    {
+      "task_type": 2,
+      "title": "Writing Task 2 — Theatres and cinemas",
+      "prompt": "Some people say that in the digital age, theatres and cinemas are no longer important as people can watch all the entertainment they want online. Others argue that theatres and cinemas are still important both economically and culturally.\n\nDiscuss both these views and give your own opinion.\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
+      "image_url": null,
+      "min_words": 250,
+      "duration_minutes": 40
     }
   ]
 }

@@ -9,11 +9,48 @@
         "kind": "line",
         "title": "Average monthly visits to public libraries, 2018–2023",
         "unit": "thousands",
-        "categories": ["2018", "2019", "2020", "2021", "2022", "2023"],
+        "categories": [
+          "2018",
+          "2019",
+          "2020",
+          "2021",
+          "2022",
+          "2023"
+        ],
         "series": [
-          { "name": "Central Library", "values": [42, 45, 31, 36, 49, 58] },
-          { "name": "Riverside Library", "values": [18, 22, 25, 29, 34, 41] },
-          { "name": "Hilltop Library", "values": [27, 26, 20, 22, 24, 23] }
+          {
+            "name": "Central Library",
+            "values": [
+              42,
+              45,
+              31,
+              36,
+              49,
+              58
+            ]
+          },
+          {
+            "name": "Riverside Library",
+            "values": [
+              18,
+              22,
+              25,
+              29,
+              34,
+              41
+            ]
+          },
+          {
+            "name": "Hilltop Library",
+            "values": [
+              27,
+              26,
+              20,
+              22,
+              24,
+              23
+            ]
+          }
         ]
       },
       "min_words": 150,
@@ -28,10 +65,34 @@
         "kind": "bar",
         "title": "Main commuting methods used by workers in 2024",
         "unit": "% of workers",
-        "categories": ["Car", "Bus", "Train", "Bicycle", "Walking"],
+        "categories": [
+          "Car",
+          "Bus",
+          "Train",
+          "Bicycle",
+          "Walking"
+        ],
         "series": [
-          { "name": "Northbank", "values": [38, 22, 16, 14, 10] },
-          { "name": "Eastmere", "values": [24, 31, 27, 8, 10] }
+          {
+            "name": "Northbank",
+            "values": [
+              38,
+              22,
+              16,
+              14,
+              10
+            ]
+          },
+          {
+            "name": "Eastmere",
+            "values": [
+              24,
+              31,
+              27,
+              8,
+              10
+            ]
+          }
         ]
       },
       "min_words": 150,
@@ -46,8 +107,33 @@
         "kind": "table",
         "title": "Average annual household energy use",
         "unit": "kWh",
-        "columns": ["Category", "2014", "2024"],
-        "rows": [["Heating", 6800, 5200], ["Water heating", 2500, 2200], ["Appliances", 1900, 2600], ["Lighting", 900, 450]]
+        "columns": [
+          "Category",
+          "2014",
+          "2024"
+        ],
+        "rows": [
+          [
+            "Heating",
+            6800,
+            5200
+          ],
+          [
+            "Water heating",
+            2500,
+            2200
+          ],
+          [
+            "Appliances",
+            1900,
+            2600
+          ],
+          [
+            "Lighting",
+            900,
+            450
+          ]
+        ]
       },
       "min_words": 150,
       "duration_minutes": 20
@@ -62,8 +148,56 @@
         "title": "University annual budget allocation",
         "unit": "%",
         "charts": [
-          { "title": "2015", "values": [{ "name": "Teaching staff", "value": 42 }, { "name": "Research", "value": 18 }, { "name": "Buildings", "value": 16 }, { "name": "Technology", "value": 9 }, { "name": "Student services", "value": 15 }] },
-          { "title": "2025", "values": [{ "name": "Teaching staff", "value": 36 }, { "name": "Research", "value": 25 }, { "name": "Buildings", "value": 14 }, { "name": "Technology", "value": 17 }, { "name": "Student services", "value": 8 }] }
+          {
+            "title": "2015",
+            "values": [
+              {
+                "name": "Teaching staff",
+                "value": 42
+              },
+              {
+                "name": "Research",
+                "value": 18
+              },
+              {
+                "name": "Buildings",
+                "value": 16
+              },
+              {
+                "name": "Technology",
+                "value": 9
+              },
+              {
+                "name": "Student services",
+                "value": 15
+              }
+            ]
+          },
+          {
+            "title": "2025",
+            "values": [
+              {
+                "name": "Teaching staff",
+                "value": 36
+              },
+              {
+                "name": "Research",
+                "value": 25
+              },
+              {
+                "name": "Buildings",
+                "value": 14
+              },
+              {
+                "name": "Technology",
+                "value": 17
+              },
+              {
+                "name": "Student services",
+                "value": 8
+              }
+            ]
+          }
         ]
       },
       "min_words": 150,
@@ -77,7 +211,15 @@
       "visual_data": {
         "kind": "process",
         "title": "Recycling used glass bottles",
-        "steps": ["Deposit bottles in colour-coded bins", "Transport bottles to the plant", "Sort by colour and remove unsuitable items", "Wash and crush into cullet", "Melt cullet in a furnace", "Mould molten glass into bottles", "Cool, inspect, fill and deliver"]
+        "steps": [
+          "Deposit bottles in colour-coded bins",
+          "Transport bottles to the plant",
+          "Sort by colour and remove unsuitable items",
+          "Wash and crush into cullet",
+          "Melt cullet in a furnace",
+          "Mould molten glass into bottles",
+          "Cool, inspect, fill and deliver"
+        ]
       },
       "min_words": 150,
       "duration_minutes": 20
@@ -90,8 +232,46 @@
       "visual_data": {
         "kind": "map",
         "title": "Town centre redevelopment",
-        "before": ["North-west: large car park", "North-east: bus station", "Market Street: shops on both sides", "South: public library", "Riverside: narrow footpath"],
-        "after": ["North-west: apartments and public square", "East: bus station beside railway station", "Market Street: pedestrian-only", "South: extended library and community hall", "Riverside: wider footpath and cycle lane"]
+        "before": [
+          "North-west: large car park",
+          "North-east: bus station",
+          "Market Street: shops on both sides",
+          "South: public library",
+          "Riverside: narrow footpath"
+        ],
+        "after": [
+          "North-west: apartments and public square",
+          "East: bus station beside railway station",
+          "Market Street: pedestrian-only",
+          "South: extended library and community hall",
+          "Riverside: wider footpath and cycle lane"
+        ]
+      },
+      "min_words": 150,
+      "duration_minutes": 20
+    },
+    {
+      "task_type": 1,
+      "title": "Writing Task 1 — Plans: college café redesign",
+      "prompt": "The plans below show a college café before it was redesigned and how it looks now.\n\nCafé before redesign:\n- The kitchen was in the top-left corner, with a single serving area for all food and drink directly below it.\n- Two staff dining rooms with round tables occupied the centre of the café.\n- The main floor was filled with tables and chairs for students.\n- A single bin stood by the right-hand wall.\n- The toilets were in the bottom-right corner.\n\nCafé today:\n- The kitchen remains in the top-left corner, but the serving area has been replaced by a hot meals counter.\n- The staff dining rooms have been removed and replaced by a take-away food counter and a coffee bar in the centre.\n- A salad bar has been added along the left-hand wall.\n- The single bin has been replaced by recycling bins on the right-hand wall; the toilets remain in the bottom-right corner.\n- A new outdoor seating area with tables has been created outside, with a barbecue in its far corner.\n\nSummarise the information by selecting and reporting the main features, and make comparisons where relevant.\n\nWrite at least 150 words.",
+      "image_url": null,
+      "visual_data": {
+        "kind": "map",
+        "title": "College café redesign",
+        "before": [
+          "Top-left: kitchen with single serving area (all food & drink)",
+          "Centre: two staff dining rooms",
+          "Main floor: tables and chairs",
+          "Right wall: single bin",
+          "Bottom-right: toilets"
+        ],
+        "after": [
+          "Top-left: kitchen with hot meals counter",
+          "Centre: take-away food counter and coffee bar",
+          "Left wall: new salad bar",
+          "Right wall: recycling bins; toilets unchanged",
+          "Outside: new outdoor seating area with barbecue"
+        ]
       },
       "min_words": 150,
       "duration_minutes": 20
