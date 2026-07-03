@@ -91,6 +91,7 @@ def _config(
     schema=None,
     temperature: float = 0.3,
     max_tokens: int = 4096,
+    model: str | None = None,
 ):
     from google.genai import types
 
@@ -107,7 +108,7 @@ def _config(
     # Gemini Flash supports disabling thinking, which keeps structured grading
     # cheaper and more deterministic. Gemini Pro requires thinking mode, so do
     # not send an invalid zero budget for Pro models.
-    if "pro" not in settings.GEMINI_MODEL.lower():
+    if "pro" not in (model or settings.GEMINI_MODEL).lower():
         kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
     if schema is not None:
         kwargs["response_schema"] = schema
@@ -132,22 +133,25 @@ def _generate(
     schema=None,
     temperature: float = 0.3,
     max_tokens: int = 4096,
+    model: str | None = None,
 ) -> str:
     """Call Gemini with a fresh client, retrying transient failures with backoff."""
     last_exc: Exception | None = None
-    if "pro" in settings.GEMINI_MODEL.lower():
+    used_model = model or settings.GEMINI_MODEL
+    if "pro" in used_model.lower():
         max_tokens = max(max_tokens, 8192)
     for attempt in range(1, _MAX_ATTEMPTS + 1):
         try:
             client = _client()
             resp = client.models.generate_content(
-                model=settings.GEMINI_MODEL,
+                model=used_model,
                 contents=contents,
                 config=_config(
                     system,
                     schema=schema,
                     temperature=temperature,
                     max_tokens=max_tokens,
+                    model=used_model,
                 ),
             )
             _raise_if_truncated(resp)
@@ -281,11 +285,11 @@ class GeminiWritingGrader(WritingGrader):
                 temperature=0.4,
                 max_output_tokens=2048,
             )
-            if "pro" not in settings.GEMINI_MODEL.lower():
+            if "pro" not in settings.GEMINI_FAST_MODEL.lower():
                 cfg_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
             client = _client()
             resp = client.models.generate_content(
-                model=settings.GEMINI_MODEL,
+                model=settings.GEMINI_FAST_MODEL,
                 contents=[user],
                 config=types.GenerateContentConfig(**cfg_kwargs),
             )
@@ -318,6 +322,7 @@ class GeminiWritingGrader(WritingGrader):
                 schema=CoachResult,
                 temperature=_COACH_TEMPERATURE,
                 max_tokens=1536,
+                model=settings.GEMINI_FAST_MODEL,
             )
             coaching = CoachResult.model_validate_json(_json_text(raw))
             return sanitize_coach_evidence(

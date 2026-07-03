@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"
+    # Cheaper/faster model for the secondary generative calls (coach guidance,
+    # Better Version rewrite). Band accuracy lives in GEMINI_MODEL (examiner);
+    # these calls only write prose, where flash quality is fine and each Pro
+    # call would add 15-25s of latency and most of the per-submission cost.
+    GEMINI_FAST_MODEL: str = "gemini-2.5-flash"
 
     # Run the second-stage Writing "coach" call (personalised guidance + roadmap).
     # Disable to halve Writing grading cost/latency (examiner scores still return).
