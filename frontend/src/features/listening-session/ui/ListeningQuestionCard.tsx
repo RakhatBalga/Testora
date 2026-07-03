@@ -135,7 +135,7 @@ export function ListeningQuestionCard(props: Props) {
     <div
       id={`q-${question.number}`}
       onClick={onFocus}
-      className={`scroll-mt-4 rounded-lg border bg-white px-3 py-2.5 transition ${
+      className={`scroll-mt-4 rounded-xl border bg-white px-3.5 py-2.5 transition ${
         active ? "border-[var(--brand)]/40 shadow-sm" : "border-[var(--border)]"
       }`}
     >
