@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -105,18 +106,40 @@ async def _grade_and_persist(
     submission.status = "pending"
     submission.band = None
 
+    improved: str | None = None
     if precheck.valid:
         # Grade via the AI layer (mock now, Gemini when AI_PROVIDER=gemini). The
-        # blocking call is offloaded to the threadpool and globally rate-bounded so
-        # concurrent gradings can't starve the event loop or hammer the model.
+        # blocking calls are offloaded to the threadpool and globally rate-bounded
+        # so concurrent gradings can't starve the event loop or hammer the model.
+        # The "Better Version" rewrite doesn't depend on the examiner's output, so
+        # it runs concurrently with grading instead of adding its latency on top.
         grader = get_writing_grader()
-        feedback = await run_grading(
-            grader.grade,
-            task_type=task.task_type,
-            prompt=task.prompt,
-            text=submission.text,
-            min_words=task.min_words,
+        feedback, improved_result = await asyncio.gather(
+            run_grading(
+                grader.grade,
+                task_type=task.task_type,
+                prompt=task.prompt,
+                text=submission.text,
+                min_words=task.min_words,
+            ),
+            run_grading(
+                grader.improve,
+                task_type=task.task_type,
+                prompt=task.prompt,
+                text=submission.text,
+            ),
+            return_exceptions=True,
         )
+        if isinstance(feedback, BaseException):
+            raise feedback
+        if isinstance(improved_result, BaseException):
+            logger.warning(
+                "Better Version generation failed for user %s task %s",
+                current_user.id,
+                task.id,
+            )
+        else:
+            improved = improved_result
     else:
         feedback = zero_band_feedback(task.task_type, precheck)
 
@@ -147,21 +170,10 @@ async def _grade_and_persist(
     submission.band = feedback.band
     submission.status = "graded"
 
-    # Best-effort "Better Version" rewrite (Gemini only; mock returns None so the
-    # UI keeps its deterministic diff). A failure here must not fail the grade.
-    try:
-        improved = await run_grading(
-            get_writing_grader().improve,
-            task_type=task.task_type,
-            prompt=task.prompt,
-            text=submission.text,
-        )
-        if improved:
-            submission.improved_text = improved
-    except Exception:  # noqa: BLE001
-        logger.warning(
-            "Better Version generation failed for submission %s", submission.id
-        )
+    # Best-effort "Better Version" rewrite (generated concurrently above; mock
+    # returns None so the UI keeps its deterministic diff).
+    if improved:
+        submission.improved_text = improved
 
     record_mistakes(
         db,
