@@ -1,10 +1,11 @@
 import LandingNavbar from "./LandingNavbar";
 import Hero from "./Hero";
-import Features from "./Features";
-import Showcase from "./Showcase";
-import Statistics from "./Statistics";
+import StatBand from "./StatBand";
+import ResultCard from "./ResultCard";
+import MethodCards from "./MethodCards";
+import FeatureMockups from "./FeatureMockups";
+import CloudCTA from "./CloudCTA";
 import FAQ from "./FAQ";
-import CTA from "./CTA";
 import LandingFooter from "./LandingFooter";
 
 export default function Landing() {
@@ -13,11 +14,12 @@ export default function Landing() {
       <LandingNavbar />
       <main>
         <Hero />
-        <Features />
-        <Showcase />
-        <Statistics />
+        <StatBand />
+        <ResultCard />
+        <MethodCards />
+        <FeatureMockups />
+        <CloudCTA />
         <FAQ />
-        <CTA />
       </main>
       <LandingFooter />
     </div>
