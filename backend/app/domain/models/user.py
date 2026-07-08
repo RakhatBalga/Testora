@@ -8,6 +8,8 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=True)
+    google_id = Column(String, unique=True, nullable=True)
     target_band = Column(Float, nullable=False, default=7.5)
     current_level = Column(Float, nullable=True)
     current_level_source = Column(String, nullable=True)

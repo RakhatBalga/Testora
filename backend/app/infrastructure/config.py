@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # exceptions are reported. Empty = disabled (default), so dev is unaffected.
     SENTRY_DSN: str = ""
 
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/auth/google/callback"
+    FRONTEND_URL: str = "http://localhost:3000"
+
     AI_PROVIDER: str = "mock"  # mock | claude | gemini
     ANTHROPIC_API_KEY: str = ""
     GEMINI_API_KEY: str = ""

@@ -1,13 +1,20 @@
+import secrets
+from urllib.parse import urlencode
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import RedirectResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 import bcrypt
+import httpx
 
 from app.api.dependencies import get_current_user, get_db
 from app.infrastructure.ratelimit import auth_rate_limit
 from app.infrastructure.security import create_access_token
+from app.infrastructure.config import settings
 from app.domain.models.user import User
 from app.api.schemas.auth import (
+    GoogleAuthRequest,
     LoginRequest,
     RegisterRequest,
     TokenResponse,
@@ -92,3 +99,80 @@ def update_me(
         db.commit()
     db.refresh(current_user)
     return current_user
+
+
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
+
+
+@router.post("/google", response_model=TokenResponse)
+def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
+    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=501, detail="Google auth is not configured")
+
+    with httpx.Client() as client:
+        token_res = client.post(
+            GOOGLE_TOKEN_URL,
+            data={
+                "code": payload.code,
+                "client_id": settings.GOOGLE_CLIENT_ID,
+                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "redirect_uri": payload.redirect_uri,
+                "grant_type": "authorization_code",
+            },
+        )
+    if token_res.status_code != 200:
+        raise HTTPException(status_code=401, detail="Failed to exchange Google auth code")
+
+    google_tokens = token_res.json()
+    access_token = google_tokens.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=401, detail="No access token from Google")
+
+    with httpx.Client() as client:
+        userinfo_res = client.get(
+            GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+        )
+    if userinfo_res.status_code != 200:
+        raise HTTPException(status_code=401, detail="Failed to fetch Google user info")
+
+    google_user = userinfo_res.json()
+    google_id = google_user.get("id")
+    email = google_user.get("email")
+    name = google_user.get("name", "")
+
+    if not google_id or not email:
+        raise HTTPException(status_code=401, detail="Incomplete Google profile")
+
+    user = db.query(User).filter(User.google_id == google_id).first()
+    if not user:
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            user.google_id = google_id
+            db.commit()
+
+    if not user:
+        username = email.split("@")[0]
+        base_username = username
+        counter = 1
+        while db.query(User).filter(User.username == username).first():
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        dummy_password = bcrypt.hashpw(
+            secrets.token_bytes(32), bcrypt.gensalt()
+        ).decode("utf-8")
+        user = User(
+            username=username,
+            password=dummy_password,
+            email=email,
+            google_id=google_id,
+            target_band=7.5,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    token = create_access_token({"sub": user.username})
+    return {"access_token": token, "token_type": "bearer"}
