@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight, Sparkles, Target } from "lucide-react";
 import { api } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
 import { IELTS_BAND_OPTIONS, IELTS_TARGET_BAND } from "@/shared/config";
-import { AccountExistsModal, AuthField, AuthShell, type AuthPanel } from "@/features/auth";
+import { AccountExistsModal, AuthField, AuthShell, GoogleSignInButton, type AuthPanel } from "@/features/auth";
 
 const TOTAL_STEPS = 3;
 
@@ -200,7 +200,7 @@ export default function RegisterPage() {
 
         {/* Step 3 — account */}
         {step === 3 && (
-          <form onSubmit={handleSubmit}>
+          <div>
             <h1 className="text-[2rem] font-extrabold tracking-tight text-[var(--text-primary)]">
               Create your account
             </h1>
@@ -208,7 +208,18 @@ export default function RegisterPage() {
               Start preparing for your target IELTS score today.
             </p>
 
-            <div className="mt-8 space-y-4">
+            <div className="mt-8">
+              <GoogleSignInButton />
+            </div>
+
+            <div className="my-6 flex items-center gap-4">
+              <div className="h-px flex-1 bg-[var(--border)]" />
+              <span className="text-sm font-medium text-[var(--text-secondary)]">or</span>
+              <div className="h-px flex-1 bg-[var(--border)]" />
+            </div>
+
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4">
               <AuthField
                 label="Username"
                 name="username"
@@ -250,6 +261,7 @@ export default function RegisterPage() {
               </button>
             </div>
           </form>
+          </div>
         )}
       </div>
 

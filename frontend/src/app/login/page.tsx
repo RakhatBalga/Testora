@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
-import { AuthField, AuthShell } from "@/features/auth";
+import { AuthField, AuthShell, GoogleSignInButton } from "@/features/auth";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -50,7 +50,17 @@ export default function LoginPage() {
         Welcome back — continue your IELTS preparation.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+      <div className="mt-8">
+        <GoogleSignInButton />
+      </div>
+
+      <div className="my-6 flex items-center gap-4">
+        <div className="h-px flex-1 bg-[var(--border)]" />
+        <span className="text-sm font-medium text-[var(--text-secondary)]">or</span>
+        <div className="h-px flex-1 bg-[var(--border)]" />
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
         )}
