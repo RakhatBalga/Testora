@@ -56,9 +56,9 @@ export default function SpeakingPage() {
           </svg>
           All tests
         </Link>
-        <Badge tone="blue" className="mb-3 mt-3 block w-fit">
+        <p className="mb-2 mt-3 text-sm font-semibold uppercase tracking-wider text-[var(--brand)]">
           IELTS Speaking
-        </Badge>
+        </p>
         <h1 className="text-2xl font-bold text-slate-900">Speaking practice</h1>
         <p className="mt-1 text-slate-500">
           Record your answer and save it for AI feedback when grading is enabled.
