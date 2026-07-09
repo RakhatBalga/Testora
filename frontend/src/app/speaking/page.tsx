@@ -56,7 +56,7 @@ export default function SpeakingPage() {
           </svg>
           All tests
         </Link>
-        <Badge tone="slate" className="mb-3 mt-3 block w-fit">
+        <Badge tone="blue" className="mb-3 mt-3 block w-fit">
           IELTS Speaking
         </Badge>
         <h1 className="text-2xl font-bold text-slate-900">Speaking practice</h1>

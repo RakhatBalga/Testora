@@ -67,7 +67,7 @@ export default function WritingPage() {
           </svg>
           All tests
         </Link>
-        <Badge tone="green" className="mb-3 mt-3 block w-fit">
+        <Badge tone="blue" className="mb-3 mt-3 block w-fit">
           IELTS Writing
         </Badge>
         <h1 className="text-2xl font-bold text-slate-900">Writing tasks</h1>

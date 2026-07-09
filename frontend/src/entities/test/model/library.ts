@@ -2,8 +2,9 @@ import type { AttemptSummary, Test } from "@/shared/api";
 
 export type TestStatus = "completed" | "in_progress" | "not_started";
 
-/** Per-skill accent, drawn from the existing Tailwind palette (reading = violet,
- *  listening = sky). Used sparingly — eyebrow, badges, progress, CTA tint. */
+/** Per-skill accent. Eyebrow labels use the brand blue everywhere for a single,
+ *  cohesive academic palette; the softer progress tints keep a subtle per-skill
+ *  hue (reading = violet, listening = sky) where they aid recognition. */
 export type Accent = {
   text: string;
   softBg: string;
@@ -14,14 +15,14 @@ export type Accent = {
 
 export const ACCENTS: Record<string, Accent> = {
   reading: {
-    text: "text-violet-600",
+    text: "text-[var(--brand)]",
     softBg: "bg-violet-50",
     bar: "bg-violet-500",
     glow: "shadow-violet-500/10",
     ring: "ring-violet-500/15",
   },
   listening: {
-    text: "text-sky-600",
+    text: "text-[var(--brand)]",
     softBg: "bg-sky-50",
     bar: "bg-sky-500",
     glow: "shadow-sky-500/10",
