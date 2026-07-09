@@ -12,3 +12,8 @@ backend/calibration/reports/
 
 # Claude Code — local, machine-specific settings
 .claude/settings.local.json
+
+# Local security notes / PoCs — must NOT be pushed
+security_prompt.md
+security_prompt*.md
+clickjacking-poc.html
