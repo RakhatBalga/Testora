@@ -67,9 +67,9 @@ export default function WritingPage() {
           </svg>
           All tests
         </Link>
-        <Badge tone="blue" className="mb-3 mt-3 block w-fit">
+        <p className="mb-2 mt-3 text-sm font-semibold uppercase tracking-wider text-[var(--brand)]">
           IELTS Writing
-        </Badge>
+        </p>
         <h1 className="text-2xl font-bold text-slate-900">Writing tasks</h1>
         <p className="mt-1 text-slate-500">
           Practise Task 1 and Task 2, then get band feedback by criterion.
