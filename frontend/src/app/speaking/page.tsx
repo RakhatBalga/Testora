@@ -2,11 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Clock } from "lucide-react";
 import { api, SpeakingTask } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { Badge } from "@/shared/ui";
 import { Card } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
+
+// Speaking grading is not live yet (mock grader returns Band 0), so the whole
+// section is gated off to avoid disappointing recordings. Flip to true once
+// real Speaking grading ships.
+const SPEAKING_AVAILABLE = false;
 
 const PARTS = [
   { part: 1, label: "Part 1", detail: "Introduction" },
@@ -23,12 +29,12 @@ function partTone(part: number) {
 export default function SpeakingPage() {
   const { token, ready } = useRequireAuth();
   const [tasks, setTasks] = useState<SpeakingTask[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(SPEAKING_AVAILABLE);
   const [error, setError] = useState("");
   const [activePart, setActivePart] = useState(1);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !SPEAKING_AVAILABLE) return;
     api
       .listSpeakingTasks()
       .then(setTasks)
@@ -59,6 +65,33 @@ export default function SpeakingPage() {
         </p>
       </div>
 
+      {!SPEAKING_AVAILABLE && (
+        <div className="animate-fade-up flex items-start gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+            <Clock className="h-5 w-5" />
+          </span>
+          <div>
+            <h2 className="text-base font-semibold text-amber-900">
+              Speaking practice is temporarily unavailable
+            </h2>
+            <p className="mt-1 text-sm leading-relaxed text-amber-800">
+              We&apos;re finishing AI grading for Speaking so your recordings get real band
+              feedback — not a placeholder score. In the meantime, keep building your band with{" "}
+              <Link href="/writing" className="font-semibold underline underline-offset-2 hover:text-amber-900">
+                Writing
+              </Link>{" "}
+              and{" "}
+              <Link href="/reading" className="font-semibold underline underline-offset-2 hover:text-amber-900">
+                Reading
+              </Link>
+              . We&apos;ll turn Speaking on soon.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {SPEAKING_AVAILABLE && (
+      <>
       <div className="grid grid-cols-3 gap-2" role="tablist" aria-label="Speaking exam part">
         {PARTS.map((item) => (
           <button
@@ -128,6 +161,8 @@ export default function SpeakingPage() {
             </Link>
           ))}
         </div>
+      )}
+      </>
       )}
     </div>
   );
