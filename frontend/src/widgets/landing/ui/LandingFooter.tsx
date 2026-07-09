@@ -40,15 +40,15 @@ export default function LandingFooter() {
               <span className="text-lg font-bold tracking-tight text-slate-900">Testora</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-slate-600">
-              IELTS Academic Reading practice with evidence-backed review, AI Writing feedback,
-              and progress you can measure.
+              Your AI IELTS coach — grades Writing &amp; Speaking, names what blocks your
+              band, and tells you what to practise next.
             </p>
             <a
-              href="mailto:hello@testora.app"
+              href="mailto:hello@testora.studio"
               className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
             >
               <Mail className="h-4 w-4" />
-              hello@testora.app
+              hello@testora.studio
             </a>
           </div>
 
