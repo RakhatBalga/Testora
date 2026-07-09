@@ -2,6 +2,7 @@
 
 import { type ReactNode } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Check, TrendingUp } from "lucide-react";
 import GuestNavbar from "./GuestNavbar";
 
@@ -55,8 +56,14 @@ export default function AuthShell({
 
           {/* logo */}
           <Link href="/" className="relative flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold backdrop-blur">
-              T
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/95 p-1.5 shadow-sm">
+              <Image
+                src="/logo.svg"
+                alt="Testora"
+                width={44}
+                height={44}
+                className="h-full w-full object-contain"
+              />
             </span>
             <span className="text-2xl font-bold tracking-tight">Testora</span>
           </Link>
