@@ -28,6 +28,26 @@ class LoginRequest(BaseModel):
 class GoogleAuthRequest(BaseModel):
     code: str
     redirect_uri: str
+    # Chosen during the register flow, carried across the OAuth redirect.
+    # Only applied when the Google account signs in for the first time.
+    username: str | None = Field(None, min_length=3, max_length=50)
+    target_band: float | None = Field(None, ge=5.0, le=9.0)
+
+    @field_validator("target_band")
+    @classmethod
+    def validate_band_step(cls, value: float | None) -> float | None:
+        return None if value is None else _validate_half_band(value)
+
+
+class GoogleAuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    is_new_user: bool = False
+    username: str
+
+
+class SetUsernameRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
 
 
 class TokenResponse(BaseModel):

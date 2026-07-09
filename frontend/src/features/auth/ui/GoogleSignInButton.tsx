@@ -2,6 +2,14 @@
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
+/** sessionStorage key carrying register-flow choices across the OAuth redirect. */
+export const GOOGLE_SIGNUP_KEY = "testora.google.signup";
+
+export type GoogleSignupData = {
+  username?: string;
+  target_band?: number;
+};
+
 function GoogleIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -13,10 +21,22 @@ function GoogleIcon() {
   );
 }
 
-export default function GoogleSignInButton() {
+export default function GoogleSignInButton({
+  signupData,
+  disabled,
+}: {
+  /** Register-flow choices (nickname, target band) to apply on first sign-in. */
+  signupData?: GoogleSignupData;
+  disabled?: boolean;
+}) {
   if (!GOOGLE_CLIENT_ID) return null;
 
   const handleClick = () => {
+    if (signupData && (signupData.username || signupData.target_band)) {
+      sessionStorage.setItem(GOOGLE_SIGNUP_KEY, JSON.stringify(signupData));
+    } else {
+      sessionStorage.removeItem(GOOGLE_SIGNUP_KEY);
+    }
     const redirectUri = `${window.location.origin}/auth/google/callback`;
     const params = new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID,
@@ -33,7 +53,8 @@ export default function GoogleSignInButton() {
     <button
       type="button"
       onClick={handleClick}
-      className="flex h-[54px] w-full items-center justify-center gap-3 rounded-2xl border border-[var(--border)] bg-white text-base font-semibold text-[var(--text-primary)] shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md active:scale-[0.99]"
+      disabled={disabled}
+      className="flex h-[54px] w-full items-center justify-center gap-3 rounded-2xl border border-[var(--border)] bg-white text-base font-semibold text-[var(--text-primary)] shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
     >
       <GoogleIcon />
       Continue with Google

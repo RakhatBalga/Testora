@@ -15,8 +15,10 @@ from app.infrastructure.config import settings
 from app.domain.models.user import User
 from app.api.schemas.auth import (
     GoogleAuthRequest,
+    GoogleAuthResponse,
     LoginRequest,
     RegisterRequest,
+    SetUsernameRequest,
     TokenResponse,
     UserProfileOut,
     UserProfileUpdate,
@@ -105,7 +107,7 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
-@router.post("/google", response_model=TokenResponse)
+@router.post("/google", response_model=GoogleAuthResponse)
 def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=501, detail="Google auth is not configured")
@@ -146,6 +148,7 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Incomplete Google profile")
 
     user = db.query(User).filter(User.google_id == google_id).first()
+    is_new_user = False
     if not user:
         user = db.query(User).filter(User.email == email).first()
         if user:
@@ -153,8 +156,10 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
             db.commit()
 
     if not user:
-        username = email.split("@")[0]
-        base_username = username
+        # Prefer the nickname chosen in the register flow; fall back to the
+        # email prefix. Either way, de-collide with a numeric suffix.
+        base_username = (payload.username or email.split("@")[0]).strip()
+        username = base_username
         counter = 1
         while db.query(User).filter(User.username == username).first():
             username = f"{base_username}{counter}"
@@ -168,11 +173,45 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
             password=dummy_password,
             email=email,
             google_id=google_id,
-            target_band=7.5,
+            target_band=payload.target_band or 7.5,
         )
         db.add(user)
         db.commit()
         db.refresh(user)
+        is_new_user = True
 
     token = create_access_token({"sub": user.username})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "is_new_user": is_new_user,
+        "username": user.username,
+    }
+
+
+@router.post("/username", response_model=TokenResponse)
+def set_username(
+    payload: SetUsernameRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Change the account username (e.g. after Google signup).
+
+    The JWT subject is the username, so a successful change returns a fresh
+    token — the old one would stop resolving to this user.
+    """
+    taken = (
+        db.query(User)
+        .filter(User.username == payload.username, User.id != current_user.id)
+        .first()
+    )
+    if taken:
+        raise HTTPException(status_code=400, detail="Username already taken")
+    current_user.username = payload.username
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Username already taken")
+    token = create_access_token({"sub": current_user.username})
     return {"access_token": token, "token_type": "bearer"}
