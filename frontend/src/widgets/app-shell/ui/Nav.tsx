@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -45,9 +46,13 @@ export default function Nav() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
         <div className="flex items-center gap-8">
           <Link href="/" className="group flex items-center gap-2.5">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--brand)] text-sm font-bold text-white transition-transform duration-300 group-hover:scale-105">
-              T
-            </span>
+            <Image
+              src="/logo.svg"
+              alt="Testora"
+              width={32}
+              height={32}
+              className="h-8 w-8 object-contain transition-transform duration-300 group-hover:scale-105"
+            />
             <span className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
               Testora
             </span>

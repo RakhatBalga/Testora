@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 
@@ -32,9 +33,14 @@ export default function LandingNavbar() {
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
         {/* Logo */}
         <Link href="/" className="group flex items-center gap-2.5" onClick={() => setOpen(false)}>
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand)] text-sm font-bold text-white shadow-md shadow-blue-500/25 transition-transform duration-300 group-hover:scale-105">
-            T
-          </span>
+          <Image
+            src="/logo.svg"
+            alt="Testora"
+            width={36}
+            height={36}
+            priority
+            className="h-9 w-9 object-contain transition-transform duration-300 group-hover:scale-105"
+          />
           <span className="text-lg font-bold tracking-tight text-slate-900">Testora</span>
         </Link>
 
