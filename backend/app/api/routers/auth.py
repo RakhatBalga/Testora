@@ -107,7 +107,11 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
-@router.post("/google", response_model=GoogleAuthResponse)
+@router.post(
+    "/google",
+    response_model=GoogleAuthResponse,
+    dependencies=[Depends(auth_rate_limit)],
+)
 def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=501, detail="Google auth is not configured")
