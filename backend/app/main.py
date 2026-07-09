@@ -83,7 +83,15 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Testora API", lifespan=lifespan)
+app = FastAPI(
+    title="Testora API",
+    lifespan=lifespan,
+    # Defense-in-depth: hide interactive docs / OpenAPI schema in production
+    # (Caddy already 404s these paths; this removes them at the app layer too).
+    docs_url=None if settings.is_production else "/docs",
+    redoc_url=None if settings.is_production else "/redoc",
+    openapi_url=None if settings.is_production else "/openapi.json",
+)
 
 STATIC_DIR = Path(__file__).resolve().parents[1] / "static"
 STATIC_DIR.mkdir(exist_ok=True)
