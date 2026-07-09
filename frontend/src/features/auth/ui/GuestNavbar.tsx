@@ -5,12 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 
-const LANGS = ["EN", "RU", "KZ"];
-
 export default function GuestNavbar() {
   const pathname = usePathname();
   const onRegister = pathname === "/register";
-  const [lang, setLang] = useState("EN");
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -44,25 +41,6 @@ export default function GuestNavbar() {
         </Link>
 
         <div className="flex items-center gap-3">
-          <div className="hidden items-center rounded-full border border-[var(--border)] bg-white p-0.5 sm:inline-flex">
-            {LANGS.map((l) => (
-              <button
-                key={l}
-                type="button"
-                onClick={() => setLang(l)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                  lang === l
-                    ? "bg-[var(--text-primary)] text-white"
-                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
-
-          <span className="hidden h-5 w-px bg-[var(--border)] sm:block" />
-
           <Link
             href="/login"
             className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${

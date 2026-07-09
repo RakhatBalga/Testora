@@ -8,6 +8,8 @@ import {
   LayoutDashboard,
   Dumbbell,
   BarChart3,
+  BookMarked,
+  History,
   LogOut,
   Menu,
   UserRound,
@@ -20,6 +22,8 @@ const LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/practice", label: "Practice", icon: Dumbbell },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/mistakes", label: "Notebook", icon: BookMarked },
+  { href: "/history", label: "History", icon: History },
 ];
 
 export default function Nav() {

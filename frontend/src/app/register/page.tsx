@@ -3,41 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Sparkles, Target } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { api } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
-import { IELTS_BAND_OPTIONS, IELTS_TARGET_BAND } from "@/shared/config";
-import { AccountExistsModal, AuthField, AuthShell, GoogleSignInButton, type AuthPanel } from "@/features/auth";
-
-const TOTAL_STEPS = 3;
-
-function panelFor(step: number, name: string): AuthPanel {
-  const first = name.trim().split(" ")[0];
-  if (step === 1) {
-    return {
-      eyebrow: "Step 1 · Your name",
-      title: "Let's personalize your learning journey.",
-      subtitle: "A few quick questions so we can shape your IELTS prep around you.",
-    };
-  }
-  if (step === 2) {
-    return {
-      eyebrow: first ? `Nice to meet you, ${first}` : "Step 2 · Target band",
-      title: "Choose the band you're aiming for.",
-      subtitle: "Your dashboard will use this goal to shape blockers and daily practice.",
-    };
-  }
-  return {
-    eyebrow: first ? `Almost there, ${first}` : "Step 3 · Your account",
-    title: "You're one step away from your IELTS goals.",
-    subtitle: "Create your account and start practising with real feedback today.",
-  };
-}
+import { IELTS_TARGET_BAND } from "@/shared/config";
+import { AccountExistsModal, AuthField, AuthShell, GoogleSignInButton } from "@/features/auth";
 
 export default function RegisterPage() {
-  const [step, setStep] = useState(1);
-  const [name, setName] = useState("");
-  const [targetBand, setTargetBand] = useState<number>(IELTS_TARGET_BAND);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -45,16 +17,6 @@ export default function RegisterPage() {
   const [accountExists, setAccountExists] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
-
-  const back = () => {
-    setError("");
-    setStep((s) => Math.max(1, s - 1));
-  };
-
-  const next = () => {
-    setError("");
-    setStep((s) => Math.min(TOTAL_STEPS, s + 1));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,8 +27,8 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      // Name personalizes the flow; credentials and target band are persisted.
-      await api.register(username, password, targetBand);
+      // Target band defaults to 7.5 here and is editable later in the profile.
+      await api.register(username, password, IELTS_TARGET_BAND);
       const res = await api.login(username, password);
       login(res.access_token, username);
       router.push("/");
@@ -84,185 +46,75 @@ export default function RegisterPage() {
   };
 
   const primaryBtn =
-    "inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-6 text-base font-semibold text-white shadow-sm shadow-[var(--brand)]/30 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-dark)] hover:shadow-lg hover:shadow-[var(--brand)]/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-sm";
-  const backBtn =
-    "inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-[var(--border)] px-5 text-base font-semibold text-[var(--text-secondary)] transition-colors hover:border-slate-300 hover:bg-white";
+    "inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] px-6 text-base font-semibold text-white shadow-sm shadow-[var(--brand)]/30 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-dark)] hover:shadow-lg hover:shadow-[var(--brand)]/30 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-sm";
 
   return (
     <AuthShell
-      panel={panelFor(step, name)}
-      progress={{ step, total: TOTAL_STEPS }}
-      stepKey={step}
+      panel={{
+        eyebrow: "Welcome to Testora",
+        title: "You're one step away from your IELTS goals.",
+        subtitle: "Create your account and start practising with real feedback today.",
+      }}
     >
-      <div key={step} className="animate-fade-up">
+      <div className="animate-fade-up">
+        <h1 className="text-[2rem] font-extrabold tracking-tight text-[var(--text-primary)]">
+          Create your account
+        </h1>
+        <p className="mt-2 text-[var(--text-secondary)]">
+          Start preparing for your target IELTS score today — you can set your goal band anytime in your profile.
+        </p>
+
         {error && (
-          <p className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+          <p className="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
         )}
 
-        {/* Step 1 — name */}
-        {step === 1 && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (name.trim()) next();
-            }}
-          >
-            <p className="text-sm font-semibold uppercase tracking-wider text-[var(--brand)]">
-              Welcome to Testora
-            </p>
-            <h1 className="mt-2 text-[2rem] font-extrabold tracking-tight text-[var(--text-primary)]">
-              What should we call you?
-            </h1>
-            <p className="mt-2 text-[var(--text-secondary)]">
-              This helps personalize your IELTS experience.
-            </p>
-
-            <div className="mt-8">
-              <AuthField
-                label="Your name"
-                name="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                autoComplete="name"
-                autoFocus
-              />
-            </div>
-
-            <button type="submit" disabled={!name.trim()} className={`mt-8 w-full ${primaryBtn}`}>
-              Continue
-              <ArrowRight className="h-5 w-5" />
-            </button>
-          </form>
-        )}
-
-        {/* Step 2 — target band */}
-        {step === 2 && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              next();
-            }}
-          >
-            <h1 className="text-[2rem] font-extrabold tracking-tight text-[var(--text-primary)]">
-              Set your target band
-            </h1>
-            <p className="mt-2 text-[var(--text-secondary)]">
-              Pick the overall IELTS band you want Testora to coach you toward.
-            </p>
-
-            <div className="mt-8 grid grid-cols-3 gap-3 sm:grid-cols-5">
-              {IELTS_BAND_OPTIONS.map((band) => {
-                const active = targetBand === band;
-                return (
-                  <button
-                    key={band}
-                    type="button"
-                    onClick={() => setTargetBand(band)}
-                    className={`flex flex-col items-center gap-3 rounded-2xl border-2 px-3 py-6 text-center transition-all duration-200 ${
-                      active
-                        ? "border-[var(--brand)] bg-[var(--brand)]/[0.06] shadow-sm"
-                        : "border-[var(--border)] bg-white hover:border-slate-300 hover:bg-slate-50"
-                    }`}
-                  >
-                    <span
-                      className={`flex h-12 w-12 items-center justify-center rounded-xl transition-colors ${
-                        active
-                          ? "bg-[var(--brand)] text-white"
-                          : "bg-slate-100 text-[var(--text-secondary)]"
-                      }`}
-                    >
-                      <Target className="h-6 w-6" />
-                    </span>
-                    <span
-                      className={`text-sm font-semibold ${
-                        active ? "text-[var(--brand)]" : "text-[var(--text-primary)]"
-                      }`}
-                    >
-                      {band.toFixed(1)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-8 flex gap-3">
-              <button type="button" onClick={back} className={backBtn}>
-                <ArrowLeft className="h-5 w-5" />
-                Back
-              </button>
-              <button type="submit" className={`flex-1 ${primaryBtn}`}>
-                Continue
-                <ArrowRight className="h-5 w-5" />
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* Step 3 — account */}
-        {step === 3 && (
-          <div>
-            <h1 className="text-[2rem] font-extrabold tracking-tight text-[var(--text-primary)]">
-              Create your account
-            </h1>
-            <p className="mt-2 text-[var(--text-secondary)]">
-              Start preparing for your target IELTS score today.
-            </p>
-
-            <form onSubmit={handleSubmit}>
-              <div className="mt-8 space-y-4">
-                <AuthField
-                  label="Username"
-                  name="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  autoComplete="username"
-                  autoFocus
-                />
-                <AuthField
-                  label="Password"
-                  name="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="new-password"
-                />
-              </div>
-
-              <div className="mt-8 flex gap-3">
-                <button type="button" onClick={back} className={backBtn}>
-                  <ArrowLeft className="h-5 w-5" />
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading || !username || !password}
-                  className={`flex-1 ${primaryBtn}`}
-                >
-                  {loading ? (
-                    "Creating account..."
-                  ) : (
-                    <>
-                      Create account
-                      <Sparkles className="h-5 w-5" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-
-            <div className="my-6 flex items-center gap-4">
-              <div className="h-px flex-1 bg-[var(--border)]" />
-              <span className="text-sm font-medium text-[var(--text-secondary)]">or</span>
-              <div className="h-px flex-1 bg-[var(--border)]" />
-            </div>
-
-            <GoogleSignInButton
-              signupData={{ username: username.trim() || undefined, target_band: targetBand }}
+        <form onSubmit={handleSubmit}>
+          <div className="mt-8 space-y-4">
+            <AuthField
+              label="Username"
+              name="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              autoComplete="username"
+              autoFocus
+            />
+            <AuthField
+              label="Password"
+              name="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="new-password"
             />
           </div>
-        )}
+
+          <button
+            type="submit"
+            disabled={loading || !username || !password}
+            className={`mt-8 ${primaryBtn}`}
+          >
+            {loading ? (
+              "Creating account..."
+            ) : (
+              <>
+                Create account
+                <Sparkles className="h-5 w-5" />
+              </>
+            )}
+          </button>
+        </form>
+
+        <div className="my-6 flex items-center gap-4">
+          <div className="h-px flex-1 bg-[var(--border)]" />
+          <span className="text-sm font-medium text-[var(--text-secondary)]">or</span>
+          <div className="h-px flex-1 bg-[var(--border)]" />
+        </div>
+
+        <GoogleSignInButton
+          signupData={{ username: username.trim() || undefined }}
+        />
       </div>
 
       <p className="mt-8 text-center text-sm text-[var(--text-secondary)]">
