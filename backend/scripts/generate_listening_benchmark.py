@@ -14,10 +14,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BLUEPRINT_PATH = ROOT / "content/listening/testora-studio-01-blueprint.json"
-CONTENT_PATH = ROOT / "content/listening/testora-studio-01.json"
-MANIFEST_PATH = ROOT / "content/listening/testora-studio-01-audio-manifest.json"
-AUDIO_PATH = ROOT / "static/audio/listening/testora-studio-01.m4a"
+BLUEPRINT_PATH = ROOT / "content/listening/testora-studio-02-blueprint.json"
+CONTENT_PATH = ROOT / "content/listening/testora-studio-02.json"
+MANIFEST_PATH = ROOT / "content/listening/testora-studio-02-audio-manifest.json"
+AUDIO_PATH = ROOT / "static/audio/listening/testora-studio-02.m4a"
 INTRO = "This is a Testora Studio Listening Practice Test. The test will begin in five seconds."
 AUTHORSHIP = "Original IELTS-style practice test created by Testora."
 
@@ -74,7 +74,7 @@ SECTIONS = [
         "order": 2,
         "title": "Section 2 - Coast discovery centre",
         "instructions": "Questions 11-15. Label the map. Choose the correct letter A-H. Questions 16-20. Choose the correct answer A, B, or C.",
-        "map_asset": "/listening/testora-studio-01-map.svg",
+        "map_asset": "/listening/testora-studio-02-map.svg",
         "segments": [
             seg("s2-01", "Lucas", "Welcome to Northhaven Coast Discovery Centre. Before you explore, I will describe the site using the map on your screen."),
             seg("s2-02", "Lucas", "You are standing at the entrance at the bottom of the map. The main path runs straight towards the shore."),
@@ -272,7 +272,7 @@ def _write_content(timeline: dict[str, dict], duration: float) -> dict:
             "order": section["order"],
             "title": section["title"],
             "instructions": section["instructions"],
-            "audio_url": "/static/audio/listening/testora-studio-01.m4a",
+            "audio_url": "/static/audio/listening/testora-studio-02.m4a",
             "passage": "\n".join(f"{item['speaker']}: {item['text']}" for item in section["segments"]),
             "metadata": {
                 "audio_start": section_start,

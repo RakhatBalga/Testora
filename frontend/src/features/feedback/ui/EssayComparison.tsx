@@ -294,15 +294,27 @@ export function EssayComparison({ prompt, response, improved }: Props) {
   const segClass = (t: Exclude<Segment["t"], "same">) =>
     t === "added" ? "diff-add" : t === "replaced" ? "diff-rep" : "diff-del";
 
-  let markIndex = 0;
-  const renderImproved = (segs: Segment[]) => {
+  // Cumulative count of highlighted segments before each paragraph, so the
+  // glow stagger runs continuously across paragraphs without render-time
+  // mutation (react-hooks/immutability).
+  const markOffsets = useMemo(() => {
+    const offsets: number[] = [];
+    let acc = 0;
+    for (const segs of improvedParas) {
+      offsets.push(acc);
+      acc += segs.filter((s) => s.t !== "same").length;
+    }
+    return offsets;
+  }, [improvedParas]);
+
+  const renderImproved = (segs: Segment[], paraIdx: number) => {
     if (clean) return <>{cleanText(segs)}</>;
     return (
       <>
         {segs.map((s, i) => {
           if (s.t === "same") return <Fragment key={i}>{s.text}</Fragment>;
-          const delay = Math.min(markIndex * 45, 520);
-          markIndex += 1;
+          const localOrder = segs.slice(0, i).filter((x) => x.t !== "same").length;
+          const delay = Math.min(((markOffsets[paraIdx] ?? 0) + localOrder) * 45, 520);
           return (
             <span
               key={i}
@@ -389,7 +401,7 @@ export function EssayComparison({ prompt, response, improved }: Props) {
                 {originalParas[i] ?? ""}
               </p>
               <p className="bg-emerald-50/20 px-7 py-4 text-[15px] leading-[1.8] text-slate-800">
-                {improvedParas[i] ? renderImproved(improvedParas[i]) : ""}
+                {improvedParas[i] ? renderImproved(improvedParas[i], i) : ""}
               </p>
             </Fragment>
           ))}
@@ -420,7 +432,7 @@ export function EssayComparison({ prompt, response, improved }: Props) {
             <div className="mt-4 space-y-3">
               {improvedParas.map((segs, i) => (
                 <p key={i} className="text-[15px] leading-[1.8] text-slate-800">
-                  {renderImproved(segs)}
+                  {renderImproved(segs, i)}
                 </p>
               ))}
             </div>

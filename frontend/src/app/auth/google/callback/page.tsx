@@ -24,43 +24,42 @@ export default function GoogleCallbackPage() {
     if (handled.current) return;
     handled.current = true;
 
-    const code = searchParams?.get("code") ?? null;
-    if (!code) {
-      setError("No authorization code received from Google.");
+    // All setState happens in async continuations (the lint rule forbids
+    // synchronous setState inside the effect body).
+    const run = async () => {
+      const code = searchParams?.get("code") ?? null;
+      if (!code) {
+        throw new Error("No authorization code received from Google.");
+      }
+
+      // Register-flow choices stashed before the OAuth redirect.
+      let signup: { username?: string; target_band?: number } | undefined;
+      try {
+        const raw = sessionStorage.getItem(GOOGLE_SIGNUP_KEY);
+        if (raw) signup = JSON.parse(raw);
+      } catch {
+        // corrupted stash — ignore
+      }
+      sessionStorage.removeItem(GOOGLE_SIGNUP_KEY);
+
+      const redirectUri = `${window.location.origin}/auth/google/callback`;
+      const res = await api.googleAuth(code, redirectUri, signup);
+      login(res.access_token, res.username);
+      if (res.is_new_user && !signup?.username) {
+        // Signed up via the login page — let them pick a nickname now,
+        // before they ever see the auto-generated one.
+        tokenRef.current = res.access_token;
+        setNick(res.username);
+        setPhase("pick-username");
+        return;
+      }
+      router.push("/");
+    };
+
+    run().catch((err) => {
+      setError(err instanceof Error ? err.message : "Google sign-in failed");
       setPhase("error");
-      return;
-    }
-
-    // Register-flow choices stashed before the OAuth redirect.
-    let signup: { username?: string; target_band?: number } | undefined;
-    try {
-      const raw = sessionStorage.getItem(GOOGLE_SIGNUP_KEY);
-      if (raw) signup = JSON.parse(raw);
-    } catch {
-      // corrupted stash — ignore
-    }
-    sessionStorage.removeItem(GOOGLE_SIGNUP_KEY);
-
-    const redirectUri = `${window.location.origin}/auth/google/callback`;
-
-    api
-      .googleAuth(code, redirectUri, signup)
-      .then((res) => {
-        login(res.access_token, res.username);
-        if (res.is_new_user && !signup?.username) {
-          // Signed up via the login page — let them pick a nickname now,
-          // before they ever see the auto-generated one.
-          tokenRef.current = res.access_token;
-          setNick(res.username);
-          setPhase("pick-username");
-          return;
-        }
-        router.push("/");
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "Google sign-in failed");
-        setPhase("error");
-      });
+    });
   }, [searchParams, login, router]);
 
   const saveNick = async (e: React.FormEvent) => {

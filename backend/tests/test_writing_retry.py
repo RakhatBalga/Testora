@@ -37,6 +37,9 @@ class _SuccessfulGrader:
             why_not_higher_band="To reach 8.0, make examples more specific.",
         )
 
+    def improve(self, *, task_type: int, prompt: str, text: str) -> str | None:
+        return "An improved essay."
+
 
 class _ErrorGrader:
     def grade(self, *, task_type: int, prompt: str, text: str, min_words: int) -> Feedback:
@@ -47,6 +50,9 @@ class _ErrorGrader:
             suggestions=["Try again."],
             error=True,
         )
+
+    def improve(self, *, task_type: int, prompt: str, text: str) -> str | None:
+        return None
 
 
 @pytest.fixture()
