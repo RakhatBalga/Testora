@@ -205,21 +205,11 @@ export default function RegisterPage() {
               Create your account
             </h1>
             <p className="mt-2 text-[var(--text-secondary)]">
-              Start preparing for your target IELTS score today.
+              Pick a username, then sign up with Google or a password.
             </p>
 
-            <div className="mt-8">
-              <GoogleSignInButton />
-            </div>
-
-            <div className="my-6 flex items-center gap-4">
-              <div className="h-px flex-1 bg-[var(--border)]" />
-              <span className="text-sm font-medium text-[var(--text-secondary)]">or</span>
-              <div className="h-px flex-1 bg-[var(--border)]" />
-            </div>
-
           <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
+            <div className="mt-8 space-y-4">
               <AuthField
                 label="Username"
                 name="username"
@@ -229,6 +219,29 @@ export default function RegisterPage() {
                 autoComplete="username"
                 autoFocus
               />
+            </div>
+
+            <div className="mt-4">
+              <GoogleSignInButton
+                signupData={{ username: username.trim() || undefined, target_band: targetBand }}
+                disabled={username.trim().length < 3}
+              />
+              {username.trim().length < 3 && (
+                <p className="mt-2 text-xs text-[var(--text-secondary)]">
+                  Enter a username (min 3 characters) to continue with Google.
+                </p>
+              )}
+            </div>
+
+            <div className="my-6 flex items-center gap-4">
+              <div className="h-px flex-1 bg-[var(--border)]" />
+              <span className="text-sm font-medium text-[var(--text-secondary)]">
+                or with a password
+              </span>
+              <div className="h-px flex-1 bg-[var(--border)]" />
+            </div>
+
+            <div className="space-y-4">
               <AuthField
                 label="Password"
                 name="password"

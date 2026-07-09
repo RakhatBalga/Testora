@@ -851,10 +851,23 @@ export const api = {
       body: JSON.stringify({ username, password }),
     }),
 
-  googleAuth: (code: string, redirect_uri: string) =>
-    request<{ access_token: string; token_type: string }>("/auth/google", {
+  googleAuth: (
+    code: string,
+    redirect_uri: string,
+    signup?: { username?: string; target_band?: number }
+  ) =>
+    request<{ access_token: string; token_type: string; is_new_user: boolean; username: string }>(
+      "/auth/google",
+      {
+        method: "POST",
+        body: JSON.stringify({ code, redirect_uri, ...signup }),
+      }
+    ),
+
+  setUsername: (username: string) =>
+    request<{ access_token: string; token_type: string }>("/auth/username", {
       method: "POST",
-      body: JSON.stringify({ code, redirect_uri }),
+      body: JSON.stringify({ username }),
     }),
 
   getProfile: () => request<UserProfile>("/auth/me"),
