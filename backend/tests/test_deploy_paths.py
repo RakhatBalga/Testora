@@ -14,7 +14,7 @@ def test_speaking_upload_dir_matches_backend_root_volume():
 
 
 def test_listening_audio_is_packaged_under_mounted_static_directory():
-    audio = STATIC_DIR / "audio" / "listening" / "testora-studio-01.m4a"
+    audio = STATIC_DIR / "audio" / "listening" / "testora-studio-02.m4a"
 
     assert STATIC_DIR.name == "static"
     assert audio.is_file()
@@ -22,7 +22,7 @@ def test_listening_audio_is_packaged_under_mounted_static_directory():
 
 def test_listening_audio_supports_range_requests():
     response = TestClient(app).get(
-        "/static/audio/listening/testora-studio-01.m4a",
+        "/static/audio/listening/testora-studio-02.m4a",
         headers={"Range": "bytes=0-1023"},
     )
 

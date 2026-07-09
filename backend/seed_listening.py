@@ -10,7 +10,7 @@ from app.infrastructure.database import SessionLocal
 from import_content import _build_test
 
 
-CONTENT_PATH = Path(__file__).resolve().parent / "content/listening/testora-studio-01.json"
+CONTENT_PATH = Path(__file__).resolve().parent / "content/listening/testora-studio-02.json"
 
 
 def main() -> None:

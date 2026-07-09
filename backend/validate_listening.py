@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 CONTENT_DIR = ROOT / "content/listening"
 FRONTEND_PUBLIC = ROOT.parent / "frontend/public"
-REPORT_PATH = CONTENT_DIR / "testora-studio-01-assembly-report.json"
+REPORT_PATH = CONTENT_DIR / "testora-studio-02-assembly-report.json"
 EXPECTED_INTRO = "This is a Testora Studio Listening Practice Test. The test will begin in five seconds."
 AUTHORSHIP = "Original IELTS-style practice test created by Testora."
 QUESTION_TYPES = {
@@ -227,8 +227,8 @@ def main() -> int:
     parser.add_argument("--no-write-report", action="store_true")
     args = parser.parse_args()
     rep = Report()
-    blueprint_path = CONTENT_DIR / "testora-studio-01-blueprint.json"
-    manifest_path = CONTENT_DIR / "testora-studio-01-audio-manifest.json"
+    blueprint_path = CONTENT_DIR / "testora-studio-02-blueprint.json"
+    manifest_path = CONTENT_DIR / "testora-studio-02-audio-manifest.json"
     try:
         blueprint_raw = json.loads(blueprint_path.read_text(encoding="utf-8"))
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -237,7 +237,7 @@ def main() -> int:
         return 1
     blueprint = _validate_blueprint(blueprint_raw, rep)
     _validate_manifest(manifest, rep)
-    files = [Path(path) for path in args.files] if args.files else [CONTENT_DIR / "testora-studio-01.json"]
+    files = [Path(path) for path in args.files] if args.files else [CONTENT_DIR / "testora-studio-02.json"]
     for path in files:
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))
