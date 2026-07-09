@@ -205,75 +205,62 @@ export default function RegisterPage() {
               Create your account
             </h1>
             <p className="mt-2 text-[var(--text-secondary)]">
-              Pick a username, then sign up with Google or a password.
+              Start preparing for your target IELTS score today.
             </p>
 
-          <form onSubmit={handleSubmit}>
-            <div className="mt-8 space-y-4">
-              <AuthField
-                label="Username"
-                name="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                autoComplete="username"
-                autoFocus
-              />
-            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="mt-8 space-y-4">
+                <AuthField
+                  label="Username"
+                  name="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  autoComplete="username"
+                  autoFocus
+                />
+                <AuthField
+                  label="Password"
+                  name="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                />
+              </div>
 
-            <div className="mt-4">
-              <GoogleSignInButton
-                signupData={{ username: username.trim() || undefined, target_band: targetBand }}
-                disabled={username.trim().length < 3}
-              />
-              {username.trim().length < 3 && (
-                <p className="mt-2 text-xs text-[var(--text-secondary)]">
-                  Enter a username (min 3 characters) to continue with Google.
-                </p>
-              )}
-            </div>
+              <div className="mt-8 flex gap-3">
+                <button type="button" onClick={back} className={backBtn}>
+                  <ArrowLeft className="h-5 w-5" />
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || !username || !password}
+                  className={`flex-1 ${primaryBtn}`}
+                >
+                  {loading ? (
+                    "Creating account..."
+                  ) : (
+                    <>
+                      Create account
+                      <Sparkles className="h-5 w-5" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
 
             <div className="my-6 flex items-center gap-4">
               <div className="h-px flex-1 bg-[var(--border)]" />
-              <span className="text-sm font-medium text-[var(--text-secondary)]">
-                or with a password
-              </span>
+              <span className="text-sm font-medium text-[var(--text-secondary)]">or</span>
               <div className="h-px flex-1 bg-[var(--border)]" />
             </div>
 
-            <div className="space-y-4">
-              <AuthField
-                label="Password"
-                name="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="new-password"
-              />
-            </div>
-
-            <div className="mt-8 flex gap-3">
-              <button type="button" onClick={back} className={backBtn}>
-                <ArrowLeft className="h-5 w-5" />
-                Back
-              </button>
-              <button
-                type="submit"
-                disabled={loading || !username || !password}
-                className={`flex-1 ${primaryBtn}`}
-              >
-                {loading ? (
-                  "Creating account..."
-                ) : (
-                  <>
-                    Create account
-                    <Sparkles className="h-5 w-5" />
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+            <GoogleSignInButton
+              signupData={{ username: username.trim() || undefined, target_band: targetBand }}
+            />
           </div>
         )}
       </div>
