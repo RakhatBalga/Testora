@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 const LANGS = ["EN", "RU", "KZ"];
@@ -29,9 +30,14 @@ export default function GuestNavbar() {
     >
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6 sm:px-8">
         <Link href="/" className="group flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--brand)] text-sm font-bold text-white shadow-sm shadow-[var(--brand)]/30 transition-transform duration-300 group-hover:scale-105">
-            T
-          </span>
+          <Image
+            src="/logo.svg"
+            alt="Testora"
+            width={36}
+            height={36}
+            priority
+            className="h-9 w-9 object-contain transition-transform duration-300 group-hover:scale-105"
+          />
           <span className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
             Testora
           </span>
