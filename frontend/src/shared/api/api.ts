@@ -183,6 +183,7 @@ export type Feedback = {
 
 export type UserProfile = {
   username: string;
+  avatar: string | null;
   target_band: number;
   current_level: number | null;
   current_level_source: string | null;
@@ -878,6 +879,14 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(typeof update === "number" ? { target_band: update } : update),
     }),
+
+  uploadAvatar: (image: File) => {
+    const formData = new FormData();
+    formData.append("image", image, image.name);
+    return requestForm<UserProfile>("/auth/me/avatar", formData);
+  },
+
+  deleteAvatar: () => request<UserProfile>("/auth/me/avatar", { method: "DELETE" }),
 
   getLearningDashboard: () => request<LearningDashboard>("/learning/dashboard"),
 
