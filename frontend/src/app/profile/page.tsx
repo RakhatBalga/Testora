@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import {
   api,
+  mediaUrl,
   type AttemptSummary,
   type SpeakingSubmissionSummary,
   type UserProfile,
@@ -25,6 +26,7 @@ import {
 } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
 import { useRequireAuth } from "@/shared/auth";
+import { AvatarCropper } from "@/features/avatar-crop";
 import { IELTS_BAND_OPTIONS, IELTS_TARGET_BAND } from "@/shared/config";
 import { Button, LinkButton } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
@@ -66,7 +68,7 @@ const TOMORROW = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 
 export default function ProfilePage() {
   const { token, ready } = useRequireAuth();
-  const { username, logout } = useAuth();
+  const { username, logout, setAvatar } = useAuth();
   const router = useRouter();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -76,6 +78,9 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [savingTarget, setSavingTarget] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [savingAvatar, setSavingAvatar] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [resettingPlan, setResettingPlan] = useState(false);
   const [error, setError] = useState("");
   const [targetError, setTargetError] = useState("");
@@ -167,6 +172,49 @@ export default function ProfilePage() {
     router.push("/login");
   };
 
+  const handleAvatarSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setTargetError("Avatar must be an image file.");
+      return;
+    }
+    setTargetError("");
+    setCropFile(file); // open the cropper; upload happens on save
+  };
+
+  const handleCropSave = async (blob: Blob) => {
+    if (savingAvatar) return;
+    setSavingAvatar(true);
+    try {
+      const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+      const updated = await api.uploadAvatar(file);
+      setProfile((prev) => (prev ? { ...prev, avatar: updated.avatar } : updated));
+      setAvatar(updated.avatar);
+      setCropFile(null);
+    } catch (err) {
+      setTargetError(err instanceof Error ? err.message : "Avatar failed to upload.");
+    } finally {
+      setSavingAvatar(false);
+    }
+  };
+
+  const handleAvatarRemove = async () => {
+    if (!profile?.avatar || savingAvatar) return;
+    setTargetError("");
+    setSavingAvatar(true);
+    try {
+      const updated = await api.deleteAvatar();
+      setProfile((prev) => (prev ? { ...prev, avatar: updated.avatar } : updated));
+      setAvatar(updated.avatar);
+    } catch (err) {
+      setTargetError(err instanceof Error ? err.message : "Avatar failed to remove.");
+    } finally {
+      setSavingAvatar(false);
+    }
+  };
+
   const handleTargetChange = async (band: number) => {
     if (savingTarget || band === targetBand) return;
     if (profile?.current_level !== null && profile?.current_level !== undefined && band < profile.current_level) {
@@ -225,12 +273,29 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      {cropFile && (
+        <AvatarCropper
+          file={cropFile}
+          saving={savingAvatar}
+          onCancel={() => setCropFile(null)}
+          onSave={handleCropSave}
+        />
+      )}
       <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand)] text-xl font-bold text-white">
-              {(profile?.username ?? username)?.[0]?.toUpperCase() ?? "?"}
-            </span>
+            {profile?.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={mediaUrl(profile.avatar) ?? undefined}
+                alt="Your avatar"
+                className="h-14 w-14 rounded-full object-cover"
+              />
+            ) : (
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand)] text-xl font-bold text-white">
+                {(profile?.username ?? username)?.[0]?.toUpperCase() ?? "?"}
+              </span>
+            )}
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
                 Profile
@@ -238,6 +303,35 @@ export default function ProfilePage() {
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-primary)]">
                 {profile?.username ?? username ?? "Student"}
               </h1>
+              {profile && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarSelect}
+                  />
+                  <button
+                    type="button"
+                    disabled={savingAvatar}
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {savingAvatar ? "Saving..." : profile.avatar ? "Change photo" : "Upload photo"}
+                  </button>
+                  {profile.avatar && (
+                    <button
+                      type="button"
+                      disabled={savingAvatar}
+                      onClick={handleAvatarRemove}
+                      className="rounded-lg px-2 py-1.5 text-sm font-medium text-slate-500 transition hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

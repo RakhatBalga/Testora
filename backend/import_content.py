@@ -192,6 +192,7 @@ def _build_writing(data: dict) -> WritingTask:
     title = _require(data, "title", "writing_task")
     return WritingTask(
         task_type=int(_require(data, "task_type", f"writing_task '{title}'")),
+        essay_type=data.get("essay_type"),
         title=title,
         prompt=_require(data, "prompt", f"writing_task '{title}'"),
         image_url=data.get("image_url"),
