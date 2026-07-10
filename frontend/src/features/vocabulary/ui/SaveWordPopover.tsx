@@ -22,9 +22,12 @@ function sentenceAround(container: string, word: string): string {
 export function SaveWordPopover({
   source = "reading",
   sourceRef,
+  onSaved,
 }: {
   source?: string;
   sourceRef?: string;
+  /** Called with the saved word after a successful save (e.g. to highlight it). */
+  onSaved?: (word: string) => void;
 }) {
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [state, setState] = useState<SaveState>("idle");
@@ -88,6 +91,7 @@ export function SaveWordPopover({
         source,
         source_ref: sourceRef,
       });
+      onSaved?.(anchor.text);
       setState("saved");
       window.getSelection()?.removeAllRanges();
       window.setTimeout(() => setAnchor(null), 900);
