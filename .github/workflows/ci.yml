@@ -52,6 +52,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test:run
+
       - name: Build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000
