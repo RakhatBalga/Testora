@@ -22,7 +22,7 @@ type AuthContextType = {
   ready: boolean;
   login: (token: string, username: string) => void;
   logout: () => void;
-  setAvatar: (avatar: string) => void;
+  setAvatar: (avatar: string | null) => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -42,13 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer);
   }, []);
 
-  // Hydrate the chosen avatar colour once we have a token. Best-effort: if the
-  // profile call fails, the avatar just falls back to the default colour.
+  // Hydrate the uploaded avatar once we have a token. Best-effort: if the
+  // profile call fails, the avatar just falls back to the initial. logout()
+  // clears it, so there's no need to reset synchronously here when token is null.
   useEffect(() => {
-    if (!token) {
-      setAvatarState(null);
-      return;
-    }
+    if (!token) return;
     let active = true;
     api
       .getProfile()

@@ -12,14 +12,15 @@ import { Skeleton } from "@/shared/ui";
 import { WritingTaskVisual } from "@/features/writing-task/ui/WritingTaskVisual";
 
 // Count words the way an IELTS examiner does, matching the backend's
-// count_words(): whitespace-separated tokens that contain at least one letter
-// or digit. Numbers, hyphenated words, and contractions each count as one word,
-// so the live counter equals the count used to grade the submission.
+// count_words(): whitespace-separated tokens that contain at least one ASCII
+// letter or digit. Numbers, hyphenated words, and contractions each count as one
+// word; non-English scripts don't inflate the count. This equals the count used
+// to grade the submission.
 function countWords(text: string): number {
   return text
     .trim()
     .split(/\s+/)
-    .filter((token) => /[^\W_]/u.test(token)).length;
+    .filter((token) => /[A-Za-z0-9]/.test(token)).length;
 }
 
 function formatTime(seconds: number): string {
