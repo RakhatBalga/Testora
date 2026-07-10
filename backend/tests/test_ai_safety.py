@@ -42,9 +42,16 @@ def test_development_mock_is_allowed(monkeypatch):
     main._validate_ai_configuration()  # must not raise
 
 
-@pytest.mark.parametrize("weak", ["", "CHANGE_ME", "changeme", "secret", "short"])
+@pytest.mark.parametrize(
+    "weak",
+    ["", "CHANGE_ME", "changeme", "secret", "short", "mysecretkey123", "MySecretKey123"],
+)
 def test_production_weak_secret_key_is_rejected(monkeypatch, weak):
-    """The startup guard must reject a missing/placeholder/short SECRET_KEY."""
+    """The startup guard must reject a missing/placeholder/short/leaked SECRET_KEY.
+
+    "mysecretkey123" leaked in this repo's git history, so it is permanently
+    burned and must be rejected regardless of casing or length.
+    """
     monkeypatch.setattr(settings, "APP_ENV", "production")
     monkeypatch.setattr(settings, "SECRET_KEY", weak)
     from app import main
