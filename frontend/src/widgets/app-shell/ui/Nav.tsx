@@ -10,6 +10,7 @@ import {
   BarChart3,
   BookMarked,
   History,
+  Languages,
   LogOut,
   Menu,
   UserRound,
@@ -24,6 +25,7 @@ const LINKS = [
   { href: "/practice", label: "Practice", icon: Dumbbell },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/mistakes", label: "Notebook", icon: BookMarked },
+  { href: "/vocabulary", label: "Vocabulary", icon: Languages },
   { href: "/history", label: "History", icon: History },
 ];
 
