@@ -9,6 +9,10 @@ class WritingTask(Base):
 
     id = Column(Integer, primary_key=True)
     task_type = Column(Integer, nullable=False)  # 1 or 2
+    # IELTS essay subtype slug, e.g. "bar_chart"/"process" (Task 1) or
+    # "opinion"/"discussion"/"problem_solution" (Task 2). Nullable so older or
+    # untyped tasks still load; the UI filters by whatever slugs are present.
+    essay_type = Column(String, nullable=True)
     title = Column(String, nullable=False)
     prompt = Column(Text, nullable=False)
     image_url = Column(String, nullable=True)  # chart/graph for Task 1
