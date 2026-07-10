@@ -21,6 +21,9 @@ from app.infrastructure.ai.schemas import (
 
 ENGLISH_WORD_RE = re.compile(r"[A-Za-z]+(?:[-'][A-Za-z]+)?")
 ALPHA_TOKEN_RE = re.compile(r"[^\W\d_]+(?:[-'][^\W\d_]+)?", re.UNICODE)
+# A single letter or digit — used to decide whether a whitespace-separated
+# token counts as a word (so pure punctuation like "—" is ignored).
+WORD_CHAR_RE = re.compile(r"[^\W_]", re.UNICODE)
 
 COMMON_ENGLISH_WORDS = {
     "a",
@@ -82,7 +85,15 @@ class WritingPrecheck:
 
 
 def count_words(text: str) -> int:
-    """Count English words, matching the IELTS Writing language requirement."""
+    """Count words the way an IELTS examiner does: whitespace-separated tokens
+    that contain at least one letter or digit. Numbers written as figures,
+    hyphenated words, and contractions each count as a single word, so this
+    matches the live counter shown to the candidate while they write."""
+    return sum(1 for token in (text or "").split() if WORD_CHAR_RE.search(token))
+
+
+def _english_word_count(text: str) -> int:
+    """Count only English letter-words, for the not-English language check."""
     return len(ENGLISH_WORD_RE.findall(text or ""))
 
 
@@ -103,11 +114,11 @@ def _ascii_letter_ratio(text: str) -> float:
     return len(ascii_letters) / len(letters)
 
 
-def _looks_non_english(text: str, word_count: int) -> bool:
+def _looks_non_english(text: str, english_word_count: int) -> bool:
     alpha_tokens = ALPHA_TOKEN_RE.findall(text or "")
     if not alpha_tokens:
         return False
-    english_token_ratio = word_count / len(alpha_tokens)
+    english_token_ratio = english_word_count / len(alpha_tokens)
     return _ascii_letter_ratio(text) < 0.8 or english_token_ratio < 0.7
 
 
@@ -152,7 +163,7 @@ def validate_writing_submission(
             sentence_count=0,
         )
 
-    if _looks_non_english(stripped, word_count):
+    if _looks_non_english(stripped, _english_word_count(stripped)):
         return WritingPrecheck(
             valid=False,
             reason_code="not_english",
