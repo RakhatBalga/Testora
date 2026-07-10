@@ -66,6 +66,21 @@ type RecentItem = {
 
 const TOMORROW = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 
+// Used to translate saved vocabulary into the learner's first language.
+const NATIVE_LANGUAGES = [
+  "Russian",
+  "Kazakh",
+  "Uzbek",
+  "Kyrgyz",
+  "Turkish",
+  "Azerbaijani",
+  "Arabic",
+  "Ukrainian",
+  "Tajik",
+  "Persian",
+  "Other",
+];
+
 export default function ProfilePage() {
   const { token, ready } = useRequireAuth();
   const { username, logout, setAvatar } = useAuth();
@@ -247,6 +262,7 @@ export default function ProfilePage() {
         weekly_study_days: profile.weekly_study_days,
         daily_study_minutes: profile.daily_study_minutes,
         primary_focus: profile.primary_focus,
+        native_language: profile.native_language,
         onboarding_completed: true,
       }));
     } catch (err) {
@@ -422,6 +438,13 @@ export default function ProfilePage() {
               <select value={profile.daily_study_minutes} onChange={(event) => setProfile({ ...profile, daily_study_minutes: Number(event.target.value) as UserProfile["daily_study_minutes"] })} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900">
                 {[15, 30, 45, 60, 90].map((minutes) => <option key={minutes} value={minutes}>{minutes} minutes</option>)}
               </select>
+            </label>
+            <label className="text-sm font-medium text-slate-700">Native language
+              <select value={profile.native_language ?? ""} onChange={(event) => setProfile({ ...profile, native_language: event.target.value || null })} className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-900">
+                <option value="">Not set</option>
+                {NATIVE_LANGUAGES.map((lang) => <option key={lang} value={lang}>{lang}</option>)}
+              </select>
+              <span className="mt-1 block text-xs font-normal text-slate-400">Used to translate saved vocabulary.</span>
             </label>
           </div>
         </section>

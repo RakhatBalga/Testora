@@ -25,6 +25,7 @@ import {
   isAnswered,
   type AnswerMap,
 } from "@/features/reading-session";
+import { SaveWordPopover } from "@/features/vocabulary";
 
 type Tab = "passage" | "questions";
 
@@ -259,12 +260,14 @@ export default function ReadingPage() {
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] gap-4 lg:grid-cols-[60fr_40fr] lg:gap-5 2xl:grid-cols-[65fr_35fr]">
         <div
           ref={passageScrollRef}
+          data-vocab-selectable
           className={`min-h-0 overflow-y-auto rounded-xl bg-white px-7 py-5 shadow-sm ring-1 ring-slate-100 sm:px-10 ${
             tab === "passage" ? "block" : "hidden"
           } lg:block`}
         >
           <ReadingPassage section={group.section} />
         </div>
+        <SaveWordPopover source="reading" sourceRef={String(testId)} />
 
         <div
           ref={questionsScrollRef}

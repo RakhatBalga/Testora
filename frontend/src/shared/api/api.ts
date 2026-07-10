@@ -192,9 +192,67 @@ export type UserProfile = {
   daily_study_minutes: 15 | 30 | 45 | 60 | 90;
   primary_focus: "writing" | "reading" | "speaking" | "balanced";
   onboarding_completed: boolean;
+  native_language: string | null;
 };
 
 export type UserProfileUpdate = Partial<Omit<UserProfile, "username" | "current_level_source">>;
+
+// ---- Vocabulary builder ----------------------------------------------------
+export type SavedWordEnrichment = {
+  meaning?: string;
+  part_of_speech?: string;
+  synonyms?: string[];
+  alternatives?: string[];
+  translation?: string;
+  example?: string;
+};
+
+export type SavedWord = {
+  id: number;
+  word: string;
+  context: string | null;
+  source: string | null;
+  training: boolean;
+  status: "new" | "learning" | "mastered";
+  enrichment: SavedWordEnrichment | null;
+  enriched: boolean;
+  created_at: string | null;
+};
+
+export type VocabularyList = {
+  items: SavedWord[];
+  total: number;
+  training_count: number;
+  page: number;
+  page_size: number;
+};
+
+export type VocabQuizQuestion = {
+  word: string;
+  prompt: string;
+  kind: string;
+  options: string[];
+};
+
+export type DailyQuiz = {
+  quiz_date: string | null;
+  completed: boolean;
+  score: number | null;
+  total: number;
+  questions: VocabQuizQuestion[];
+};
+
+export type QuizResultItem = {
+  word: string;
+  prompt: string;
+  options: string[];
+  answer_index: number;
+  your_answer: number | null;
+  correct: boolean;
+  explanation: string;
+};
+
+export type QuizResult = { score: number; total: number; results: QuizResultItem[] };
 
 export type DiagnosticState = {
   id: number | null;
@@ -923,6 +981,39 @@ export const api = {
     request<{ skill: string; source_id: number; status: string }>(`/learning/mistakes/${skill}/${sourceId}`, {
       method: "PATCH",
       body: JSON.stringify({ status }),
+    }),
+
+  // ---- Vocabulary builder ----
+  saveWord: (payload: { word: string; context?: string | null; source?: string; source_ref?: string }) =>
+    request<SavedWord>("/vocabulary/words", { method: "POST", body: JSON.stringify(payload) }),
+
+  listWords: (filters: { training?: boolean; page?: number; page_size?: number } = {}) => {
+    const params: Record<string, string | number | undefined> = {
+      page: filters.page,
+      page_size: filters.page_size,
+    };
+    if (filters.training) params.training = "true";
+    return request<VocabularyList>(`/vocabulary/words${queryString(params)}`);
+  },
+
+  deleteWord: (wordId: number) =>
+    request<{ deleted: number }>(`/vocabulary/words/${wordId}`, { method: "DELETE" }),
+
+  enrichWord: (wordId: number) =>
+    request<SavedWord>(`/vocabulary/words/${wordId}/enrich`, { method: "POST" }),
+
+  setWordTraining: (wordId: number, training: boolean) =>
+    request<SavedWord>(`/vocabulary/words/${wordId}/training`, {
+      method: "PATCH",
+      body: JSON.stringify({ training }),
+    }),
+
+  getDailyQuiz: () => request<DailyQuiz>("/vocabulary/daily-quiz"),
+
+  submitDailyQuiz: (answers: (number | null)[]) =>
+    request<QuizResult>("/vocabulary/daily-quiz/submit", {
+      method: "POST",
+      body: JSON.stringify({ answers }),
     }),
 
   listTests: () => request<Test[]>("/tests"),
