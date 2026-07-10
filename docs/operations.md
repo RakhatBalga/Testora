@@ -3,6 +3,19 @@
 Operational procedures for running Testora in production. Pairs with the
 deployment checklist in `README.md`.
 
+## Golden rule: never hand-edit files on the server
+
+The production server is a **deploy target, not a workspace.** Its checkout must
+always match `origin/main` exactly. **Do not edit tracked files directly on the
+box** (no `vim backend/app/main.py` on prod). Every change goes: feature branch →
+PR → merge to `main` → auto-deploy ships it.
+
+Why: the deploy resets the server to `origin/main` on each run. A hand-edit that
+was never committed will be **saved to a timestamped patch under `/tmp`** and then
+discarded — recoverable, but never live. (Before this was hardened, such an edit
+made `git pull --ff-only` abort and stalled every deploy.) If you must hotfix,
+commit it to a branch and merge, so it survives and everyone sees it.
+
 ## Environments
 
 `APP_ENV` controls environment-specific safety. In `production` the API
