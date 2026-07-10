@@ -66,6 +66,7 @@ class UserProfileOut(BaseModel):
     daily_study_minutes: int = 30
     primary_focus: str = "balanced"
     onboarding_completed: bool = False
+    native_language: str | None = None
 
 
 class UserProfileUpdate(BaseModel):
@@ -76,6 +77,7 @@ class UserProfileUpdate(BaseModel):
     daily_study_minutes: Literal[15, 30, 45, 60, 90] | None = None
     primary_focus: Literal["writing", "reading", "speaking", "balanced"] | None = None
     onboarding_completed: bool | None = None
+    native_language: str | None = Field(None, max_length=40)
 
     @field_validator("target_band", "current_level")
     @classmethod

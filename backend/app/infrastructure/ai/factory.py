@@ -1,6 +1,7 @@
 from app.infrastructure.config import settings
 from app.infrastructure.ai.base import WritingGrader, SpeakingGrader
 from app.infrastructure.ai.mock import MockWritingGrader, MockSpeakingGrader
+from app.infrastructure.ai.vocab import VocabularyCoach, MockVocabularyCoach
 
 
 def _provider() -> str:
@@ -46,3 +47,14 @@ def get_speaking_grader() -> SpeakingGrader:
 
         return GeminiSpeakingGrader()
     return MockSpeakingGrader()
+
+
+def get_vocabulary_coach() -> VocabularyCoach:
+    """Word enrichment + quiz generation. Only Gemini has a real implementation;
+    every other provider (mock, claude) uses the deterministic offline coach —
+    enrichment degrades honestly, cloze quizzes still work."""
+    if _provider() == "gemini":
+        from app.infrastructure.ai.gemini import GeminiVocabularyCoach
+
+        return GeminiVocabularyCoach()
+    return MockVocabularyCoach()

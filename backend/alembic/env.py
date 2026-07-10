@@ -12,6 +12,7 @@ from app.domain.models.attempt import Attempt, AnswerRecord  # noqa
 from app.domain.models.writing import WritingTask, WritingSubmission  # noqa
 from app.domain.models.speaking import SpeakingTask, SpeakingSubmission  # noqa
 from app.domain.models.mistake import Mistake  # noqa
+from app.domain.models.vocabulary import SavedWord, DailyWordQuiz  # noqa
 
 config = context.config
 

@@ -19,3 +19,6 @@ class User(Base):
     daily_study_minutes = Column(Integer, nullable=False, default=30)
     primary_focus = Column(String, nullable=False, default="balanced")
     onboarding_completed = Column(Boolean, nullable=False, default=False)
+    # Native language (e.g. "Russian", "Kazakh") — used to translate saved
+    # vocabulary and generate native-language practice. Null until the user picks one.
+    native_language = Column(String, nullable=True)
