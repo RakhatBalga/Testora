@@ -22,17 +22,21 @@ function sentenceAround(container: string, word: string): string {
 export function SaveWordPopover({
   source = "reading",
   sourceRef,
-  onSaved,
+  disabled,
 }: {
   source?: string;
   sourceRef?: string;
-  /** Called with the saved word after a successful save (e.g. to highlight it). */
-  onSaved?: (word: string) => void;
+  /** Suppress the popover (e.g. while a highlighter brush is active). */
+  disabled?: boolean;
 }) {
   const [anchor, setAnchor] = useState<Anchor | null>(null);
   const [state, setState] = useState<SaveState>("idle");
 
   const capture = useCallback(() => {
+    if (disabled) {
+      setAnchor(null);
+      return;
+    }
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed) {
       setAnchor(null);
@@ -61,7 +65,7 @@ export function SaveWordPopover({
     const rect = range.getBoundingClientRect();
     setAnchor({ text, context, top: rect.top - 8, left: rect.left + rect.width / 2 });
     setState("idle");
-  }, []);
+  }, [disabled]);
 
   useEffect(() => {
     // setTimeout(0) lets the selection settle after mouseup before we read it.
@@ -91,7 +95,6 @@ export function SaveWordPopover({
         source,
         source_ref: sourceRef,
       });
-      onSaved?.(anchor.text);
       setState("saved");
       window.getSelection()?.removeAllRanges();
       window.setTimeout(() => setAnchor(null), 900);

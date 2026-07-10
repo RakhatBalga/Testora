@@ -327,3 +327,18 @@ body {
     animation: none;
   }
 }
+
+/* User highlighter for the reading passage (CSS Custom Highlight API overlay —
+   styles selected ranges without touching the React-owned DOM). */
+::highlight(hl-yellow) {
+  background-color: rgba(250, 204, 21, 0.45);
+}
+::highlight(hl-green) {
+  background-color: rgba(34, 197, 94, 0.4);
+}
+::highlight(hl-pink) {
+  background-color: rgba(244, 114, 182, 0.4);
+}
+::highlight(hl-blue) {
+  background-color: rgba(96, 165, 250, 0.45);
+}

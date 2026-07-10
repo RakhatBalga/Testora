@@ -1,49 +1,20 @@
 import { Fragment, type ReactNode } from "react";
 import type { Section } from "@/shared/api";
 
-/** Whitespace-tolerant, case-insensitive, word-bounded regex for saved words. */
-function buildHighlightRegex(words: string[]): RegExp | null {
-  const escaped = words
-    .map((w) => w.trim())
-    .filter(Boolean)
-    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+"));
-  if (escaped.length === 0) return null;
-  // Longest first so a saved phrase wins over its component words.
-  escaped.sort((a, b) => b.length - a.length);
-  return new RegExp(`\\b(${escaped.join("|")})\\b`, "gi");
-}
-
-/**
- * Render a paragraph. `**keyword**` markers become the passage's own amber
- * highlight; saved vocabulary words get a yellow highlighter marker (persistent,
- * Engnovate-style) so the reader can see everything they've collected.
- */
-function renderInline(text: string, highlightRe: RegExp | null): ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*)/g).flatMap((chunk, i) => {
+/** Split a paragraph on **keyword** markers and render the keywords highlighted. */
+function renderInline(text: string): ReactNode[] {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((chunk, i) => {
     if (chunk.startsWith("**") && chunk.endsWith("**")) {
-      return [
+      return (
         <mark
-          key={`k${i}`}
+          key={i}
           className="rounded bg-amber-100/70 px-0.5 font-medium text-slate-900"
         >
           {chunk.slice(2, -2)}
-        </mark>,
-      ];
-    }
-    if (!highlightRe) return [<Fragment key={`t${i}`}>{chunk}</Fragment>];
-    // split() with a capturing regex keeps the matches at odd indices.
-    return chunk.split(highlightRe).map((part, j) =>
-      j % 2 === 1 ? (
-        <mark
-          key={`s${i}-${j}`}
-          className="rounded bg-yellow-200/70 px-0.5 text-slate-900 transition-colors"
-        >
-          {part}
         </mark>
-      ) : (
-        <Fragment key={`t${i}-${j}`}>{part}</Fragment>
-      ),
-    );
+      );
+    }
+    return <Fragment key={i}>{chunk}</Fragment>;
   });
 }
 
@@ -77,17 +48,8 @@ export function parsePassage(raw: string): { heading: string | null; paras: Para
   return { heading, paras };
 }
 
-export function ReadingPassage({
-  section,
-  highlights,
-}: {
-  section: Section;
-  /** Saved words to highlight in the passage (case-insensitive, whole-word). */
-  highlights?: string[];
-}) {
+export function ReadingPassage({ section }: { section: Section }) {
   const { heading, paras } = parsePassage(section.passage ?? "");
-  const highlightRe =
-    highlights && highlights.length ? buildHighlightRegex(highlights) : null;
 
   return (
     <article className="mx-auto max-w-[76ch]">
@@ -105,8 +67,12 @@ export function ReadingPassage({
                 {p.label}
               </span>
             )}
-            <p className="flex-1 text-[1.125rem] leading-[1.8] text-slate-700">
-              {renderInline(p.text, highlightRe)}
+            {/* data-hl-para anchors user highlights to this paragraph by index. */}
+            <p
+              data-hl-para={i}
+              className="flex-1 text-[1.125rem] leading-[1.8] text-slate-700"
+            >
+              {renderInline(p.text)}
             </p>
           </div>
         ))}
