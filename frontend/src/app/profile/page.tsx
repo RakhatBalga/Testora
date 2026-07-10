@@ -260,8 +260,8 @@ export default function ProfilePage() {
       <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:40ms]">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-              <Target className="h-5 w-5" />
+            <span className="mt-0.5 flex shrink-0 items-center justify-center text-[var(--brand)]">
+              <Target className="h-6 w-6" />
             </span>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
@@ -283,7 +283,7 @@ export default function ProfilePage() {
                   aria-pressed={active}
                   disabled={loading || savingTarget}
                   onClick={() => handleTargetChange(band)}
-                  className={`h-10 min-w-14 rounded-lg border px-3 text-sm font-semibold transition ${
+                  className={`h-10 min-w-0 rounded-lg border px-2 text-sm font-semibold transition sm:min-w-14 sm:px-3 ${
                     active
                       ? "border-slate-950 bg-slate-950 text-white"
                       : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-950"
@@ -333,7 +333,7 @@ export default function ProfilePage() {
         </section>
       )}
 
-      <section className="grid animate-fade-up gap-4 [animation-delay:60ms] sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid animate-fade-up grid-cols-2 gap-3 [animation-delay:60ms] sm:gap-4 lg:grid-cols-4">
         <ProfileMetric label="Sessions" value={loading ? null : String(totalSessions)} />
         <ProfileMetric
           label="Average band"
@@ -361,10 +361,10 @@ export default function ProfilePage() {
             </div>
           ) : (
             <div className="space-y-3">
-              <SkillRow icon={<BookOpen className="h-4 w-4" />} label="Reading" value={readingCount} href="/tests/reading" />
-              <SkillRow icon={<Headphones className="h-4 w-4" />} label="Listening" value={listeningCount} href="/tests/listening" />
-              <SkillRow icon={<PenLine className="h-4 w-4" />} label="Writing" value={writing.length} href="/writing" />
-              <SkillRow icon={<Mic className="h-4 w-4" />} label="Speaking" value={speaking.length} href="/speaking" />
+              <SkillRow icon={<BookOpen className="h-5 w-5" />} label="Reading" value={readingCount} href="/tests/reading" />
+              <SkillRow icon={<Headphones className="h-5 w-5" />} label="Listening" value={listeningCount} href="/tests/listening" />
+              <SkillRow icon={<PenLine className="h-5 w-5" />} label="Writing" value={writing.length} href="/writing" />
+              <SkillRow icon={<Mic className="h-5 w-5" />} label="Speaking" value={speaking.length} href="/speaking" />
             </div>
           )}
         </section>
@@ -411,14 +411,14 @@ export default function ProfilePage() {
 
 function ProfileMetric({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-sm shadow-slate-200/40">
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm shadow-slate-200/40 sm:p-5">
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
         {label}
       </p>
       {value === null ? (
         <Skeleton className="mt-2 h-9 w-16 rounded-lg" />
       ) : (
-        <p className="mt-1 text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
+        <p className="mt-1 text-2xl font-extrabold tracking-tight text-[var(--text-primary)] sm:text-3xl">
           {value}
         </p>
       )}
@@ -443,7 +443,7 @@ function SkillRow({
       className="group flex items-center justify-between rounded-xl border border-[var(--border)] px-4 py-3 transition-colors hover:border-slate-300 hover:bg-slate-50"
     >
       <span className="flex items-center gap-3">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-[var(--text-secondary)]">
+        <span className="flex h-8 w-8 items-center justify-center text-[var(--brand)]">
           {icon}
         </span>
         <span className="text-sm font-semibold text-[var(--text-primary)]">{label}</span>
