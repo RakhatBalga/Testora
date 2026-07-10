@@ -58,6 +58,9 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-https://testora.studio}
     volumes:
       - audio:/app/private/audio_submissions
+      # User-uploaded avatars are served from /app/static/avatars; keep them on a
+      # named volume so they survive the container rebuild on every deploy.
+      - avatars:/app/static/avatars
     ports:
       - "127.0.0.1:8000:8000"
     healthcheck:
@@ -87,3 +90,4 @@ services:
 volumes:
   pgdata:
   audio:
+  avatars:
