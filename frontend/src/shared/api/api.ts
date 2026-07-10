@@ -376,6 +376,7 @@ export type LearningDashboard = {
 export type WritingTask = {
   id: number;
   task_type: number;
+  essay_type: string | null;
   title: string;
   prompt: string;
   image_url: string | null;
