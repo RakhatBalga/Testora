@@ -1,7 +1,9 @@
 import secrets
+import uuid
+from pathlib import Path
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -60,8 +62,87 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     return {"access_token": token, "token_type": "bearer"}
 
 
+# Avatar images are public, low-risk assets served straight from /static.
+_BACKEND_ROOT = Path(__file__).resolve().parents[3]
+AVATAR_DIR = _BACKEND_ROOT / "static" / "avatars"
+_AVATAR_URL_PREFIX = "/static/avatars/"
+_AVATAR_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+_MAX_AVATAR_BYTES = settings.MAX_AVATAR_UPLOAD_MB * 1024 * 1024
+_AVATAR_CHUNK = 512 * 1024  # 512 KiB
+
+
+def _remove_avatar_file(avatar: str | None) -> None:
+    """Delete a previously uploaded avatar file, if any. Best-effort."""
+    if not avatar or not avatar.startswith(_AVATAR_URL_PREFIX):
+        return
+    old = AVATAR_DIR / Path(avatar).name
+    try:
+        old.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
 @router.get("/me", response_model=UserProfileOut)
 def me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.post("/me/avatar", response_model=UserProfileOut)
+def upload_avatar(
+    image: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    suffix = Path(image.filename or "").suffix.lower()
+    if suffix not in _AVATAR_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail="Avatar must be a JPG, PNG, WEBP, or GIF image.",
+        )
+
+    AVATAR_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"user{current_user.id}_{uuid.uuid4().hex}{suffix}"
+    path = AVATAR_DIR / filename
+
+    # Stream to disk with a hard size ceiling so a huge upload can't exhaust
+    # memory or disk. Abort and clean up if exceeded.
+    written = 0
+    try:
+        with path.open("wb") as buffer:
+            while chunk := image.file.read(_AVATAR_CHUNK):
+                written += len(chunk)
+                if written > _MAX_AVATAR_BYTES:
+                    buffer.close()
+                    path.unlink(missing_ok=True)
+                    raise HTTPException(
+                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                        detail=f"Avatar exceeds the {settings.MAX_AVATAR_UPLOAD_MB} MB limit.",
+                    )
+                buffer.write(chunk)
+    except HTTPException:
+        raise
+    if written == 0:
+        path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail="Empty image upload.")
+
+    _remove_avatar_file(current_user.avatar)
+    current_user.avatar = f"{_AVATAR_URL_PREFIX}{filename}"
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.delete("/me/avatar", response_model=UserProfileOut)
+def delete_avatar(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _remove_avatar_file(current_user.avatar)
+    current_user.avatar = None
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
     return current_user
 
 

@@ -57,6 +57,7 @@ class TokenResponse(BaseModel):
 
 class UserProfileOut(BaseModel):
     username: str
+    avatar: str | None = None  # URL path of the uploaded avatar image
     target_band: float
     current_level: float | None = None
     current_level_source: str | None = None

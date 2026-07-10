@@ -27,6 +27,7 @@ class Settings(BaseSettings):
 
     # Upload / input ceilings (defence against memory blowup, cost, and DoS).
     MAX_AUDIO_UPLOAD_MB: int = 15
+    MAX_AVATAR_UPLOAD_MB: int = 5
     MAX_WRITING_CHARS: int = 20000
 
     # Max grading calls running concurrently. Bounds threadpool usage (so slow

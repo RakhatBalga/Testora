@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/shared/auth";
+import { mediaUrl } from "@/shared/api";
 import { LinkButton } from "@/shared/ui";
 
 const LINKS = [
@@ -27,7 +28,7 @@ const LINKS = [
 ];
 
 export default function Nav() {
-  const { token, username, ready, logout } = useAuth();
+  const { token, username, avatar, ready, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -96,9 +97,18 @@ export default function Nav() {
                     : "border-[var(--border)] hover:border-slate-300 hover:bg-slate-50"
                 }`}
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--brand)] text-xs font-semibold text-white">
-                  {username?.[0]?.toUpperCase() ?? "?"}
-                </span>
+                {avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={mediaUrl(avatar) ?? undefined}
+                    alt=""
+                    className="h-7 w-7 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--brand)] text-xs font-semibold text-white">
+                    {username?.[0]?.toUpperCase() ?? "?"}
+                  </span>
+                )}
                 <span className="hidden text-sm font-medium text-[var(--text-primary)] sm:block">
                   {username ?? "Profile"}
                 </span>

@@ -2,6 +2,7 @@
   "writing_tasks": [
     {
       "task_type": 2,
+      "essay_type": "discussion",
       "title": "Writing Task 2 — Education and exams",
       "prompt": "Some people believe that schools should reduce the number of exams and assess students through projects and classroom performance instead. Others think exams remain the fairest way to measure academic ability.\n\nDiscuss both views and give your own opinion.\n\nWrite at least 250 words.",
       "image_url": null,
@@ -10,6 +11,7 @@
     },
     {
       "task_type": 2,
+      "essay_type": "discussion",
       "title": "Writing Task 2 — Technology and attention",
       "prompt": "Many people say that smartphones and social media have made it harder for young people to concentrate for long periods. Others argue that digital tools simply require a different kind of attention.\n\nDiscuss both views and give your own opinion.\n\nWrite at least 250 words.",
       "image_url": null,
@@ -18,6 +20,7 @@
     },
     {
       "task_type": 2,
+      "essay_type": "opinion",
       "title": "Writing Task 2 — Environment and responsibility",
       "prompt": "Some people think that individuals can do little to solve environmental problems, and that governments and large companies must take the lead. To what extent do you agree or disagree?\n\nWrite at least 250 words.",
       "image_url": null,
@@ -26,6 +29,7 @@
     },
     {
       "task_type": 2,
+      "essay_type": "discussion",
       "title": "Writing Task 2 — Remote work",
       "prompt": "In many jobs, working from home has become more common. Some people believe this improves quality of life, while others think it weakens teamwork and professional development.\n\nDiscuss both views and give your own opinion.\n\nWrite at least 250 words.",
       "image_url": null,
@@ -34,6 +38,7 @@
     },
     {
       "task_type": 2,
+      "essay_type": "advantages_disadvantages",
       "title": "Writing Task 2 — Cities and public space",
       "prompt": "Some cities are replacing parks and public squares with housing, roads, and commercial buildings. Do the advantages of this development outweigh the disadvantages?\n\nWrite at least 250 words.",
       "image_url": null,
@@ -42,6 +47,7 @@
     },
     {
       "task_type": 2,
+      "essay_type": "opinion",
       "title": "Writing Task 2 — Health and lifestyle",
       "prompt": "Many governments spend large amounts of money treating illnesses, but some people argue that more money should be spent on preventing health problems through education and public facilities.\n\nTo what extent do you agree or disagree?\n\nWrite at least 250 words.",
       "image_url": null,
@@ -50,6 +56,7 @@
     },
     {
       "task_type": 2,
+      "essay_type": "discussion",
       "title": "Writing Task 2 — Crime and rehabilitation",
       "prompt": "Some people believe that prisons should focus mainly on punishment, while others think the main purpose should be rehabilitation and helping offenders return to society.\n\nDiscuss both views and give your own opinion.\n\nWrite at least 250 words.",
       "image_url": null,
@@ -58,6 +65,7 @@
     },
     {
       "task_type": 2,
+      "essay_type": "advantages_disadvantages",
       "title": "Writing Task 2 — Culture and tourism",
       "prompt": "International tourism can bring money and jobs to local communities, but it can also damage traditional culture and the environment.\n\nDo the benefits of international tourism outweigh the drawbacks?\n\nWrite at least 250 words.",
       "image_url": null,
@@ -66,6 +74,7 @@
     },
     {
       "task_type": 2,
+      "essay_type": "discussion",
       "title": "Writing Task 2 — Artificial intelligence",
       "prompt": "Some people believe that artificial intelligence will create more opportunities than problems. Others think it will cause serious risks for employment and society.\n\nDiscuss both views and give your own opinion.\n\nWrite at least 250 words.",
       "image_url": null,
@@ -74,6 +83,7 @@
     },
     {
       "task_type": 2,
+      "essay_type": "discussion",
       "title": "Writing Task 2 — Public transport",
       "prompt": "Some people think governments should make public transport free in order to reduce traffic and pollution. Others believe this would be too expensive and ineffective.\n\nDiscuss both views and give your own opinion.\n\nWrite at least 250 words.",
       "image_url": null,
@@ -82,6 +92,7 @@
     },
     {
       "task_type": 2,
+      "essay_type": "discussion",
       "title": "Writing Task 2 — Online learning",
       "prompt": "Online courses are becoming increasingly popular. Some people think they are as effective as traditional classroom learning, while others believe face-to-face education is still better.\n\nDiscuss both views and give your own opinion.\n\nWrite at least 250 words.",
       "image_url": null,
@@ -90,6 +101,7 @@
     },
     {
       "task_type": 2,
+      "essay_type": "discussion",
       "title": "Writing Task 2 — Consumer society",
       "prompt": "In many countries, people are buying more goods than ever before. Some people see this as a sign of economic success, while others believe it creates waste and dissatisfaction.\n\nDiscuss both views and give your own opinion.\n\nWrite at least 250 words.",
       "image_url": null,
@@ -98,6 +110,7 @@
     },
     {
       "task_type": 2,
+      "essay_type": "discussion",
       "title": "Writing Task 2 — Theatres and cinemas",
       "prompt": "Some people say that in the digital age, theatres and cinemas are no longer important as people can watch all the entertainment they want online. Others argue that theatres and cinemas are still important both economically and culturally.\n\nDiscuss both these views and give your own opinion.\n\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\n\nWrite at least 250 words.",
       "image_url": null,

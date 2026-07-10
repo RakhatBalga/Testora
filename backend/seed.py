@@ -131,6 +131,7 @@ def run():
 
         writing_t1 = WritingTask(
             task_type=1,
+            essay_type="bar_chart",
             title="Writing Task 1 — Bar chart",
             prompt=(
                 "The chart below shows the number of international students enrolled "
@@ -144,6 +145,7 @@ def run():
         )
         writing_t2 = WritingTask(
             task_type=2,
+            essay_type="discussion",
             title="Writing Task 2 — Opinion essay",
             prompt=(
                 "Some people believe that technology has made our lives more complex, "

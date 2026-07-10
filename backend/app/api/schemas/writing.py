@@ -8,6 +8,7 @@ from app.infrastructure.config import settings
 class WritingTaskOut(BaseModel):
     id: int
     task_type: int
+    essay_type: Optional[str] = None
     title: str
     prompt: str
     image_url: Optional[str] = None
