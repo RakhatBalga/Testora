@@ -26,6 +26,7 @@ import {
 } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
 import { useRequireAuth } from "@/shared/auth";
+import { AvatarCropper } from "@/features/avatar-crop";
 import { IELTS_BAND_OPTIONS, IELTS_TARGET_BAND } from "@/shared/config";
 import { Button, LinkButton } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
@@ -78,6 +79,7 @@ export default function ProfilePage() {
   const [savingTarget, setSavingTarget] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [resettingPlan, setResettingPlan] = useState(false);
   const [error, setError] = useState("");
@@ -170,20 +172,27 @@ export default function ProfilePage() {
     router.push("/login");
   };
 
-  const handleAvatarSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = ""; // allow re-selecting the same file later
-    if (!file || savingAvatar) return;
+    if (!file) return;
     if (!file.type.startsWith("image/")) {
       setTargetError("Avatar must be an image file.");
       return;
     }
     setTargetError("");
+    setCropFile(file); // open the cropper; upload happens on save
+  };
+
+  const handleCropSave = async (blob: Blob) => {
+    if (savingAvatar) return;
     setSavingAvatar(true);
     try {
+      const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
       const updated = await api.uploadAvatar(file);
       setProfile((prev) => (prev ? { ...prev, avatar: updated.avatar } : updated));
       setAvatar(updated.avatar);
+      setCropFile(null);
     } catch (err) {
       setTargetError(err instanceof Error ? err.message : "Avatar failed to upload.");
     } finally {
@@ -264,6 +273,14 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      {cropFile && (
+        <AvatarCropper
+          file={cropFile}
+          saving={savingAvatar}
+          onCancel={() => setCropFile(null)}
+          onSave={handleCropSave}
+        />
+      )}
       <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
@@ -272,10 +289,10 @@ export default function ProfilePage() {
               <img
                 src={mediaUrl(profile.avatar) ?? undefined}
                 alt="Your avatar"
-                className="h-14 w-14 rounded-2xl object-cover"
+                className="h-14 w-14 rounded-full object-cover"
               />
             ) : (
-              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand)] text-xl font-bold text-white">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand)] text-xl font-bold text-white">
                 {(profile?.username ?? username)?.[0]?.toUpperCase() ?? "?"}
               </span>
             )}
