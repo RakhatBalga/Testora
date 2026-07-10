@@ -14,7 +14,7 @@ from app.infrastructure.errortracking import init_error_tracking
 from app.infrastructure.database import engine
 from app.infrastructure.ai.factory import effective_provider
 from app.api.routers import auth, tests, results, writing, speaking, analytics, learning, listening
-from app.api.routers import history
+from app.api.routers import history, vocabulary
 
 configure_logging()
 init_error_tracking()
@@ -113,6 +113,7 @@ app.include_router(analytics.router, prefix="/analytics", tags=["Analytics"])
 app.include_router(history.router, prefix="/history", tags=["History"])
 app.include_router(learning.router, prefix="/learning", tags=["Learning"])
 app.include_router(listening.router, prefix="/listening", tags=["Listening"])
+app.include_router(vocabulary.router, prefix="/vocabulary", tags=["Vocabulary"])
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 

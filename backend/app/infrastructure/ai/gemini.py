@@ -16,6 +16,14 @@ from pathlib import Path
 from app.infrastructure.config import settings
 from app.infrastructure.ai import prompts
 from app.infrastructure.ai.base import Feedback, SpeakingGrader, WritingGrader
+from app.infrastructure.ai.vocab import (
+    QuizQuestion,
+    QuizSchema,
+    VocabularyCoach,
+    WordInfo,
+    WordInfoSchema,
+    WordQuiz,
+)
 from app.infrastructure.ai.schemas import (
     CoachResult,
     build_feedback,
@@ -367,3 +375,123 @@ class GeminiSpeakingGrader(SpeakingGrader):
         except Exception as exc:  # noqa: BLE001
             logger.exception("Gemini speaking grading failed")
             return _error_feedback(str(exc))
+
+
+class GeminiVocabularyCoach(VocabularyCoach):
+    """Word enrichment + practice-quiz generation. Uses the fast model — this is
+    prose/lookup work, not band scoring, so Flash quality is fine and cheaper."""
+
+    def enrich_word(
+        self, *, word: str, context: str | None, native_language: str | None
+    ) -> WordInfo:
+        native = (native_language or "").strip()
+        translation_line = (
+            f"a natural translation of the word into {native}"
+            if native
+            else "leave translation empty (the learner has no native language set)"
+        )
+        system = (
+            "You are a vocabulary coach for an IELTS student. For the given English "
+            "word or phrase and the sentence it appeared in, produce concise, "
+            "learner-friendly enrichment as JSON. Base the meaning on how the word is "
+            "used in the context."
+        )
+        user = (
+            f'WORD: "{word}"\n'
+            f'CONTEXT: "{context or "(no context provided)"}"\n\n'
+            "Return: a short plain-English meaning; the part of speech; up to 5 common "
+            "synonyms; up to 3 \"better alternatives\" (stronger, more precise or "
+            f"higher-band words the student could use instead); {translation_line}; and "
+            "one natural example sentence that uses the word."
+        )
+        try:
+            raw = _generate(
+                [user],
+                system,
+                schema=WordInfoSchema,
+                temperature=0.3,
+                max_tokens=1024,
+                model=settings.GEMINI_FAST_MODEL,
+            )
+            data = WordInfoSchema.model_validate_json(_json_text(raw))
+            return WordInfo(
+                word=word,
+                meaning=data.meaning,
+                part_of_speech=data.part_of_speech,
+                synonyms=[str(s) for s in data.synonyms][:5],
+                alternatives=[str(s) for s in data.alternatives][:3],
+                translation=data.translation,
+                example=data.example,
+            )
+        except Exception:  # noqa: BLE001 - degrade, never 500 the endpoint
+            logger.exception("Gemini word enrichment failed for %r", word)
+            return WordInfo(word=word, error=True)
+
+    def generate_quiz(
+        self,
+        *,
+        words: list[dict],
+        native_language: str | None,
+        num_questions: int,
+    ) -> WordQuiz:
+        native = (native_language or "").strip()
+        lines: list[str] = []
+        for w in words:
+            parts = [f'word: {w.get("word", "")}']
+            if w.get("meaning"):
+                parts.append(f'meaning: {w["meaning"]}')
+            if w.get("translation"):
+                parts.append(f'{native or "native"} translation: {w["translation"]}')
+            if w.get("synonyms"):
+                parts.append(f'synonyms: {", ".join(w["synonyms"])}')
+            lines.append("- " + "; ".join(parts))
+        listing = "\n".join(lines)
+        kinds = '"meaning" (choose the correct meaning), "synonym" (choose the best synonym or stronger alternative)'
+        native_clause = ""
+        if native:
+            kinds += f', "translation" (match the English word to its {native} translation)'
+            native_clause = (
+                f"Include at least one translation question to/from {native}. "
+            )
+        system = (
+            "You are a vocabulary coach. Create a multiple-choice quiz that helps an "
+            "IELTS student practise their saved words. Return JSON only."
+        )
+        user = (
+            f"SAVED WORDS:\n{listing}\n\n"
+            f"Create up to {num_questions} multiple-choice questions, varying the kind "
+            f"across {kinds}. {native_clause}Each question needs: word (the saved word "
+            "being tested), prompt (the question text), kind, exactly 4 options, "
+            "answer_index (0-3 pointing at the correct option), and a one-line "
+            "explanation. Exactly one option is correct; the other three must be "
+            "plausible but wrong."
+        )
+        try:
+            raw = _generate(
+                [user],
+                system,
+                schema=QuizSchema,
+                temperature=0.5,
+                max_tokens=2048,
+                model=settings.GEMINI_FAST_MODEL,
+            )
+            data = QuizSchema.model_validate_json(_json_text(raw))
+            questions: list[QuizQuestion] = []
+            for q in data.questions[:num_questions]:
+                opts = [str(o) for o in q.options][:4]
+                if len(opts) < 2 or not (0 <= q.answer_index < len(opts)):
+                    continue
+                questions.append(
+                    QuizQuestion(
+                        word=q.word,
+                        prompt=q.prompt,
+                        kind=q.kind or "meaning",
+                        options=opts,
+                        answer_index=q.answer_index,
+                        explanation=q.explanation,
+                    )
+                )
+            return WordQuiz(questions=questions)
+        except Exception:  # noqa: BLE001
+            logger.exception("Gemini quiz generation failed")
+            return WordQuiz(error=True)

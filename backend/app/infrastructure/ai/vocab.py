@@ -1,0 +1,206 @@
+"""Vocabulary coach: word enrichment + daily practice quizzes.
+
+A third AI capability alongside the Writing/Speaking graders. Same shape as
+`base.py`: an ABC with a deterministic Mock implementation (works offline, no
+LLM) and a Gemini implementation (`GeminiVocabularyCoach` in `gemini.py`).
+
+The Mock coach cannot produce real definitions/translations (no dictionary),
+so `enrich_word` degrades honestly. But `generate_quiz` stays genuinely useful
+offline by building cloze recall questions from the sentence each word was saved
+from — no dictionary required. Gemini produces richer meaning/translation/synonym
+questions.
+"""
+from __future__ import annotations
+
+import random
+import re
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+
+from pydantic import BaseModel
+
+
+# ---------------------------------------------------------------------------
+# Result types (returned to the application layer; serialized to JSON on rows).
+# ---------------------------------------------------------------------------
+@dataclass
+class WordInfo:
+    word: str
+    meaning: str = ""
+    part_of_speech: str = ""
+    synonyms: list[str] = field(default_factory=list)
+    alternatives: list[str] = field(default_factory=list)  # stronger/higher-band choices
+    translation: str = ""  # in the user's native language
+    example: str = ""
+    # True when enrichment could not be produced (AI error). The caller should
+    # not cache an errored enrichment so it can be retried later.
+    error: bool = False
+
+    def to_dict(self) -> dict:
+        return {
+            "meaning": self.meaning,
+            "part_of_speech": self.part_of_speech,
+            "synonyms": self.synonyms,
+            "alternatives": self.alternatives,
+            "translation": self.translation,
+            "example": self.example,
+        }
+
+
+@dataclass
+class QuizQuestion:
+    word: str
+    prompt: str
+    kind: str  # meaning | translation | synonym | cloze
+    options: list[str]
+    answer_index: int
+    explanation: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "word": self.word,
+            "prompt": self.prompt,
+            "kind": self.kind,
+            "options": self.options,
+            "answer_index": self.answer_index,
+            "explanation": self.explanation,
+        }
+
+
+@dataclass
+class WordQuiz:
+    questions: list[QuizQuestion] = field(default_factory=list)
+    error: bool = False
+
+
+# ---------------------------------------------------------------------------
+# Gemini structured-output schemas (also the validation boundary).
+# ---------------------------------------------------------------------------
+class WordInfoSchema(BaseModel):
+    meaning: str
+    part_of_speech: str = ""
+    synonyms: list[str] = []
+    alternatives: list[str] = []
+    translation: str = ""
+    example: str = ""
+
+
+class QuizQuestionSchema(BaseModel):
+    word: str
+    prompt: str
+    kind: str
+    options: list[str]
+    answer_index: int
+    explanation: str = ""
+
+
+class QuizSchema(BaseModel):
+    questions: list[QuizQuestionSchema]
+
+
+# ---------------------------------------------------------------------------
+# Interface
+# ---------------------------------------------------------------------------
+class VocabularyCoach(ABC):
+    @abstractmethod
+    def enrich_word(
+        self, *, word: str, context: str | None, native_language: str | None
+    ) -> WordInfo:
+        ...
+
+    @abstractmethod
+    def generate_quiz(
+        self,
+        *,
+        words: list[dict],
+        native_language: str | None,
+        num_questions: int,
+    ) -> WordQuiz:
+        """Build a multiple-choice quiz from saved words.
+
+        `words` is a list of dicts: {word, context?, meaning?, translation?,
+        synonyms?, alternatives?}. Each question has exactly 4 options unless the
+        pool is too small.
+        """
+        ...
+
+
+# ---------------------------------------------------------------------------
+# Deterministic offline implementation
+# ---------------------------------------------------------------------------
+_WORD_RE = re.compile(r"[A-Za-z][A-Za-z'-]*")
+
+
+def _sentence_around(context: str, word: str) -> str:
+    """Return the sentence in `context` containing `word` (or the whole context)."""
+    if not context:
+        return ""
+    for sentence in re.split(r"(?<=[.!?])\s+", context.strip()):
+        if word.lower() in sentence.lower():
+            return sentence.strip()
+    return context.strip()
+
+
+class MockVocabularyCoach(VocabularyCoach):
+    def enrich_word(
+        self, *, word: str, context: str | None, native_language: str | None
+    ) -> WordInfo:
+        # No dictionary/thesaurus/translation offline — return an honest,
+        # non-crashing placeholder. Real data comes from Gemini in production.
+        return WordInfo(
+            word=word,
+            meaning=(
+                "Definition, synonyms and translation are generated by the AI "
+                "coach — available with AI grading enabled."
+            ),
+            part_of_speech="",
+            synonyms=[],
+            alternatives=[],
+            translation="",
+            example=_sentence_around(context or "", word),
+        )
+
+    def generate_quiz(
+        self,
+        *,
+        words: list[dict],
+        native_language: str | None,
+        num_questions: int,
+    ) -> WordQuiz:
+        # Cloze recall: blank the word in the sentence it was saved from and ask
+        # the learner to pick it among their other saved words. Genuinely useful
+        # and needs no dictionary. Deterministic (seeded) so a given set of words
+        # yields a stable quiz.
+        pool = [w for w in words if (w.get("word") or "").strip()]
+        vocab = [w["word"].strip() for w in pool]
+        rng = random.Random("|".join(sorted(vocab)))
+        questions: list[QuizQuestion] = []
+
+        for w in pool:
+            if len(questions) >= num_questions:
+                break
+            word = w["word"].strip()
+            sentence = _sentence_around(w.get("context") or "", word)
+            if not sentence or word.lower() not in sentence.lower():
+                continue
+            blanked = re.sub(
+                re.escape(word), "_____", sentence, count=1, flags=re.IGNORECASE
+            )
+            distractors = [v for v in vocab if v.lower() != word.lower()]
+            rng.shuffle(distractors)
+            options = [word] + distractors[:3]
+            if len(options) < 2:
+                continue
+            rng.shuffle(options)
+            questions.append(
+                QuizQuestion(
+                    word=word,
+                    prompt=f"Which word fits the blank?\n\n{blanked}",
+                    kind="cloze",
+                    options=options,
+                    answer_index=options.index(word),
+                    explanation=f'The sentence you saved used "{word}".',
+                )
+            )
+
+        return WordQuiz(questions=questions)
