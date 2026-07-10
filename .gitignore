@@ -10,6 +10,9 @@ backend/calibration/*.local.json
 backend/calibration/*.local.jsonl
 backend/calibration/reports/
 
+# User-uploaded avatar images — runtime data, not source.
+backend/static/avatars/
+
 # Claude Code — local, machine-specific settings
 .claude/settings.local.json
 
