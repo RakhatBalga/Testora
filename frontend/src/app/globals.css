@@ -328,17 +328,30 @@ body {
   }
 }
 
-/* User highlighter for the reading passage (CSS Custom Highlight API overlay —
-   styles selected ranges without touching the React-owned DOM). */
-::highlight(hl-yellow) {
+/* Reading passage highlighter (CSS Custom Highlight API — styles ranges without
+   touching the React-owned DOM). A range can be registered in both a fill and a
+   text highlight; the two properties then combine. */
+::highlight(hl-bg-yellow) {
   background-color: rgba(250, 204, 21, 0.45);
 }
-::highlight(hl-green) {
+::highlight(hl-bg-green) {
   background-color: rgba(34, 197, 94, 0.4);
 }
-::highlight(hl-pink) {
+::highlight(hl-bg-pink) {
   background-color: rgba(244, 114, 182, 0.4);
 }
-::highlight(hl-blue) {
+::highlight(hl-bg-blue) {
   background-color: rgba(96, 165, 250, 0.45);
+}
+::highlight(hl-text-yellow) {
+  color: #a16207;
+}
+::highlight(hl-text-green) {
+  color: #15803d;
+}
+::highlight(hl-text-pink) {
+  color: #be185d;
+}
+::highlight(hl-text-blue) {
+  color: #1d4ed8;
 }

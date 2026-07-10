@@ -14,7 +14,7 @@ import { Card } from "@/shared/ui";
 import { Button } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
 import { ReadingPassage } from "@/features/reading-session";
-import { PassageHighlighter, type Brush } from "@/features/reading-session";
+import { PassageAnnotator } from "@/features/reading-session";
 import { ReadingPassageNav } from "@/features/reading-session";
 import { ReadingQuestions } from "@/features/reading-session";
 import { ReadingTimer } from "@/features/reading-session";
@@ -26,7 +26,6 @@ import {
   isAnswered,
   type AnswerMap,
 } from "@/features/reading-session";
-import { SaveWordPopover } from "@/features/vocabulary";
 
 type Tab = "passage" | "questions";
 
@@ -45,7 +44,6 @@ export default function ReadingPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [brush, setBrush] = useState<Brush>(null);
 
   const passageScrollRef = useRef<HTMLDivElement>(null);
   const questionsScrollRef = useRef<HTMLDivElement>(null);
@@ -269,16 +267,10 @@ export default function ReadingPage() {
         >
           <ReadingPassage section={group.section} />
         </div>
-        <SaveWordPopover
-          source="reading"
-          sourceRef={String(testId)}
-          disabled={brush !== null}
-        />
-        <PassageHighlighter
+        <PassageAnnotator
           testId={testId}
           passage={activePassage}
-          brush={brush}
-          onBrush={setBrush}
+          sourceRef={String(testId)}
         />
 
         <div
