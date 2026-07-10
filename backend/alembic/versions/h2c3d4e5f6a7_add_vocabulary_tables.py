@@ -1,7 +1,7 @@
 """add vocabulary tables and native language
 
 Revision ID: h2c3d4e5f6a7
-Revises: g1a2b3c4d5e6
+Revises: i3c4d5e6f7a8
 Create Date: 2026-07-10
 """
 from typing import Sequence, Union
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 
 revision: str = "h2c3d4e5f6a7"
-down_revision: Union[str, None] = "g1a2b3c4d5e6"
+down_revision: Union[str, None] = "i3c4d5e6f7a8"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
