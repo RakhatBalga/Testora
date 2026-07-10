@@ -279,6 +279,9 @@ export function PassageAnnotator({
       // Drop marks with no styling left.
       return next.filter((m) => m.bg || m.text);
     });
+    // Clear the native (blue) selection so the applied colour is what's shown.
+    // The menu stays open (anchored offsets persist) so a text colour can follow.
+    window.getSelection()?.removeAllRanges();
   };
 
   const removeSelection = () => {
