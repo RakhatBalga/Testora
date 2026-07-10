@@ -30,12 +30,22 @@ def _validate_security_configuration() -> None:
     if not settings.is_production:
         return
     key = (settings.SECRET_KEY or "").strip()
-    placeholders = {"", "change_me", "changeme", "secret", "your-secret-key"}
+    # Placeholders plus values known to have leaked in this repo's git history
+    # (an early commit tracked backend/.env). A leaked key is forever burned —
+    # reject it regardless of length so it can never be reused in production.
+    placeholders = {
+        "",
+        "change_me",
+        "changeme",
+        "secret",
+        "your-secret-key",
+        "mysecretkey123",  # leaked in git history — permanently unusable
+    }
     if key.lower() in placeholders or len(key) < 32:
         raise RuntimeError(
-            "Refusing to start in production with a missing/placeholder/weak "
-            "SECRET_KEY (need >=32 chars, not a placeholder). Generate one with "
-            "`openssl rand -hex 32`."
+            "Refusing to start in production with a missing/placeholder/weak/"
+            "leaked SECRET_KEY (need >=32 chars, not a placeholder or a value "
+            "leaked in git history). Generate one with `openssl rand -hex 32`."
         )
 
 
