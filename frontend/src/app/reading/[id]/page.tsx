@@ -44,6 +44,7 @@ export default function ReadingPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [savedWords, setSavedWords] = useState<string[]>([]);
 
   const passageScrollRef = useRef<HTMLDivElement>(null);
   const questionsScrollRef = useRef<HTMLDivElement>(null);
@@ -97,6 +98,23 @@ export default function ReadingPage() {
   useEffect(() => {
     clearTimerRef.current = clearTimer;
   }, [clearTimer]);
+
+  // Highlight words the user has already saved (persistent Engnovate-style markers).
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    api
+      .listWords({ page: 1, page_size: 200 })
+      .then((data) => {
+        if (!cancelled) setSavedWords(data.items.map((w) => w.word));
+      })
+      .catch(() => {
+        /* highlighting is best-effort; ignore */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   // Load test + restore answers + restore a prior submitted result.
   useEffect(() => {
@@ -265,9 +283,15 @@ export default function ReadingPage() {
             tab === "passage" ? "block" : "hidden"
           } lg:block`}
         >
-          <ReadingPassage section={group.section} />
+          <ReadingPassage section={group.section} highlights={savedWords} />
         </div>
-        <SaveWordPopover source="reading" sourceRef={String(testId)} />
+        <SaveWordPopover
+          source="reading"
+          sourceRef={String(testId)}
+          onSaved={(w) =>
+            setSavedWords((prev) => (prev.includes(w) ? prev : [...prev, w]))
+          }
+        />
 
         <div
           ref={questionsScrollRef}
