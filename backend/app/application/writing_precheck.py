@@ -21,9 +21,11 @@ from app.infrastructure.ai.schemas import (
 
 ENGLISH_WORD_RE = re.compile(r"[A-Za-z]+(?:[-'][A-Za-z]+)?")
 ALPHA_TOKEN_RE = re.compile(r"[^\W\d_]+(?:[-'][^\W\d_]+)?", re.UNICODE)
-# A single letter or digit — used to decide whether a whitespace-separated
-# token counts as a word (so pure punctuation like "—" is ignored).
-WORD_CHAR_RE = re.compile(r"[^\W_]", re.UNICODE)
+# A single ASCII letter or digit — used to decide whether a whitespace-separated
+# token counts as a word. ASCII (not \w) so punctuation like "—" and non-English
+# scripts (e.g. Cyrillic) don't inflate the count of an English Writing task,
+# while numbers written as figures still count.
+WORD_CHAR_RE = re.compile(r"[A-Za-z0-9]")
 
 COMMON_ENGLISH_WORDS = {
     "a",

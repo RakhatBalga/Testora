@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/shared/ui";
 
 // On-screen diameter of the circular crop window and the exported image size.
@@ -25,17 +25,14 @@ type Natural = { w: number; h: number };
  */
 export function AvatarCropper({ file, saving = false, onCancel, onSave }: Props) {
   const imgRef = useRef<HTMLImageElement>(null);
-  const [url, setUrl] = useState<string | null>(null);
+  const url = useMemo(() => URL.createObjectURL(file), [file]);
   const [natural, setNatural] = useState<Natural | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
   const drag = useRef<{ px: number; py: number } | null>(null);
 
-  useEffect(() => {
-    const objectUrl = URL.createObjectURL(file);
-    setUrl(objectUrl);
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [file]);
+  useEffect(() => () => URL.revokeObjectURL(url), [url]);
 
   const coverScale = natural
     ? Math.max(VIEWPORT / natural.w, VIEWPORT / natural.h)
@@ -68,6 +65,7 @@ export function AvatarCropper({ file, saving = false, onCancel, onSave }: Props)
   const onPointerDown = (e: React.PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     drag.current = { px: e.clientX, py: e.clientY };
+    setDragging(true);
   };
   const onPointerMove = (e: React.PointerEvent) => {
     if (!drag.current) return;
@@ -78,6 +76,7 @@ export function AvatarCropper({ file, saving = false, onCancel, onSave }: Props)
   };
   const onPointerUp = (e: React.PointerEvent) => {
     drag.current = null;
+    setDragging(false);
     e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
@@ -115,8 +114,10 @@ export function AvatarCropper({ file, saving = false, onCancel, onSave }: Props)
 
         <div className="mt-5 flex justify-center">
           <div
-            className="relative touch-none overflow-hidden rounded-full bg-slate-100"
-            style={{ width: VIEWPORT, height: VIEWPORT, cursor: drag.current ? "grabbing" : "grab" }}
+            className={`relative touch-none overflow-hidden rounded-full bg-slate-100 ${
+              dragging ? "cursor-grabbing" : "cursor-grab"
+            }`}
+            style={{ width: VIEWPORT, height: VIEWPORT }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
