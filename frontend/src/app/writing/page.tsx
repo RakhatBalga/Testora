@@ -19,6 +19,39 @@ const TASK_FILTERS = [
   { label: "Task 2", href: "/writing?task=2", taskType: 2 },
 ];
 
+// Human-readable labels for the essay-type slugs stored on each task. Unknown
+// slugs fall back to a prettified version so new types render without a code
+// change here.
+const ESSAY_TYPE_LABELS: Record<string, string> = {
+  bar_chart: "Bar chart",
+  line_graph: "Line graph",
+  pie_chart: "Pie chart",
+  table: "Table",
+  process: "Process",
+  map: "Map",
+  mixed: "Mixed",
+  opinion: "Opinion",
+  discussion: "Discussion",
+  advantages_disadvantages: "Advantages / Disadvantages",
+  problem_solution: "Problem / Solution",
+  two_part: "Two-part question",
+};
+
+function essayTypeLabel(slug: string): string {
+  return (
+    ESSAY_TYPE_LABELS[slug] ??
+    slug.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
+
+function buildWritingHref(taskType: number | null, essayType: string | null): string {
+  const params = new URLSearchParams();
+  if (taskType) params.set("task", String(taskType));
+  if (essayType) params.set("type", essayType);
+  const query = params.toString();
+  return query ? `/writing?${query}` : "/writing";
+}
+
 export default function WritingPage() {
   const { token, ready } = useRequireAuth();
   const searchParams = useSearchParams();
@@ -41,6 +74,7 @@ export default function WritingPage() {
     : taskParam === "2"
       ? 2
       : null;
+  const activeEssayType = searchParams?.get("type") ?? null;
   const taskCounts = useMemo(
     () => ({
       all: tasks.length,
@@ -49,9 +83,33 @@ export default function WritingPage() {
     }),
     [tasks],
   );
-  const visibleTasks = activeTaskType
-    ? tasks.filter((task) => task.task_type === activeTaskType)
-    : tasks;
+
+  // Tasks in scope of the active Task 1/2 tab — the essay-type chips and the
+  // visible list are both derived from this so the two filters compose.
+  const tasksInTaskScope = useMemo(
+    () =>
+      activeTaskType
+        ? tasks.filter((task) => task.task_type === activeTaskType)
+        : tasks,
+    [tasks, activeTaskType],
+  );
+
+  // Distinct essay types present in scope, with counts — only render chips for
+  // types that actually have tasks, so the filter never leads to an empty list.
+  const essayTypeOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const task of tasksInTaskScope) {
+      if (!task.essay_type) continue;
+      counts.set(task.essay_type, (counts.get(task.essay_type) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .map(([slug, count]) => ({ slug, count, label: essayTypeLabel(slug) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [tasksInTaskScope]);
+
+  const visibleTasks = activeEssayType
+    ? tasksInTaskScope.filter((task) => task.essay_type === activeEssayType)
+    : tasksInTaskScope;
 
   if (!ready || !token) return null;
 
@@ -107,6 +165,47 @@ export default function WritingPage() {
         })}
       </div>
 
+      {essayTypeOptions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Essay type
+          </span>
+          <Link
+            href={buildWritingHref(activeTaskType, null)}
+            className={`inline-flex h-8 items-center rounded-full border px-3 text-sm font-medium transition ${
+              activeEssayType === null
+                ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]"
+                : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-950"
+            }`}
+          >
+            All types
+          </Link>
+          {essayTypeOptions.map((option) => {
+            const active = option.slug === activeEssayType;
+            return (
+              <Link
+                key={option.slug}
+                href={buildWritingHref(activeTaskType, option.slug)}
+                className={`inline-flex h-8 items-center gap-2 rounded-full border px-3 text-sm font-medium transition ${
+                  active
+                    ? "border-[var(--brand)] bg-[var(--brand)]/10 text-[var(--brand)]"
+                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-950"
+                }`}
+              >
+                {option.label}
+                <span
+                  className={`rounded-full px-1.5 text-xs ${
+                    active ? "bg-[var(--brand)]/15 text-[var(--brand)]" : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {option.count}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
       {error && (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
       )}
@@ -137,9 +236,16 @@ export default function WritingPage() {
               style={{ animationDelay: `${i * 80}ms` }}
             >
               <Card className="h-full p-5 transition duration-300 group-hover:-translate-y-1 group-hover:shadow-lg">
-                <Badge tone={taskTone(task.task_type)}>
-                  Task {task.task_type}
-                </Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone={taskTone(task.task_type)}>
+                    Task {task.task_type}
+                  </Badge>
+                  {task.essay_type && (
+                    <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                      {essayTypeLabel(task.essay_type)}
+                    </span>
+                  )}
+                </div>
                 <h2 className="mt-3 text-lg font-semibold text-slate-900">
                   {task.title}
                 </h2>
