@@ -26,8 +26,22 @@ jobs:
           ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Deploy to server
+        # The server is a deploy target, not a workspace: it must always match
+        # origin/main exactly. `git pull --ff-only` aborts if anyone hand-edited
+        # a tracked file on the box (which stalls every future deploy), so instead
+        # fetch and hard-reset. Any accidental server-side edits are first dumped
+        # to a timestamped patch under /tmp so nothing is ever silently lost, and
+        # they can be recovered/committed properly if they mattered.
         run: |
           ssh -i ~/.ssh/deploy_key \
             -o BatchMode=yes \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
-            "cd ${{ secrets.DEPLOY_PATH }} && git pull --ff-only && docker compose -f docker-compose.prod.yml up -d --build"
+            "set -e && cd ${{ secrets.DEPLOY_PATH }} && \
+             git fetch origin main && \
+             if ! git diff --quiet || ! git diff --cached --quiet; then \
+               patch=/tmp/predeploy-local-changes-\$(date -u +%Y%m%dT%H%M%SZ).patch; \
+               git diff HEAD > \"\$patch\"; \
+               echo \"WARNING: uncommitted server-side changes saved to \$patch before reset\"; \
+             fi && \
+             git reset --hard origin/main && \
+             docker compose -f docker-compose.prod.yml up -d --build"
