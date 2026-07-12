@@ -319,6 +319,11 @@ export default function ProfilePage() {
               <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--text-primary)]">
                 {profile?.username ?? username ?? "Student"}
               </h1>
+              <p className="mt-0.5 text-sm font-medium text-[var(--text-secondary)]">
+                {loading
+                  ? "..."
+                  : `${totalSessions} session${totalSessions === 1 ? "" : "s"} · Target band ${targetBand.toFixed(1)}`}
+              </p>
               {profile && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <input
