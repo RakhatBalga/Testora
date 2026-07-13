@@ -533,7 +533,7 @@ export default function ProfilePage() {
 
 function ProfileMetric({ label, value }: { label: string; value: string | null }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm shadow-slate-200/40 sm:p-5">
+    <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-white p-4 shadow-sm shadow-slate-200/40 before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-[var(--brand)] sm:p-5">
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
         {label}
       </p>
