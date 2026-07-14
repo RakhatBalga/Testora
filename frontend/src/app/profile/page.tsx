@@ -8,6 +8,8 @@ import {
   ArrowRight,
   BarChart3,
   BookOpen,
+  CalendarDays,
+  Gauge,
   Headphones,
   LogOut,
   Mic,
@@ -180,6 +182,86 @@ export default function ProfilePage() {
         return bt - at;
       })
       .slice(0, 6);
+  }, [attempts, writing, speaking]);
+
+  const skillBands = useMemo(() => {
+    const avg = (values: (number | null)[]): number | null => {
+      const graded = values.filter((b): b is number => b !== null);
+      return graded.length === 0
+        ? null
+        : roundHalf(graded.reduce((sum, band) => sum + band, 0) / graded.length);
+    };
+    return {
+      reading: avg(attempts.filter((a) => a.test_type === "reading").map((a) => a.band)),
+      listening: avg(attempts.filter((a) => a.test_type === "listening").map((a) => a.band)),
+      writing: avg(writing.map((w) => w.band)),
+      speaking: avg(speaking.map((s) => s.band)),
+    };
+  }, [attempts, writing, speaking]);
+
+  const activity = useMemo(() => {
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+    const counts = new Map<string, number>();
+    const bump = (iso: string | null) => {
+      if (!iso) return;
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return;
+      const key = fmt(d);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    };
+    attempts.forEach((a) => bump(a.created_at));
+    writing.forEach((w) => bump(w.created_at));
+    speaking.forEach((s) => bump(s.created_at));
+
+    const WEEKS = 18;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(today);
+    start.setDate(start.getDate() - (WEEKS * 7 - 1));
+    start.setDate(start.getDate() - start.getDay()); // rewind to Sunday for aligned columns
+
+    type Cell = { key: string; count: number; future: boolean };
+    const weeks: Cell[][] = [];
+    let week: Cell[] = [];
+    let total = 0;
+    const cursor = new Date(start);
+    for (let guard = 0; guard < 400; guard += 1) {
+      const cur = new Date(cursor);
+      const future = cur > today;
+      const count = future ? 0 : counts.get(fmt(cur)) ?? 0;
+      if (!future) total += count;
+      week.push({ key: fmt(cur), count, future });
+      if (week.length === 7) {
+        weeks.push(week);
+        week = [];
+      }
+      const isSaturday = cur.getDay() === 6;
+      cursor.setDate(cursor.getDate() + 1);
+      if (isSaturday && cur >= today) break;
+    }
+
+    const flat = weeks.flat().filter((c) => !c.future);
+    let activeDays = 0;
+    let maxStreak = 0;
+    let run = 0;
+    flat.forEach((c) => {
+      if (c.count > 0) {
+        activeDays += 1;
+        run += 1;
+        maxStreak = Math.max(maxStreak, run);
+      } else {
+        run = 0;
+      }
+    });
+    let currentStreak = 0;
+    for (let i = flat.length - 1; i >= 0; i -= 1) {
+      if (flat[i].count > 0) currentStreak += 1;
+      else break;
+    }
+
+    return { weeks, total, activeDays, maxStreak, currentStreak, windowWeeks: weeks.length };
   }, [attempts, writing, speaking]);
 
   const handleLogout = () => {
@@ -373,6 +455,104 @@ export default function ProfilePage() {
       {targetError && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{targetError}</p>}
 
       <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:40ms]">
+        <div className="mb-5 flex items-center gap-2">
+          <Gauge className="h-5 w-5 text-[var(--brand)]" />
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">Band snapshot</h2>
+        </div>
+
+        {loading ? (
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+            <Skeleton className="mx-auto h-36 w-36 shrink-0 rounded-full sm:mx-0" />
+            <div className="flex-1 space-y-4">
+              {[0, 1, 2, 3].map((i) => (
+                <Skeleton key={i} className="h-6 w-full rounded-lg" />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+              <div className="relative mx-auto h-36 w-36 shrink-0 sm:mx-0">
+                <BandRing value={avgBand} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
+                    {avgBand === null ? "-" : avgBand.toFixed(1)}
+                  </span>
+                  <span className="text-xs font-medium text-[var(--text-secondary)]">of 9.0</span>
+                </div>
+              </div>
+              <div className="w-full flex-1 space-y-3">
+                <SkillBandBar label="Reading" band={skillBands.reading} />
+                <SkillBandBar label="Listening" band={skillBands.listening} />
+                <SkillBandBar label="Writing" band={skillBands.writing} />
+                <SkillBandBar label="Speaking" band={skillBands.speaking} />
+              </div>
+            </div>
+            <p className="mt-5 text-sm text-[var(--text-secondary)]">
+              {avgBand === null
+                ? "Complete a graded test to see your average band."
+                : avgBand >= targetBand
+                  ? `You're at or above your target of ${targetBand.toFixed(1)}. Keep it steady.`
+                  : `${(targetBand - avgBand).toFixed(1)} band to reach your target of ${targetBand.toFixed(1)}.`}
+            </p>
+          </>
+        )}
+      </section>
+
+      <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:60ms]">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 text-[var(--brand)]" />
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">Activity</h2>
+          </div>
+          {!loading && (
+            <p className="text-sm text-[var(--text-secondary)]">
+              Active days: <span className="font-semibold text-[var(--text-primary)]">{activity.activeDays}</span>
+              <span className="px-2 text-slate-300">·</span>
+              Current streak: <span className="font-semibold text-[var(--text-primary)]">{activity.currentStreak}</span>
+              <span className="px-2 text-slate-300">·</span>
+              Best streak: <span className="font-semibold text-[var(--text-primary)]">{activity.maxStreak}</span>
+            </p>
+          )}
+        </div>
+
+        {loading ? (
+          <Skeleton className="h-28 w-full rounded-xl" />
+        ) : (
+          <>
+            <p className="mb-4 text-sm text-[var(--text-secondary)]">
+              <span className="font-semibold text-[var(--text-primary)]">{activity.total}</span> session
+              {activity.total === 1 ? "" : "s"} in the last {activity.windowWeeks} weeks
+            </p>
+            <div className="overflow-x-auto pb-1">
+              <div className="flex gap-1">
+                {activity.weeks.map((week, wi) => (
+                  <div key={wi} className="flex flex-col gap-1">
+                    {week.map((cell, di) => (
+                      <span
+                        key={cell.key || `${wi}-${di}`}
+                        title={cell.future ? undefined : `${cell.count} session${cell.count === 1 ? "" : "s"} · ${cell.key}`}
+                        className={`h-3 w-3 rounded-[3px] ${heatClass(cell.count, cell.future)}`}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mt-3 flex items-center justify-end gap-1.5 text-xs text-[var(--text-secondary)]">
+              <span>Less</span>
+              <span className="h-3 w-3 rounded-[3px] bg-slate-100" />
+              <span className="h-3 w-3 rounded-[3px] bg-[var(--brand)]/30" />
+              <span className="h-3 w-3 rounded-[3px] bg-[var(--brand)]/55" />
+              <span className="h-3 w-3 rounded-[3px] bg-[var(--brand)]/80" />
+              <span className="h-3 w-3 rounded-[3px] bg-[var(--brand)]" />
+              <span>More</span>
+            </div>
+          </>
+        )}
+      </section>
+
+      <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:80ms]">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex shrink-0 items-center justify-center text-[var(--brand)]">
@@ -526,6 +706,59 @@ export default function ProfilePage() {
             </div>
           )}
         </section>
+      </div>
+    </div>
+  );
+}
+
+function heatClass(count: number, future: boolean): string {
+  if (future) return "bg-transparent";
+  if (count <= 0) return "bg-slate-100";
+  if (count === 1) return "bg-[var(--brand)]/30";
+  if (count === 2) return "bg-[var(--brand)]/55";
+  if (count === 3) return "bg-[var(--brand)]/80";
+  return "bg-[var(--brand)]";
+}
+
+function BandRing({ value }: { value: number | null }) {
+  const max = 9;
+  const pct = value === null ? 0 : Math.min(Math.max(value / max, 0), 1);
+  const radius = 52;
+  const circumference = 2 * Math.PI * radius;
+  const dash = circumference * pct;
+  return (
+    <svg viewBox="0 0 120 120" className="h-36 w-36 -rotate-90">
+      <circle cx="60" cy="60" r={radius} fill="none" stroke="var(--border)" strokeWidth="10" />
+      <circle
+        cx="60"
+        cy="60"
+        r={radius}
+        fill="none"
+        stroke="var(--brand)"
+        strokeWidth="10"
+        strokeLinecap="round"
+        strokeDasharray={`${dash} ${circumference}`}
+        className="transition-[stroke-dasharray] duration-700 ease-out"
+      />
+    </svg>
+  );
+}
+
+function SkillBandBar({ label, band }: { label: string; band: number | null }) {
+  const pct = band === null ? 0 : Math.min(Math.max(band / 9, 0), 1) * 100;
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between text-sm">
+        <span className="font-medium text-[var(--text-primary)]">{label}</span>
+        <span className="font-semibold text-[var(--text-secondary)]">
+          {band === null ? "-" : band.toFixed(1)}
+        </span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+        <div
+          className="h-full rounded-full bg-[var(--brand)] transition-[width] duration-700 ease-out"
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );
