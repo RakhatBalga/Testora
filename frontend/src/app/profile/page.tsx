@@ -305,10 +305,10 @@ export default function ProfilePage() {
               <img
                 src={mediaUrl(profile.avatar) ?? undefined}
                 alt="Your avatar"
-                className="h-14 w-14 rounded-full object-cover"
+                className="h-14 w-14 rounded-full object-cover ring-2 ring-[var(--brand)]/15 ring-offset-2 ring-offset-white"
               />
             ) : (
-              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand)] text-xl font-bold text-white">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand)] text-xl font-bold text-white ring-2 ring-[var(--brand)]/15 ring-offset-2 ring-offset-white">
                 {(profile?.username ?? username)?.[0]?.toUpperCase() ?? "?"}
               </span>
             )}
