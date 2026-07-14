@@ -215,7 +215,7 @@ export default function ProfilePage() {
     writing.forEach((w) => bump(w.created_at));
     speaking.forEach((s) => bump(s.created_at));
 
-    const WEEKS = 18;
+    const WEEKS = 52;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const start = new Date(today);
@@ -522,17 +522,17 @@ export default function ProfilePage() {
           <>
             <p className="mb-4 text-sm text-[var(--text-secondary)]">
               <span className="font-semibold text-[var(--text-primary)]">{activity.total}</span> session
-              {activity.total === 1 ? "" : "s"} in the last {activity.windowWeeks} weeks
+              {activity.total === 1 ? "" : "s"} in the past year
             </p>
             <div className="overflow-x-auto pb-1">
-              <div className="flex gap-1">
+              <div className="flex w-full min-w-[560px] gap-[3px]">
                 {activity.weeks.map((week, wi) => (
-                  <div key={wi} className="flex flex-col gap-1">
+                  <div key={wi} className="flex flex-1 flex-col gap-[3px]">
                     {week.map((cell, di) => (
                       <span
                         key={cell.key || `${wi}-${di}`}
                         title={cell.future ? undefined : `${cell.count} session${cell.count === 1 ? "" : "s"} · ${cell.key}`}
-                        className={`h-3 w-3 rounded-[3px] ${heatClass(cell.count, cell.future)}`}
+                        className={`aspect-square w-full rounded-[2px] ${heatClass(cell.count, cell.future)}`}
                       />
                     ))}
                   </div>
