@@ -454,7 +454,7 @@ export default function ProfilePage() {
       {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
       {targetError && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{targetError}</p>}
 
-      <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:40ms]">
+      <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:20ms]">
         <div className="mb-5 flex items-center gap-2">
           <Gauge className="h-5 w-5 text-[var(--brand)]" />
           <h2 className="text-base font-semibold text-[var(--text-primary)]">Band snapshot</h2>
@@ -499,7 +499,7 @@ export default function ProfilePage() {
         )}
       </section>
 
-      <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:60ms]">
+      <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:40ms]">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-[var(--brand)]" />
@@ -552,7 +552,7 @@ export default function ProfilePage() {
         )}
       </section>
 
-      <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:80ms]">
+      <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:60ms]">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex shrink-0 items-center justify-center text-[var(--brand)]">
@@ -596,7 +596,7 @@ export default function ProfilePage() {
       </section>
 
       {profile && (
-        <section className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40">
+        <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:80ms]">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div><h2 className="font-semibold text-slate-900">Study settings</h2><p className="mt-1 text-sm text-slate-500">Used for your weekly plan.</p></div>
             <div className="flex flex-wrap gap-2"><Button variant="secondary" disabled={resettingPlan} onClick={handlePlanReset}>{resettingPlan ? "Resetting..." : "Reset plan"}</Button><Button disabled={savingSettings} onClick={handleSettingsSave}>{savingSettings ? "Saving..." : "Save settings"}</Button></div>
@@ -635,7 +635,7 @@ export default function ProfilePage() {
         </section>
       )}
 
-      <section className="grid animate-fade-up grid-cols-2 gap-3 [animation-delay:60ms] sm:gap-4 lg:grid-cols-4">
+      <section className="grid animate-fade-up grid-cols-2 gap-3 [animation-delay:100ms] sm:gap-4 lg:grid-cols-4">
         <ProfileMetric label="Sessions" value={loading ? null : String(totalSessions)} />
         <ProfileMetric
           label="Average band"
@@ -649,7 +649,7 @@ export default function ProfilePage() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:100ms]">
+        <section className="animate-fade-up rounded-2xl border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/40 [animation-delay:120ms]">
           <div className="mb-5 flex items-center gap-2">
             <Activity className="h-5 w-5 text-[var(--brand)]" />
             <h2 className="text-base font-semibold text-[var(--text-primary)]">Practice record</h2>
