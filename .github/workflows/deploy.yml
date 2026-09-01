@@ -1,12 +1,8 @@
-name: Deploy
+name: Legacy DigitalOcean Deploy
 
-# Runs only after the CI workflow succeeds on main, so broken code never
-# reaches production. Triggered by CI completion rather than push directly.
-on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-    branches: [main]
+# Kept for emergency/manual use only. Production is now deployed by Render,
+# so successful CI runs must no longer SSH to the retired DigitalOcean host.
+on: workflow_dispatch
 
 concurrency:
   group: production-deploy
@@ -14,8 +10,6 @@ concurrency:
 
 jobs:
   deploy:
-    # Only deploy when CI actually passed.
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Configure SSH
