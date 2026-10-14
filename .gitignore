@@ -5,6 +5,11 @@ backups/
 venv/
 .venv/
 
+# Private ML datasets, recordings, fitted models and experiment outputs.
+backend/ml/data/
+backend/ml/artifacts/
+backend/ml/reports/
+
 # Local writing calibration data/reports may contain third-party or private essays.
 backend/calibration/*.local.json
 backend/calibration/*.local.jsonl
