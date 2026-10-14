@@ -1,0 +1,2 @@
+# Optional offline research only; production requirements stay lightweight.
+faster-whisper>=1.1,<2
