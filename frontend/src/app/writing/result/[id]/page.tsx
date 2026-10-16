@@ -9,6 +9,7 @@ import {
 } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { FeedbackCard, EssayComparison } from "@/features/feedback";
+import { ReviewStatusNotice, reviewState } from "@/features/feedback/ui/ReviewStatusNotice";
 import { Badge } from "@/shared/ui";
 import { Button, Card } from "@/shared/ui";
 import { LinkButton } from "@/shared/ui";
@@ -83,7 +84,11 @@ export default function WritingResultPage() {
         </div>
       </Card>
 
-      {isFailed ? (
+      {reviewState(submission) === "pending" ? (
+        <ReviewStatusNotice state="pending" onRefresh={async () => {
+          setSubmission(await api.getWritingSubmission(submissionId));
+        }} />
+      ) : isFailed ? (
         <Card className="p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex gap-3">
