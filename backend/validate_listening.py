@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import subprocess
 import sys
@@ -56,7 +57,7 @@ def _probe(path: Path) -> dict:
         "ffprobe", "-v", "error", "-show_entries",
         "format=duration:stream=codec_name,sample_rate,channels",
         "-of", "json", str(path),
-    ], text=True)
+    ], text=True, timeout=30)
     raw = json.loads(output)
     stream = raw["streams"][0]
     return {
@@ -221,22 +222,117 @@ def validate_test(data: dict, where: str, rep: Report, blueprint: dict[int, dict
             rep.warn(f"{title}: duration is outside the preferred 8-30 minute authored benchmark range")
 
 
+def validate_current_package(data: dict, manifest: dict, rep: Report) -> None:
+    """Technical checks for the deployed package, without invented review evidence."""
+    meta = data.get("metadata", {})
+    if meta.get("schema_version") != "testora.listening-content.v1":
+        rep.err("content: unsupported schema_version")
+    if meta.get("authorship") != AUTHORSHIP:
+        rep.err("content: original-authorship wording is missing")
+    if meta.get("calibration_status") != "provisional":
+        rep.err("content: package must remain provisional pending expert review and pretesting")
+    if manifest.get("schema_version") != "testora.listening-audio-manifest.v1":
+        rep.err("manifest: unsupported schema_version")
+    if not data.get("content_version") or manifest.get("content_version") != data["content_version"]:
+        rep.err("manifest: version differs from content")
+    voices = manifest.get("voices", {})
+    if not voices or voices != meta.get("voices"):
+        rep.err("manifest: voices differ from content")
+    events = manifest.get("events", [])
+    if [e.get("kind") for e in events[:3]] != ["speech", "silence", "cue"]:
+        rep.err("manifest: expected spoken introduction, silence and start cue")
+    elif abs(events[1]["end"] - events[1]["start"] - 5) > 0.001:
+        rep.err("manifest: introduction must be followed by five seconds of silence")
+    previous_end = 0.0
+    seen = set()
+    for event in events:
+        start, end = event.get("start"), event.get("end")
+        if (not isinstance(start, (int, float)) or not isinstance(end, (int, float))
+                or not math.isfinite(start) or not math.isfinite(end)
+                or start < 0 or end <= start or abs(start - previous_end) > 0.01):
+            rep.err(f"manifest: invalid or discontinuous timing for {event.get('id')}")
+            continue
+        previous_end = end
+        if not event.get("id") or event["id"] in seen:
+            rep.err("manifest: event IDs must be unique")
+        seen.add(event.get("id"))
+        if event.get("kind") not in {"speech", "silence", "cue"}:
+            rep.err("manifest: unsupported event kind")
+        if event.get("kind") == "speech" and (not event.get("text") or event.get("speaker") not in voices):
+            rep.err("manifest: speech needs text and a declared speaker")
+    urls = {s.get("audio_url") for s in data.get("sections", [])}
+    expected_url = "/" + manifest.get("audio_path", "")
+    if urls != {expected_url} or not expected_url.startswith("/static/audio/listening/"):
+        rep.err("content: sections must reference the manifest's master audio")
+        return
+    path = _audio_path(expected_url).resolve()
+    if not path.is_relative_to((ROOT / "static/audio/listening").resolve()):
+        rep.err("content: audio path escapes listening directory")
+        return
+    if not path.is_file():
+        rep.err(f"content: missing audio file {path.name}")
+        return
+    try:
+        media = _probe(path)
+    except (OSError, subprocess.SubprocessError, KeyError, ValueError, IndexError) as exc:
+        rep.err(f"ffprobe failed: {exc}")
+        return
+    rep.media = media
+    if (media["codec"], media["sample_rate"], media["channels"]) != ("aac", 44100, 1):
+        rep.err("audio: expected AAC mono at 44.1 kHz")
+    encoding = manifest.get("encoding", {})
+    if (str(encoding.get("codec", "")).lower(), encoding.get("sample_rate"), encoding.get("channels")) != (media["codec"], media["sample_rate"], media["channels"]):
+        rep.err("audio: manifest encoding differs from ffprobe")
+    duration = media["duration_seconds"]
+    for label, value in (("content", meta.get("audio_duration")), ("manifest", manifest.get("duration_seconds")), ("timeline", previous_end)):
+        if not isinstance(value, (int, float)) or not math.isfinite(value) or abs(duration - value) > 0.12:
+            rep.err(f"audio: {label} duration differs from ffprobe")
+    for section in data.get("sections", []):
+        order = section.get("order")
+        smeta = section.get("metadata", {})
+        speech = [e for e in events if str(e.get("id", "")).startswith(f"s{order}-")]
+        dialogue = [e for e in speech if e["id"] != f"s{order}-lead"]
+        transcript = "\n".join(f"{e.get('speaker')}: {e.get('text')}" for e in dialogue)
+        if not dialogue or _norm(transcript) != _norm(section.get("passage", "")):
+            rep.err(f"Section {order}: transcript differs from manifest speech")
+        if not speech or smeta.get("audio_start") != speech[0]["start"] or smeta.get("audio_end") != speech[-1]["end"]:
+            rep.err(f"Section {order}: audio bounds differ from manifest")
+        for question in section.get("questions", []):
+            if not question.get("evidence"):
+                rep.err(f"Q{question.get('order')}: evidence is required")
+            options = question.get("options")
+            if options and any(answer not in options for answer in question.get("correct_answer", [])):
+                rep.err(f"Q{question.get('order')}: answer is not an available option")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--files", nargs="+")
     parser.add_argument("--no-write-report", action="store_true")
+    parser.add_argument("--require-editorial", action="store_true",
+                        help="Also require the original blueprint and completed editorial review")
     args = parser.parse_args()
     rep = Report()
     blueprint_path = CONTENT_DIR / "testora-studio-02-blueprint.json"
     manifest_path = CONTENT_DIR / "testora-studio-02-audio-manifest.json"
     try:
-        blueprint_raw = json.loads(blueprint_path.read_text(encoding="utf-8"))
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         print(f"Listening validation cannot load assembly metadata: {exc}")
         return 1
-    blueprint = _validate_blueprint(blueprint_raw, rep)
-    _validate_manifest(manifest, rep)
+    blueprint_raw = {}
+    blueprint = None
+    editorial_status = "not_reviewed"
+    if args.require_editorial:
+        try:
+            blueprint_raw = json.loads(blueprint_path.read_text(encoding="utf-8"))
+            blueprint = _validate_blueprint(blueprint_raw, rep)
+            _validate_manifest(manifest, rep)
+            editorial_status = "failed" if rep.errors else "reviewed"
+        except (OSError, json.JSONDecodeError) as exc:
+            rep.err(f"Editorial validation requires the original blueprint: {exc}")
+    else:
+        rep.warn("Technical validation only: editorial review and real pretesting are not verified.")
     files = [Path(path) for path in args.files] if args.files else [CONTENT_DIR / "testora-studio-02.json"]
     for path in files:
         try:
@@ -244,16 +340,28 @@ def main() -> int:
         except (OSError, json.JSONDecodeError) as exc:
             rep.err(f"{path.name}: cannot read ({exc})")
             continue
-        for test in raw.get("tests", []):
-            validate_test(test, path.name, rep, blueprint)
+        try:
+            tests = raw.get("tests", [])
+            if not tests:
+                rep.err(f"{path.name}: no Listening tests found")
+            for test in tests:
+                if test.get("test_type") != "listening":
+                    rep.err(f"{path.name}: expected a Listening test")
+                    continue
+                validate_test(test, path.name, rep, blueprint)
+                validate_current_package(test, manifest, rep)
+        except (AttributeError, TypeError, ValueError, KeyError, IndexError) as exc:
+            rep.err(f"{path.name}: malformed content or manifest ({exc})")
     report = {
         "schema_version": "testora.listening-assembly-report.v1",
-        "content_version": blueprint_raw.get("content_version"),
+        "content_version": manifest.get("content_version"),
         "status": "passed" if not rep.errors else "failed",
+        "validation_scope": "technical_and_editorial" if args.require_editorial else "technical",
+        "editorial_status": editorial_status,
         "tests": rep.tests,
-        "sections": 4 if rep.tests else 0,
+        "sections": 4 * rep.tests,
         "questions": rep.questions,
-        "blueprint_items": len(blueprint),
+        "blueprint_items": len(blueprint or {}),
         "review_passes": blueprint_raw.get("review_passes"),
         "calibration_status": blueprint_raw.get("calibration_status"),
         "media": rep.media,
@@ -264,7 +372,7 @@ def main() -> int:
         REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
     print("Listening benchmark validation")
     print(f"  tests/questions : {rep.tests}/{rep.questions}")
-    print(f"  blueprint items : {len(blueprint)}")
+    print(f"  editorial review: {editorial_status}")
     if rep.media:
         print(f"  audio           : {rep.media['duration_seconds']}s {rep.media['codec']} {rep.media['sample_rate']}Hz mono")
     for warning in rep.warnings:
