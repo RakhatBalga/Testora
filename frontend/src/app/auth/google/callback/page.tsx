@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
 import { GOOGLE_SIGNUP_KEY } from "@/features/auth/ui/GoogleSignInButton";
+import { consumeGoogleFlow } from "@/features/auth/googleFlow";
 
 type Phase = "working" | "pick-username" | "error";
 
@@ -27,6 +28,7 @@ export default function GoogleCallbackPage() {
     // All setState happens in async continuations (the lint rule forbids
     // synchronous setState inside the effect body).
     const run = async () => {
+      const state = consumeGoogleFlow(searchParams?.get("state") ?? null);
       const code = searchParams?.get("code") ?? null;
       if (!code) {
         throw new Error("No authorization code received from Google.");
@@ -43,7 +45,7 @@ export default function GoogleCallbackPage() {
       sessionStorage.removeItem(GOOGLE_SIGNUP_KEY);
 
       const redirectUri = `${window.location.origin}/auth/google/callback`;
-      const res = await api.googleAuth(code, redirectUri, signup);
+      const res = await api.googleAuth(code, redirectUri, state, signup);
       login(res.access_token, res.username);
       if (res.is_new_user && !signup?.username) {
         // Signed up via the login page — let them pick a nickname now,

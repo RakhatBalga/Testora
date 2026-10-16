@@ -1,6 +1,6 @@
 {
   "schema_version": "testora.listening-audio-manifest.v1",
-  "content_version": "1.0.0",
+  "content_version": "1.0.1",
   "audio_path": "static/audio/listening/testora-studio-02.m4a",
   "encoding": {
     "codec": "AAC",

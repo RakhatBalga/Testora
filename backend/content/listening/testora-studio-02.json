@@ -6,7 +6,7 @@
       "difficulty": "Medium-Hard",
       "description": "Original IELTS-style practice test created by Testora. Four sections, 40 questions, eight distinct voices.",
       "duration_minutes": 24,
-      "content_version": "1.0.0",
+      "content_version": "1.0.1",
       "metadata": {
         "schema_version": "testora.listening-content.v1",
         "slug": "testora-studio-listening-02",
@@ -159,7 +159,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "We're expecting about seventy guests."
+                  "quote": "We're expecting about seventy guests"
                 }
               ],
               "metadata": {
@@ -201,7 +201,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "a refundable deposit of sixty pounds."
+                  "quote": "a refundable deposit of sixty pounds"
                 }
               ],
               "metadata": {
@@ -326,7 +326,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "in summer ... it stays open until six in the evening."
+                  "quote": "in summer, which is now, it stays open until six in the evening"
                 }
               ],
               "metadata": {
@@ -350,7 +350,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "near the lake they must be kept on leads at all times."
+                  "quote": "near the lake they must be kept on leads at all times"
                 }
               ],
               "metadata": {
@@ -374,7 +374,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "the most popular activity ... is bird watching."
+                  "quote": "the most popular activity, especially with families, is bird watching"
                 }
               ],
               "metadata": {
@@ -398,7 +398,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "next month we're very excited to be opening a brand new café."
+                  "quote": "next month we're very excited to be opening a brand new café"
                 }
               ],
               "metadata": {
@@ -424,7 +424,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "the hire point is down at the Lakeside."
+                  "quote": "the hire point is down at the Lakeside"
                 }
               ],
               "metadata": {
@@ -450,7 +450,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "The picnic area ... in the Woodland."
+                  "quote": "The picnic area is the opposite direction, tucked away in the Woodland"
                 }
               ],
               "metadata": {
@@ -502,7 +502,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "the nearest ones are right here at the North Gate."
+                  "quote": "the nearest ones are right here at the North Gate"
                 }
               ],
               "metadata": {
@@ -528,7 +528,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "the gift shop is housed in the ... Old Mill."
+                  "quote": "the gift shop is housed in the beautifully restored Old Mill"
                 }
               ],
               "metadata": {
@@ -567,7 +567,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "It was collecting the data, because it rained heavily."
+                  "quote": "It was collecting the data, because it rained heavily"
                 }
               ],
               "metadata": {
@@ -615,7 +615,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "the water quality actually improved as we moved downstream."
+                  "quote": "the water quality actually improved as we moved downstream"
                 }
               ],
               "metadata": {
@@ -639,7 +639,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "I'd like you to interview some local residents."
+                  "quote": "I'd like you to interview some local residents"
                 }
               ],
               "metadata": {
@@ -663,7 +663,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "The full report is due at the end of the month."
+                  "quote": "The full report is due at the end of the month"
                 }
               ],
               "metadata": {
@@ -711,7 +711,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "I'm happy to draw the maps."
+                  "quote": "I'm happy to draw the maps"
                 }
               ],
               "metadata": {
@@ -818,7 +818,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "the modern green roof movement really began in Germany."
+                  "quote": "the modern green roof movement really began in Germany"
                 }
               ],
               "metadata": {
@@ -858,7 +858,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "sits a special membrane, whose job is to stop plant roots."
+                  "quote": "sits a special membrane, whose job is to stop plant roots"
                 }
               ],
               "metadata": {
@@ -878,7 +878,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "designers favour succulents, plants that store water in their leaves."
+                  "quote": "designers favour succulents, plants that store water in their leaves"
                 }
               ],
               "metadata": {
@@ -918,7 +918,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "They provide a habitat for insects, particularly bees."
+                  "quote": "They provide a habitat for insects, particularly bees"
                 }
               ],
               "metadata": {
@@ -938,7 +938,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "the main disadvantage of a green roof is the high installation cost."
+                  "quote": "the main disadvantage of a green roof is the high installation cost"
                 }
               ],
               "metadata": {
@@ -958,7 +958,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "the roof must be inspected regularly for leaks."
+                  "quote": "the roof must be inspected regularly for leaks"
                 }
               ],
               "metadata": {
@@ -978,7 +978,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "keeps the rooms below noticeably cool."
+                  "quote": "keeps the rooms below noticeably cool"
                 }
               ],
               "metadata": {
@@ -998,7 +998,7 @@
               "evidence": [
                 {
                   "paragraph": 1,
-                  "quote": "green roofs will become a legal requirement for many new buildings."
+                  "quote": "green roofs will become a legal requirement for many new buildings"
                 }
               ],
               "metadata": {

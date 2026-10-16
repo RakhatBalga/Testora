@@ -9,12 +9,11 @@ gradings queue instead of piling onto the model.
 """
 import asyncio
 import logging
-from typing import Awaitable, Callable, TypeVar
+from typing import Callable, TypeVar
 
 from fastapi.concurrency import run_in_threadpool
 
 from app.infrastructure.config import settings
-from app.infrastructure.ai.base import Feedback
 
 logger = logging.getLogger("testora.ai")
 
@@ -24,12 +23,12 @@ _T = TypeVar("_T")
 _grading_semaphore = asyncio.Semaphore(settings.MAX_CONCURRENT_GRADINGS)
 
 
-async def run_grading(grade: Callable[..., Feedback], /, **kwargs) -> Feedback:
+async def run_grading(grade: Callable[..., _T], /, **kwargs) -> _T:
     """Execute a blocking grader off the event loop, bounded by the semaphore."""
     async with _grading_semaphore:
         return await run_in_threadpool(lambda: grade(**kwargs))
 
 
-def offload(func: Callable[..., _T], /, **kwargs) -> Awaitable[_T]:
-    """Run an arbitrary blocking callable in the threadpool (no concurrency cap)."""
-    return run_in_threadpool(lambda: func(**kwargs))
+async def offload(func: Callable[..., _T], /, **kwargs) -> _T:
+    """Vocabulary calls share the same concurrency ceiling as grading."""
+    return await run_grading(func, **kwargs)

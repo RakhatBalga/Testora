@@ -911,16 +911,23 @@ export const api = {
       body: JSON.stringify({ username, password }),
     }),
 
+  googleStart: (state: string, redirect_uri: string) =>
+    request<{ authorization_url: string }>("/auth/google/start", {
+      method: "POST",
+      body: JSON.stringify({ state, redirect_uri }),
+    }),
+
   googleAuth: (
     code: string,
     redirect_uri: string,
+    state: string,
     signup?: { username?: string; target_band?: number }
   ) =>
     request<{ access_token: string; token_type: string; is_new_user: boolean; username: string }>(
       "/auth/google",
       {
         method: "POST",
-        body: JSON.stringify({ code, redirect_uri, ...signup }),
+        body: JSON.stringify({ ...signup, code, redirect_uri, state }),
       }
     ),
 

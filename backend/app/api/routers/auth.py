@@ -1,10 +1,8 @@
 import secrets
 import uuid
 from pathlib import Path
-from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import RedirectResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 import bcrypt
@@ -15,8 +13,10 @@ from app.infrastructure.ratelimit import auth_rate_limit
 from app.infrastructure.security import create_access_token
 from app.infrastructure.config import settings
 from app.domain.models.user import User
+from app.application.oauth import consume_flow, start_flow
 from app.api.schemas.auth import (
     GoogleAuthRequest,
+    GoogleStartRequest,
     GoogleAuthResponse,
     LoginRequest,
     RegisterRequest,
@@ -58,7 +58,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         payload.password.encode("utf-8"), user.password.encode("utf-8")
     ):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_access_token({"sub": user.username})
+    token = create_access_token(user.id)
     return {"access_token": token, "token_type": "bearer"}
 
 
@@ -188,6 +188,13 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
+@router.post("/google/start", dependencies=[Depends(auth_rate_limit)])
+def google_start(payload: GoogleStartRequest, db: Session = Depends(get_db)):
+    if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=501, detail="Google auth is not configured")
+    return {"authorization_url": start_flow(db, payload.state, payload.redirect_uri)}
+
+
 @router.post(
     "/google",
     response_model=GoogleAuthResponse,
@@ -197,7 +204,8 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=501, detail="Google auth is not configured")
 
-    with httpx.Client() as client:
+    verifier = consume_flow(db, payload.state, payload.redirect_uri)
+    with httpx.Client(timeout=15) as client:
         token_res = client.post(
             GOOGLE_TOKEN_URL,
             data={
@@ -206,6 +214,7 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
                 "client_secret": settings.GOOGLE_CLIENT_SECRET,
                 "redirect_uri": payload.redirect_uri,
                 "grant_type": "authorization_code",
+                "code_verifier": verifier,
             },
         )
     if token_res.status_code != 200:
@@ -227,9 +236,7 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
     google_user = userinfo_res.json()
     google_id = google_user.get("id")
     email = google_user.get("email")
-    name = google_user.get("name", "")
-
-    if not google_id or not email:
+    if not google_id or not email or google_user.get("verified_email") is not True:
         raise HTTPException(status_code=401, detail="Incomplete Google profile")
 
     user = db.query(User).filter(User.google_id == google_id).first()
@@ -237,6 +244,8 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
     if not user:
         user = db.query(User).filter(User.email == email).first()
         if user:
+            if user.google_id and user.google_id != google_id:
+                raise HTTPException(status_code=409, detail="Email is linked to another Google account")
             user.google_id = google_id
             db.commit()
 
@@ -265,7 +274,7 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
         db.refresh(user)
         is_new_user = True
 
-    token = create_access_token({"sub": user.username})
+    token = create_access_token(user.id)
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -282,8 +291,7 @@ def set_username(
 ):
     """Change the account username (e.g. after Google signup).
 
-    The JWT subject is the username, so a successful change returns a fresh
-    token — the old one would stop resolving to this user.
+    Tokens remain bound to the immutable user ID after a rename.
     """
     taken = (
         db.query(User)
@@ -298,5 +306,5 @@ def set_username(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Username already taken")
-    token = create_access_token({"sub": current_user.username})
+    token = create_access_token(current_user.id)
     return {"access_token": token, "token_type": "bearer"}

@@ -16,7 +16,7 @@ from app.api.schemas.writing import (
 from app.infrastructure.ai import get_writing_grader
 from app.infrastructure.ai.concurrency import run_grading
 from app.application.mistakes import clear_mistakes, record_mistakes
-from app.application.quota import enforce_free_quota, quota_status
+from app.application.quota import enforce_free_quota, quota_status, reserve_ai_call
 from app.application.writing_precheck import (
     validate_writing_submission,
     zero_band_feedback,
@@ -91,6 +91,35 @@ async def submit(
 
 
 async def _grade_and_persist(
+    submission: WritingSubmission,
+    task: WritingTask,
+    db: Session,
+    current_user: User,
+) -> WritingSubmission:
+    retry = submission.id is not None
+    resource = f"writing:{submission.id}" if retry else None
+    with reserve_ai_call(db, current_user, "writing", model=WritingSubmission,
+                         limit=settings.FREE_WRITING_SUBMISSIONS, resource=resource) as reservation:
+        if retry:
+            db.refresh(submission)
+            if submission.status != "failed":
+                raise HTTPException(409, "Only failed writing submissions can be retried")
+        submission.status = "pending"
+        db.add(submission)
+        db.commit()
+        try:
+            result = await _perform_grading(submission, task, db, current_user)
+        except BaseException:
+            db.rollback()
+            submission.status = "failed"
+            submission.band = None
+            db.commit()
+            raise
+        reservation.success = result.status == "graded"
+        return result
+
+
+async def _perform_grading(
     submission: WritingSubmission,
     task: WritingTask,
     db: Session,

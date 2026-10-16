@@ -8,6 +8,7 @@ so repeat opens never re-call the model. There is no scheduler — "daily" means
 on-demand, date-keyed generation, mirroring the weekly study plan.
 """
 from datetime import date, datetime
+from fastapi import HTTPException
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -16,6 +17,7 @@ from app.domain.models.user import User
 from app.domain.models.vocabulary import DailyWordQuiz, SavedWord
 from app.infrastructure.ai.concurrency import offload
 from app.infrastructure.ai.factory import get_vocabulary_coach
+from app.application.quota import reserve_ai_call
 
 MAX_WORD_LEN = 80
 QUIZ_WORD_POOL = 12   # most-recent training words fed to the quiz generator
@@ -162,19 +164,25 @@ async def enrich_word(
     if row.enrichment and not force:
         return row
 
-    coach = get_vocabulary_coach()
-    info = await offload(
-        coach.enrich_word,
-        word=row.word,
-        context=row.context,
-        native_language=user.native_language,
-    )
-    if not info.error:
-        row.enrichment = info.to_dict()
-        row.enriched_at = datetime.utcnow()
-        db.commit()
+    with reserve_ai_call(db, user, "vocabulary", resource=f"word:{row.id}") as reservation:
         db.refresh(row)
-    return row
+        if row.enrichment and not force:
+            return row
+        coach = get_vocabulary_coach()
+        info = await offload(
+            coach.enrich_word,
+            word=row.word,
+            context=row.context,
+            native_language=user.native_language,
+        )
+        reservation.success = not info.error
+        if not info.error:
+            row.enrichment = info.to_dict()
+            row.enriched_at = datetime.utcnow()
+            db.commit()
+            db.refresh(row)
+        return row
+
 
 
 async def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWordQuiz:
@@ -187,51 +195,61 @@ async def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWo
     if existing:
         return existing
 
-    words = (
-        db.query(SavedWord)
-        .filter(SavedWord.user_id == user.id, SavedWord.training.is_(True))
-        .order_by(SavedWord.created_at.desc())
-        .limit(QUIZ_WORD_POOL)
-        .all()
-    )
-    if not words:
-        # Nothing explicitly marked for training — fall back to recent saves so the
-        # user still gets practice.
+    with reserve_ai_call(db, user, "vocabulary", resource=f"quiz:{user.id}:{quiz_date}") as reservation:
+        existing = db.query(DailyWordQuiz).filter(
+            DailyWordQuiz.user_id == user.id, DailyWordQuiz.quiz_date == quiz_date,
+        ).first()
+        if existing:
+            return existing
         words = (
             db.query(SavedWord)
-            .filter(SavedWord.user_id == user.id)
+            .filter(SavedWord.user_id == user.id, SavedWord.training.is_(True))
             .order_by(SavedWord.created_at.desc())
             .limit(QUIZ_WORD_POOL)
             .all()
         )
-
-    payload_words = [
-        {"word": w.word, "context": w.context, **(w.enrichment or {})} for w in words
-    ]
-    quiz = await offload(
-        get_vocabulary_coach().generate_quiz,
-        words=payload_words,
-        native_language=user.native_language,
-        num_questions=min(QUIZ_QUESTIONS, max(1, len(words))),
-    )
-    payload = {"questions": [q.to_dict() for q in quiz.questions]}
-    row = DailyWordQuiz(
-        user_id=user.id, quiz_date=quiz_date, payload=payload, total=len(quiz.questions)
-    )
-    db.add(row)
-    try:
-        db.commit()
-        db.refresh(row)
-        return row
-    except IntegrityError:
-        db.rollback()
-        return (
-            db.query(DailyWordQuiz)
-            .filter(
-                DailyWordQuiz.user_id == user.id, DailyWordQuiz.quiz_date == quiz_date
+        if not words:
+            # Nothing explicitly marked for training — fall back to recent saves so the
+            # user still gets practice.
+            words = (
+                db.query(SavedWord)
+                .filter(SavedWord.user_id == user.id)
+                .order_by(SavedWord.created_at.desc())
+                .limit(QUIZ_WORD_POOL)
+                .all()
             )
-            .first()
+
+        payload_words = [
+            {"word": w.word, "context": w.context, **(w.enrichment or {})} for w in words
+        ]
+        quiz = await offload(
+            get_vocabulary_coach().generate_quiz,
+            words=payload_words,
+            native_language=user.native_language,
+            num_questions=min(QUIZ_QUESTIONS, max(1, len(words))),
         )
+        if quiz.error:
+            raise HTTPException(503, "Quiz generation failed. Please try again.")
+        payload = {"questions": [q.to_dict() for q in quiz.questions]}
+        row = DailyWordQuiz(
+            user_id=user.id, quiz_date=quiz_date, payload=payload, total=len(quiz.questions)
+        )
+        db.add(row)
+        try:
+            db.commit()
+            db.refresh(row)
+            reservation.success = True
+            return row
+        except IntegrityError:
+            db.rollback()
+            return (
+                db.query(DailyWordQuiz)
+                .filter(
+                    DailyWordQuiz.user_id == user.id, DailyWordQuiz.quiz_date == quiz_date
+                )
+                .first()
+            )
+
 
 
 def public_quiz(quiz: DailyWordQuiz) -> dict:

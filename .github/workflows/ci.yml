@@ -2,12 +2,29 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, "nurhan/**"]
   pull_request:
 
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: testora
+          POSTGRES_PASSWORD: testora-ci
+          POSTGRES_DB: testora_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U testora -d testora_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://testora:testora-ci@localhost:5432/testora_test
+      TEST_POSTGRES_URL: postgresql://testora:testora-ci@localhost:5432/testora_test
+      SECRET_KEY: ci-only-test-secret
+      AI_PROVIDER: mock
     defaults:
       run:
         working-directory: backend
@@ -26,8 +43,23 @@ jobs:
       - name: Alembic single-head check
         run: python scripts/check_migration_heads.py
 
+      - name: Apply and reverse security migrations on PostgreSQL
+        run: |
+          alembic upgrade head
+          alembic downgrade h2c3d4e5f6a7
+          alembic upgrade head
+
+      - name: Install media validator
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Validate reading content
         run: python validate_reading.py
+
+      - name: Validate Listening content and actual audio
+        run: python validate_listening.py --no-write-report
+
+      - name: Validate Writing content
+        run: python validate_writing.py
 
       - name: Run tests
         run: pytest -q
