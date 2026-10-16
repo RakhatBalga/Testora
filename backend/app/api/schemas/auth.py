@@ -25,9 +25,13 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1, max_length=72)
 
 
-class GoogleAuthRequest(BaseModel):
-    code: str
-    redirect_uri: str
+class GoogleStartRequest(BaseModel):
+    state: str = Field(..., pattern=r"^[A-Za-z0-9_-]{43,128}$")
+    redirect_uri: str = Field(..., max_length=2048)
+
+
+class GoogleAuthRequest(GoogleStartRequest):
+    code: str = Field(..., min_length=1, max_length=4096)
     # Chosen during the register flow, carried across the OAuth redirect.
     # Only applied when the Google account signs in for the first time.
     username: str | None = Field(None, min_length=3, max_length=50)

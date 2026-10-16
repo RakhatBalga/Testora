@@ -13,6 +13,7 @@ from app.domain.models.writing import WritingTask, WritingSubmission  # noqa
 from app.domain.models.speaking import SpeakingTask, SpeakingSubmission  # noqa
 from app.domain.models.mistake import Mistake  # noqa
 from app.domain.models.vocabulary import SavedWord, DailyWordQuiz  # noqa
+from app.domain.models.oauth import OAuthFlow  # noqa
 
 config = context.config
 
