@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api } from "@/shared/api";
 import { beginGoogleFlow } from "../googleFlow";
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 /** sessionStorage key carrying register-flow choices across the OAuth redirect. */
 export const GOOGLE_SIGNUP_KEY = "testora.google.signup";
@@ -35,22 +33,26 @@ export default function GoogleSignInButton({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  if (!GOOGLE_CLIENT_ID) return null;
+  const inFlight = useRef(false);
+  if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) return null;
 
   const handleClick = async () => {
+    if (inFlight.current || disabled) return;
+    inFlight.current = true;
     setBusy(true);
     setError("");
     try {
-    if (signupData && (signupData.username || signupData.target_band)) {
-      sessionStorage.setItem(GOOGLE_SIGNUP_KEY, JSON.stringify(signupData));
-    } else {
-      sessionStorage.removeItem(GOOGLE_SIGNUP_KEY);
-    }
-    const redirectUri = `${window.location.origin}/auth/google/callback`;
-    const state = beginGoogleFlow();
-    const result = await api.googleStart(state, redirectUri);
-    window.location.href = result.authorization_url;
+      if (signupData && (signupData.username || signupData.target_band)) {
+        sessionStorage.setItem(GOOGLE_SIGNUP_KEY, JSON.stringify(signupData));
+      } else {
+        sessionStorage.removeItem(GOOGLE_SIGNUP_KEY);
+      }
+      const redirectUri = `${window.location.origin}/auth/google/callback`;
+      const state = beginGoogleFlow();
+      const result = await api.googleStart(state, redirectUri);
+      window.location.href = result.authorization_url;
     } catch (err) {
+      inFlight.current = false;
       setError(err instanceof Error ? err.message : "Could not start Google sign-in.");
       setBusy(false);
     }
@@ -58,16 +60,16 @@ export default function GoogleSignInButton({
 
   return (
     <div>
-    <button
-      type="button"
-      onClick={handleClick}
-      disabled={disabled || busy}
-      className="flex h-[54px] w-full items-center justify-center gap-3 rounded-2xl border border-[var(--border)] bg-white text-base font-semibold text-[var(--text-primary)] shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      <GoogleIcon />
-      {busy ? "Connecting..." : "Continue with Google"}
-    </button>
-    {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={disabled || busy}
+        className="flex h-[54px] w-full items-center justify-center gap-3 rounded-2xl border border-[var(--border)] bg-white text-base font-semibold text-[var(--text-primary)] shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <GoogleIcon />
+        {busy ? "Connecting..." : "Continue with Google"}
+      </button>
+      {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
     </div>
   );
 }
