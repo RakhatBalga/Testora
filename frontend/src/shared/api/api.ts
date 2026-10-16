@@ -755,6 +755,16 @@ function handleUnauthorized(): void {
  *  text instead of the dreaded "[object Object]". */
 function detailToMessage(detail: unknown, fallback = "Request failed"): string {
   if (typeof detail === "string" && detail.trim()) return detail;
+  if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+    const { code, message, resets_at } = detail as { code?: string; message?: string; resets_at?: string };
+    if (typeof message === "string" && message.trim()) {
+      const reset = typeof resets_at === "string" ? new Date(resets_at) : null;
+      if (code === "ai_daily_limit" && reset && Number.isFinite(reset.getTime())) {
+        return `${message} Available again at ${reset.toLocaleString()} (your local time).`;
+      }
+      return message;
+    }
+  }
   if (Array.isArray(detail)) {
     const parts = detail
       .map((item) => {

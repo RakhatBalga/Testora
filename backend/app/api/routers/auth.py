@@ -188,6 +188,28 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 
+def _google_request(method: str, url: str, **kwargs) -> dict:
+    """Map provider failures to actionable messages without exposing responses."""
+    try:
+        with httpx.Client(timeout=15) as client:
+            response = client.request(method, url, **kwargs)
+    except httpx.TimeoutException:
+        raise HTTPException(504, "Google took too long to respond. Please start sign-in again.") from None
+    except httpx.RequestError:
+        raise HTTPException(503, "Google sign-in is temporarily unavailable. Please try again.") from None
+    if response.status_code == 429 or response.status_code >= 500:
+        raise HTTPException(503, "Google sign-in is temporarily unavailable. Please try again.")
+    if response.status_code != 200:
+        raise HTTPException(400, "Google could not complete sign-in. Please start again.")
+    try:
+        payload = response.json()
+    except ValueError:
+        raise HTTPException(502, "Google returned an invalid response. Please start sign-in again.") from None
+    if not isinstance(payload, dict):
+        raise HTTPException(502, "Google returned an invalid response. Please start sign-in again.")
+    return payload
+
+
 @router.post("/google/start", dependencies=[Depends(auth_rate_limit)])
 def google_start(payload: GoogleStartRequest, db: Session = Depends(get_db)):
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
@@ -205,35 +227,20 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=501, detail="Google auth is not configured")
 
     verifier = consume_flow(db, payload.state, payload.redirect_uri)
-    with httpx.Client(timeout=15) as client:
-        token_res = client.post(
-            GOOGLE_TOKEN_URL,
-            data={
-                "code": payload.code,
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "redirect_uri": payload.redirect_uri,
-                "grant_type": "authorization_code",
-                "code_verifier": verifier,
-            },
-        )
-    if token_res.status_code != 200:
-        raise HTTPException(status_code=401, detail="Failed to exchange Google auth code")
-
-    google_tokens = token_res.json()
+    google_tokens = _google_request("POST", GOOGLE_TOKEN_URL, data={
+        "code": payload.code,
+        "client_id": settings.GOOGLE_CLIENT_ID,
+        "client_secret": settings.GOOGLE_CLIENT_SECRET,
+        "redirect_uri": payload.redirect_uri,
+        "grant_type": "authorization_code",
+        "code_verifier": verifier,
+    })
     access_token = google_tokens.get("access_token")
     if not access_token:
         raise HTTPException(status_code=401, detail="No access token from Google")
 
-    with httpx.Client() as client:
-        userinfo_res = client.get(
-            GOOGLE_USERINFO_URL,
-            headers={"Authorization": f"Bearer {access_token}"},
-        )
-    if userinfo_res.status_code != 200:
-        raise HTTPException(status_code=401, detail="Failed to fetch Google user info")
-
-    google_user = userinfo_res.json()
+    google_user = _google_request("GET", GOOGLE_USERINFO_URL,
+                                  headers={"Authorization": f"Bearer {access_token}"})
     google_id = google_user.get("id")
     email = google_user.get("email")
     if not google_id or not email or google_user.get("verified_email") is not True:

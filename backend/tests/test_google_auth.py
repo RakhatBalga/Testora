@@ -102,3 +102,28 @@ def test_exchange_sends_pkce_and_only_trusts_verified_email(db, monkeypatch, ver
     with pytest.raises(HTTPException):
         auth.google_auth(payload, db)
     assert len(requests) == 2
+
+
+@pytest.mark.parametrize("stage", ["token", "profile"])
+@pytest.mark.parametrize("fault,expected", [("timeout", 504), ("network", 503), ("unavailable", 503), ("invalid_json", 502)])
+def test_provider_failures_are_actionable_and_do_not_create_accounts(db, monkeypatch, stage, fault, expected):
+    state, _ = start(db)
+    def handler(request):
+        if stage == "profile" and request.url == auth.GOOGLE_TOKEN_URL:
+            return httpx.Response(200, json={"access_token": "test-token"})
+        if fault == "timeout":
+            raise httpx.ReadTimeout("sensitive upstream details", request=request)
+        if fault == "network":
+            raise httpx.ConnectError("sensitive upstream details", request=request)
+        if fault == "unavailable":
+            return httpx.Response(503, text="sensitive upstream details")
+        return httpx.Response(200, text="not json")
+    client_type = httpx.Client
+    monkeypatch.setattr(auth.httpx, "Client", lambda **kw: client_type(transport=httpx.MockTransport(handler)))
+    payload = GoogleAuthRequest(code="code", state=state, redirect_uri=REDIRECT)
+    with pytest.raises(HTTPException) as error:
+        auth.google_auth(payload, db)
+    assert error.value.status_code == expected
+    assert "again" in error.value.detail
+    assert "sensitive" not in error.value.detail
+    assert db.query(User).count() == 0

@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { api, fetchAuthenticatedMedia, SpeakingSubmission } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { FeedbackCard } from "@/features/feedback";
+import { ReviewStatusNotice, reviewState } from "@/features/feedback/ui/ReviewStatusNotice";
 import { Badge } from "@/shared/ui";
 import { Card } from "@/shared/ui";
 import { LinkButton } from "@/shared/ui";
@@ -111,7 +112,11 @@ export default function SpeakingResultPage() {
         </div>
       </Card>
 
-      {submission.feedback ? (
+      {reviewState(submission) !== "graded" ? (
+        <ReviewStatusNotice state={reviewState(submission) === "failed" ? "failed" : "pending"} onRefresh={async () => {
+          setSubmission(await api.getSpeakingSubmission(submissionId));
+        }} />
+      ) : submission.feedback ? (
         <FeedbackCard feedback={submission.feedback} />
       ) : (
         <Card className="p-6 text-center text-slate-500">

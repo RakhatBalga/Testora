@@ -16,7 +16,8 @@ READING_CATALOG_TITLE = re.compile(r"^IELTS Academic Reading\s+(?:—|-)\s+Test\
 
 def is_catalog_test(test: Test) -> bool:
     if test.test_type == "listening":
-        return (test.content_metadata or {}).get("published") is True
+        meta = test.content_metadata or {}
+        return meta.get("published") is True and not meta.get("superseded_by")
     if test.test_type != "reading":
         return True
     return bool(READING_CATALOG_TITLE.match(test.title))

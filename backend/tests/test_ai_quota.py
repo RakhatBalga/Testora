@@ -80,6 +80,9 @@ def test_failures_refund_reviews_but_cannot_bypass_daily_budget(quota_engine, mo
             with reserve_ai_call(db, user, "writing", model=WritingSubmission, limit=1):
                 pytest.fail("Exhausted daily budget must never call the provider")
         assert error.value.status_code == 429
+        assert error.value.detail["code"] == "ai_daily_limit"
+        assert error.value.detail["resets_at"].endswith("T00:00:00+00:00")
+        assert int(error.value.headers["Retry-After"]) > 0
 
 
 def test_exception_refunds_and_releases_resource(quota_engine):
@@ -116,6 +119,8 @@ def test_legacy_zero_band_speaking_consumes_quota(quota_engine):
             with reserve_ai_call(db, db.get(User, 1), "speaking", model=SpeakingSubmission, limit=1):
                 pytest.fail("Existing zero band review was ignored")
         assert error.value.status_code == 403
+        assert error.value.detail["code"] == "ai_free_reviews_exhausted"
+        assert "resets_at" not in error.value.detail
 
 
 def test_username_exemption_cannot_be_claimed_by_renaming(quota_engine, monkeypatch):
