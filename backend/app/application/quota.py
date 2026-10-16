@@ -5,7 +5,7 @@ Known failures refund lifetime reviews, but never the daily attempt budget.
 """
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import uuid
 
 from fastapi import HTTPException
@@ -48,7 +48,22 @@ def enforce_free_quota(db: Session, model, user, limit: int, skill: str) -> None
     """Early UX check only; reserve_ai_call performs the atomic enforcement."""
     state = quota_status(db, model, user, limit)
     if not state["exempt"] and state["remaining"] == 0:
-        raise HTTPException(403, f"You've used your {limit} free {skill} reviews.")
+        raise _quota_error(skill, limit)
+
+
+def _quota_error(kind: str, limit: int) -> HTTPException:
+    if kind == "attempts":
+        now = datetime.now(timezone.utc)
+        reset = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        return HTTPException(429, {
+            "code": "ai_daily_limit",
+            "message": "Daily AI limit reached. This limit covers reviews and vocabulary, including failed attempts.",
+            "resets_at": reset.isoformat(),
+        }, headers={"Retry-After": str(max(1, int((reset - now).total_seconds())))})
+    return HTTPException(403, {
+        "code": "ai_free_reviews_exhausted",
+        "message": f"You've used your {limit} free {kind} reviews. This allowance does not reset daily.",
+    })
 
 
 def _increment(db: Session, user_id: int, kind: str, period: str, limit: int, initial: int = 0):
@@ -60,9 +75,7 @@ def _increment(db: Session, user_id: int, kind: str, period: str, limit: int, in
         AIQuotaBucket.period == period, AIQuotaBucket.used < limit,
     ).values(used=AIQuotaBucket.used + 1).execution_options(synchronize_session=False))
     if changed.rowcount != 1:
-        code = 429 if kind == "attempts" else 403
-        detail = "Daily AI attempt limit reached. Please try again tomorrow." if code == 429 else f"You've used your {limit} free {kind} reviews."
-        raise HTTPException(code, detail)
+        raise _quota_error(kind, limit)
 
 
 @dataclass
