@@ -14,7 +14,6 @@ from fastapi import (
     status,
 )
 from fastapi.responses import FileResponse
-from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.infrastructure.config import settings
@@ -192,17 +191,7 @@ def _resolve_media_user(token: str | None, db: Session) -> User:
     )
     if not token:
         raise cred_error
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        username = payload.get("sub")
-        if not username:
-            raise cred_error
-    except JWTError:
-        raise cred_error
-    user = db.query(User).filter(User.username == username).first()
-    if user is None:
-        raise cred_error
-    return user
+    return get_current_user(token=token, db=db)
 
 
 @router.get("/submissions/{submission_id}/audio")

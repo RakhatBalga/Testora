@@ -58,7 +58,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
         payload.password.encode("utf-8"), user.password.encode("utf-8")
     ):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_access_token({"sub": user.username})
+    token = create_access_token(user.id)
     return {"access_token": token, "token_type": "bearer"}
 
 
@@ -265,7 +265,7 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
         db.refresh(user)
         is_new_user = True
 
-    token = create_access_token({"sub": user.username})
+    token = create_access_token(user.id)
     return {
         "access_token": token,
         "token_type": "bearer",
@@ -282,8 +282,7 @@ def set_username(
 ):
     """Change the account username (e.g. after Google signup).
 
-    The JWT subject is the username, so a successful change returns a fresh
-    token — the old one would stop resolving to this user.
+    Tokens remain bound to the immutable user ID after a rename.
     """
     taken = (
         db.query(User)
@@ -298,5 +297,5 @@ def set_username(
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=400, detail="Username already taken")
-    token = create_access_token({"sub": current_user.username})
+    token = create_access_token(current_user.id)
     return {"access_token": token, "token_type": "bearer"}
