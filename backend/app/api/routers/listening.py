@@ -119,7 +119,8 @@ def list_listening_tests(
         .group_by(Section.test_id)
         .all()
     )
-    tests = [test for test in db.query(Test).order_by(Test.id).all() if _is_published(test)]
+    tests = [test for test in db.query(Test).order_by(Test.id).all()
+             if _is_published(test) and not _metadata(test).get("superseded_by")]
     return [_catalog_item(test, counts.get(test.id, 0)) for test in tests]
 
 
