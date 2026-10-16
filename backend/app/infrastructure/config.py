@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -67,12 +68,16 @@ class Settings(BaseSettings):
     # entirely; negative = unlimited (dev).
     FREE_WRITING_SUBMISSIONS: int = 2
     FREE_SPEAKING_SUBMISSIONS: int = 2
-    # Comma-separated usernames exempt from quotas (owner/demo accounts).
+    # Legacy setting accepted for deployment compatibility, but no longer grants access.
     QUOTA_EXEMPT_USERS: str = ""
+    # Immutable IDs replace username exemptions; renaming cannot grant free AI.
+    QUOTA_EXEMPT_USER_IDS: str = ""
+    # Shared UTC budget includes failed attempts and vocabulary generation.
+    AI_DAILY_ATTEMPTS: int = Field(default=20, ge=1)
 
     @property
-    def quota_exempt_users(self) -> set[str]:
-        return {u.strip() for u in self.QUOTA_EXEMPT_USERS.split(",") if u.strip()}
+    def quota_exempt_user_ids(self) -> set[int]:
+        return {int(u.strip()) for u in self.QUOTA_EXEMPT_USER_IDS.split(",") if u.strip().isdigit()}
 
     @property
     def cors_origins_list(self) -> list[str]:

@@ -165,3 +165,14 @@ def test_retry_rejects_non_failed_submission(monkeypatch, db, retry_fixture):
         asyncio.run(writing.retry_submission(submission.id, db=db, current_user=user))
 
     assert exc.value.status_code == 409
+
+
+def test_retry_cannot_bypass_exhausted_quota(monkeypatch, db, retry_fixture):
+    user, _task, submission = retry_fixture
+    monkeypatch.setattr(writing.settings, "FREE_WRITING_SUBMISSIONS", 0)
+    monkeypatch.setattr(writing, "get_writing_grader", lambda: pytest.fail("Provider must not be called"))
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(writing.retry_submission(submission.id, db=db, current_user=user))
+    assert error.value.status_code == 403
+    db.refresh(submission)
+    assert submission.status == "failed"

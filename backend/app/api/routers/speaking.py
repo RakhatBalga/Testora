@@ -28,7 +28,7 @@ from app.api.schemas.speaking import (
 from app.infrastructure.ai import get_speaking_grader
 from app.infrastructure.ai.concurrency import run_grading
 from app.application.mistakes import record_mistakes
-from app.application.quota import enforce_free_quota, quota_status
+from app.application.quota import enforce_free_quota, quota_status, reserve_ai_call
 
 router = APIRouter()
 logger = logging.getLogger("testora.speaking")
@@ -141,45 +141,57 @@ async def submit(
         transcript=None,
     )
 
-    grader = get_speaking_grader()
-    feedback = await run_grading(
-        grader.grade,
-        part=task.part,
-        questions=_questions(task),
-        audio_path=str(audio_path),
-        transcript=None,
-    )
-    submission.feedback = feedback.to_dict()
+    try:
+        with reserve_ai_call(db, current_user, "speaking", model=SpeakingSubmission,
+                             limit=settings.FREE_SPEAKING_SUBMISSIONS) as reservation:
+            db.add(submission)
+            db.commit()
+            grader = get_speaking_grader()
+            feedback = await run_grading(
+                grader.grade,
+                part=task.part,
+                questions=_questions(task),
+                audio_path=str(audio_path),
+                transcript=None,
+            )
+            submission.feedback = feedback.to_dict()
+            reservation.success = not feedback.error
 
-    if feedback.error:
-        # Grading failed — keep the recording, but don't store a bogus band or
-        # mistakes. The user can re-submit.
-        submission.band = None
-        logger.warning(
-            "Speaking grading failed for user %s task %s; saved without a band",
-            current_user.id,
-            task.id,
-        )
-        db.add(submission)
-        db.commit()
-        db.refresh(submission)
-        return _to_out(submission, task)
+            if feedback.error:
+                # Grading failed — keep the recording, but don't store a bogus band or
+                # mistakes. The user can re-submit.
+                submission.band = None
+                logger.warning(
+                    "Speaking grading failed for user %s task %s; saved without a band",
+                    current_user.id,
+                    task.id,
+                )
+                db.add(submission)
+                db.commit()
+                db.refresh(submission)
+                return _to_out(submission, task)
 
-    submission.band = feedback.band
+            submission.band = feedback.band
 
-    db.add(submission)
-    db.flush()  # assign submission.id before recording its mistakes
-    record_mistakes(
-        db,
-        user_id=current_user.id,
-        submission_id=submission.id,
-        skill="speaking",
-        mistakes=feedback.mistakes,
-    )
-    db.commit()
-    db.refresh(submission)
+            db.add(submission)
+            db.flush()  # assign submission.id before recording its mistakes
+            record_mistakes(
+                db,
+                user_id=current_user.id,
+                submission_id=submission.id,
+                skill="speaking",
+                mistakes=feedback.mistakes,
+            )
+            db.commit()
+            db.refresh(submission)
 
-    return _to_out(submission, task)
+            return _to_out(submission, task)
+    except BaseException:
+        # Keep persisted recordings for their owner; remove rejected uploads.
+        if submission.id is None:
+            audio_path.unlink(missing_ok=True)
+        raise
+
 
 
 def _resolve_media_user(token: str | None, db: Session) -> User:
