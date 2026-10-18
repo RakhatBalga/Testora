@@ -252,7 +252,7 @@ def submit_listening(
         ListeningProgress.test_id == test_id,
         ListeningProgress.content_version == test.content_version,
         ListeningProgress.mode == payload.mode,
-    ).update({"status": "submitted"}, synchronize_session=False)
+    ).update({"status": "submitted", "updated_at": datetime.utcnow()}, synchronize_session=False)
     db.commit()
     db.refresh(attempt)
     return _submit_response(attempt)

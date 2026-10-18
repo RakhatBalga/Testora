@@ -1087,10 +1087,12 @@ export const api = {
 
   saveListeningProgress: (
     id: number,
-    progress: Omit<ListeningProgress, "status" | "updated_at">
+    progress: Omit<ListeningProgress, "status" | "updated_at">,
+    signal?: AbortSignal,
   ) => request<ListeningProgress>(`/listening/tests/${id}/progress`, {
     method: "PUT",
     body: JSON.stringify(progress),
+    signal,
   }),
 
   submitListening: (

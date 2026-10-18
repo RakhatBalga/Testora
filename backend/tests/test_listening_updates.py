@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
 
-from app.api.routers.listening import list_listening_tests, review_listening, save_progress, submit_listening
+from app.api.routers.listening import get_progress, list_listening_tests, review_listening, save_progress, submit_listening
 from app.api.routers.tests import is_catalog_test
 from app.api.schemas.listening import ListeningProgressIn, ListeningSubmitIn
 from app.api.schemas.result import AnswerIn
@@ -89,3 +89,37 @@ def test_invalid_update_does_not_hide_current_test(db):
         seed_package(db, broken, update_existing=True)
     assert is_catalog_test(old)
     assert db.query(ContentTest).count() == 1
+
+
+def test_progress_roundtrip_submission_review_and_user_isolation(db):
+    user = db.get(User, 1)
+    other = User(id=2, username="other", password="hash")
+    db.add(other)
+    db.commit()
+    test, _ = seed_package(db, package("1.0.1"))
+    question = test.sections[0].questions[0]
+    payload = ListeningProgressIn(
+        content_version=test.content_version, mode="practice",
+        answers={str(question.id): "Hartley"}, current_section=2,
+        audio_position=320, max_audio_position=350,
+    )
+    save_progress(test.id, payload, db=db, current_user=user)
+    db.expire_all()
+    restored = get_progress(test.id, test.content_version, "practice", db=db, current_user=user)
+    assert restored.answers == payload.answers
+    assert restored.current_section == 2
+    assert restored.audio_position == 320
+    assert restored.max_audio_position == 350
+    assert get_progress(test.id, test.content_version, "practice", db=db, current_user=other) is None
+    assert get_progress(test.id, test.content_version, "exam", db=db, current_user=user) is None
+    submission = ListeningSubmitIn(
+        content_version=test.content_version, mode="practice", submission_key="progress-roundtrip",
+        answers=[AnswerIn(question_id=question.id, answer="Hartley")],
+    )
+    result = submit_listening(test.id, submission, db=db, current_user=user)
+    db.expire_all()
+    assert get_progress(test.id, test.content_version, "practice", db=db, current_user=user).status == "submitted"
+    review = review_listening(result["attempt_id"], db=db, current_user=user)
+    assert review["answers"][0]["user_answer"] == "Hartley"
+    assert submit_listening(test.id, submission, db=db, current_user=user)["attempt_id"] == result["attempt_id"]
+    assert db.query(Attempt).count() == 1
