@@ -10,27 +10,11 @@ from ml.data import ResponseRecord, read_jsonl, write_report
 from ml.irt import fit_rasch
 from ml.knowledge_tracing import fit_bkt
 from ml.metrics import auc
+from ml.datasets.split import temporal_split
 
 
 def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
-    if not 0 < train_fraction < 1:
-        raise ValueError("train_fraction must be inside (0, 1)")
-    if len({r.response_id for r in records}) != len(records):
-        raise ValueError("Duplicate response IDs")
-    # Repeated attempts can measure answer memory instead of unseen-item skill.
-    unique, seen = [], set()
-    for row in sorted(records, key=lambda r: (r.answered_at, r.response_id)):
-        key = (row.learner_id, row.item_key)
-        if key not in seen:
-            unique.append(row)
-            seen.add(key)
-    if len(unique) < 4:
-        raise ValueError("At least four first responses required")
-    cutoff = unique[min(len(unique) - 1, max(1, int(len(unique) * train_fraction)))].answered_at
-    train = [r for r in unique if r.answered_at < cutoff]
-    test = [r for r in unique if r.answered_at >= cutoff]
-    if not train or not test:
-        raise ValueError("Need distinct timestamps on both sides of the split")
+    train, test, cutoff = temporal_split(records, train_fraction)
     irt, bkt = fit_rasch(train), fit_bkt(train)
     counts = defaultdict(lambda: [0, 0])
     for row in train:
@@ -65,7 +49,7 @@ def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
     return {
         "schema_version": "adaptive-experiment.v1", "cutoff": cutoff.isoformat(),
         "train_count": len(train), "test_count": len(test),
-        "excluded_repeated_responses": len(records) - len(unique),
+        "excluded_repeated_responses": len(records) - len(train) - len(test),
         "metrics": metrics, "predictions": predictions,
         "settings": {"train_fraction": train_fraction, "irt_regularization": irt.regularization,
                      "irt_online_learning_rate": 0.2, "blend_min_item_support": 10,
