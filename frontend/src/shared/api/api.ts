@@ -908,6 +908,37 @@ function queryString(params: Record<string, string | number | undefined>): strin
   return query ? `?${query}` : "";
 }
 
+async function loginWithPassword(username: string, password: string) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  try {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+      signal: controller.signal,
+    });
+    if (res.status === 401) {
+      throw new Error("Incorrect email, username or password.");
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(detailToMessage(data?.detail, "Sign-in failed. Please try again."));
+    }
+    return await res.json() as { access_token: string; token_type: string };
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("Sign-in is taking too long. Please try again in a moment.");
+    }
+    if (error instanceof TypeError) {
+      throw new Error("Unable to connect. Check your connection and try again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export const api = {
   register: (username: string, password: string, target_band = 7.5) =>
     request<{ message: string }>("/auth/register", {
@@ -915,11 +946,7 @@ export const api = {
       body: JSON.stringify({ username, password, target_band }),
     }),
 
-  login: (username: string, password: string) =>
-    request<{ access_token: string; token_type: string }>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ username, password }),
-    }),
+  login: loginWithPassword,
 
   googleStart: (state: string, redirect_uri: string) =>
     request<{ authorization_url: string }>("/auth/google/start", {
