@@ -1,36 +1,57 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { api, type AttemptSummary, type Test } from "@/shared/api";
+import { api, type AttemptSummary, type Test, type ListeningProgress } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { Skeleton } from "@/shared/ui";
 import { ContinueCard, RecentActivity, TestCard } from "@/entities/test";
 import { accentFor, deriveProgress, type TestProgress } from "@/entities/test";
 
+import { listeningSessionKey, restoreProgress } from "@/features/listening-session/progress";
+
 export default function ListeningLibraryPage() {
   const { token, ready } = useRequireAuth();
   const accent = accentFor("listening");
   const [tests, setTests] = useState<Test[]>([]);
+  const [savedProgress, setSavedProgress] = useState<Record<number, ListeningProgress | null>>({});
   const [attempts, setAttempts] = useState<AttemptSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!token) return;
+    let cancelled = false;
     Promise.all([api.listListeningTests(), api.listAttempts()])
-      .then(([listeningTests, allAttempts]) => {
+      .then(async ([listeningTests, allAttempts]) => {
+        if (cancelled) return;
         setTests(listeningTests.map((test) => ({ ...test, test_type: "listening" })));
         setAttempts(allAttempts.filter((attempt) => attempt.test_type === "listening"));
+        const progress = await Promise.all(listeningTests.map(async (test) => [test.id,
+          restoreProgress(listeningSessionKey(test.id, test.content_version),
+            await api.getListeningProgress(test.id, test.content_version, "practice"))] as const));
+        if (cancelled) return;
+        setSavedProgress(Object.fromEntries(progress));
       })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => { if (!cancelled) setError(err.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [token]);
 
   const progressById = useMemo(() => {
     const map = new Map<number, TestProgress>();
-    for (const test of tests) map.set(test.id, deriveProgress(test, attempts));
+    for (const test of tests) {
+      const saved = savedProgress[test.id];
+      if (saved) {
+        const answered = Object.values(saved.answers).filter((value) => Array.isArray(value) ? value.length > 0 : typeof value === "string" && value.trim() !== "").length;
+        map.set(test.id, { status: "in_progress", answered,
+          ratio: test.question_count ? Math.min(1, answered / test.question_count) : 0,
+          updatedAt: Date.parse(saved.updated_at), band: null });
+      } else {
+        map.set(test.id, deriveProgress(test, attempts));
+      }
+    }
     return map;
-  }, [tests, attempts]);
+  }, [tests, attempts, savedProgress]);
 
   const continueTest = useMemo(() => {
     const inProgress = tests

@@ -28,6 +28,8 @@ import {
   SubmitConfirm,
 } from "@/features/listening-session";
 
+import { createProgressWriter, listeningSessionKey, restoreProgress } from "@/features/listening-session/progress";
+
 function asGroups(test: ListeningTest) {
   const compatible: TestDetail = {
     id: test.id,
@@ -69,9 +71,12 @@ function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: Lis
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const submitted = useRef(false);
-  const stateRef = useRef({ answers, activeSection, audioPosition, maxAudioPosition });
+  const [saveError, setSaveError] = useState("");
   const timerRef = useRef<number | null>(null);
-  const sessionKey = `listening-${test.id}-${test.content_version}-${mode}`;
+  const sessionKey = listeningSessionKey(test.id, test.content_version, mode);
+  const writer = useMemo(() => createProgressWriter(sessionKey,
+    (progress) => api.saveListeningProgress(test.id, progress, AbortSignal.timeout(15_000)),
+    setSaveError), [sessionKey, test.id]);
   const section = test.sections[activeSection];
   const answeredCount = flat.filter((question) => isAnswered(answers[question.id])).length;
 
@@ -81,6 +86,7 @@ function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: Lis
     setSubmitting(true);
     setError("");
     try {
+      await writer.stop();
       let submissionKey = localStorage.getItem(`${sessionKey}-submission-key`);
       if (!submissionKey) {
         submissionKey = crypto.randomUUID();
@@ -93,43 +99,37 @@ function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: Lis
         answers: flat.map((question) => ({ question_id: question.id, answer: answers[question.id] ?? null })),
         duration_seconds: Math.max(0, test.duration_minutes * 60 - (timerRef.current ?? 0)),
       });
+      writer.clear();
       localStorage.removeItem(`${sessionKey}-timer`);
       localStorage.removeItem(`${sessionKey}-submission-key`);
       localStorage.removeItem(`listening-${test.id}-mode`);
       router.push(`/listening/result/${result.attempt_id}`);
     } catch (caught) {
+      writer.resume();
       submitted.current = false;
       setError(caught instanceof Error ? caught.message : "Could not submit the test");
     } finally {
       setSubmitting(false);
     }
-  }, [answers, flat, mode, router, sessionKey, test]);
+  }, [answers, flat, mode, router, sessionKey, test, writer]);
 
   const { remaining, paused, pause, resume } = useReadingTimer(sessionKey, test.duration_minutes * 60, handleSubmit);
 
   useEffect(() => { timerRef.current = remaining; }, [remaining]);
-  useEffect(() => { stateRef.current = { answers, activeSection, audioPosition, maxAudioPosition }; }, [answers, activeSection, audioPosition, maxAudioPosition]);
-  const persistProgress = useCallback(() => {
-    const current = stateRef.current;
-    return api.saveListeningProgress(test.id, {
-      content_version: test.content_version,
-      mode,
-      answers: Object.fromEntries(Object.entries(current.answers).map(([key, value]) => [String(key), value])),
-      current_section: current.activeSection,
-      audio_position: current.audioPosition,
-      max_audio_position: current.maxAudioPosition,
-    });
-  }, [mode, test.content_version, test.id]);
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      void persistProgress().catch(() => undefined);
-    }, 10000);
-    return () => window.clearInterval(interval);
-  }, [persistProgress]);
+    writer.resume();
+    const interval = window.setInterval(() => { void writer.flush(); }, 10000);
+    return () => { window.clearInterval(interval); void writer.stop(); };
+  }, [writer]);
   useEffect(() => {
-    const timeout = window.setTimeout(() => void persistProgress().catch(() => undefined), 500);
+    writer.record({ content_version: test.content_version, mode,
+      answers, current_section: activeSection, audio_position: audioPosition,
+      max_audio_position: maxAudioPosition });
+  }, [answers, activeSection, audioPosition, maxAudioPosition, mode, test.content_version, writer]);
+  useEffect(() => {
+    const timeout = window.setTimeout(() => { void writer.flush(); }, 500);
     return () => window.clearTimeout(timeout);
-  }, [answers, activeSection, persistProgress]);
+  }, [answers, activeSection, writer]);
 
   const answer = (questionId: number, value: AnswerValue) => {
     setAnswers((current) => ({ ...current, [questionId]: value }));
@@ -149,6 +149,7 @@ function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: Lis
 
   const selectSection = (index: number) => {
     if (mode === "exam" || index < 0 || index >= groups.length) return;
+    setAudioPosition(test.sections[index].audio_start);
     setActiveSection(index);
     setActiveNumber(groups[index].start);
   };
@@ -166,6 +167,7 @@ function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: Lis
             </div>
           </div>
           <ListeningAudioPlayer
+            key={mode === "practice" ? activeSection : "exam"}
             src={section.audio_url}
             mode={mode}
             sectionTitle={mode === "exam" && audioPosition < test.sections[0].audio_start ? "Test introduction" : section.title}
@@ -180,6 +182,7 @@ function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: Lis
           </div>
         </Card>
       </div>
+      {saveError && <p role="alert" className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{saveError}</p>}
       {error && <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
       <main className="mt-5 space-y-5">
         {section.map_asset && <Image src={section.map_asset} alt="Map for Section 2 questions" width={800} height={520} priority className="h-auto w-full rounded-xl border border-slate-200 bg-white" />}
@@ -210,7 +213,7 @@ export default function ListeningPage() {
         setTest(loaded);
         const saved = await api.getListeningProgress(loaded.id, loaded.content_version, "practice");
         if (cancelled) return;
-        setProgress(saved?.status === "in_progress" ? saved : null);
+        setProgress(restoreProgress(listeningSessionKey(loaded.id, loaded.content_version), saved));
         localStorage.setItem(`listening-${loaded.id}-mode`, "practice");
         setReady2(true);
       } catch (caught) {
@@ -223,8 +226,8 @@ export default function ListeningPage() {
   }, [testId, token]);
 
   if (!ready || !token) return null;
+  if (error) return <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
   if (loading || !ready2) return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-72 w-full" /></div>;
-  if (error) return <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
   if (!test) return <Card className="p-8 text-center text-slate-500">Listening test is unavailable.</Card>;
   return <ActiveSession test={test} mode="practice" initial={progress} />;
 }

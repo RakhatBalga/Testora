@@ -46,16 +46,8 @@ export function ListeningAudioPlayer({
     };
     if (audio.readyState >= 1) initialize();
     else audio.addEventListener("loadedmetadata", initialize, { once: true });
+    return () => audio.removeEventListener("loadedmetadata", initialize);
   }, [initialPosition, mode, sectionStart]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || mode !== "practice" || !initialized.current) return;
-    audio.pause();
-    audio.currentTime = sectionStart;
-    setPosition(sectionStart);
-    setPlaying(false);
-  }, [mode, sectionStart]);
 
   const play = async () => {
     const audio = audioRef.current;
