@@ -1,0 +1,81 @@
+@startuml use-case
+' Testora: UML Use Case diagram
+' Render: java -jar plantuml.jar -tpng use-case.puml   (and -tsvg)
+' «planned» = implemented in backend/research but not yet available to users.
+!pragma layout smetana
+left to right direction
+skinparam backgroundColor white
+skinparam dpi 160
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 14
+skinparam shadowing false
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+  ArrowColor #334155
+}
+skinparam usecase<<planned>> {
+  BackgroundColor #FFFFFF
+  BorderColor #94A3B8
+  FontColor #64748B
+  BorderStyle dashed
+}
+skinparam rectangle {
+  BorderColor #1E3A8A
+  BackgroundColor #FFFFFF
+}
+
+title Testora: Use Case Diagram
+
+actor "Guest\n(unregistered)" as Guest
+actor "Candidate\n(registered)" as Cand
+actor "Content\nMaintainer" as Admin
+actor "Google OAuth 2.0" as Google <<external system>>
+actor "Gemini API" as Gemini <<external system>>
+
+rectangle "Testora" {
+  usecase "UC1 Register / log in\n(username + password)" as UC1
+  usecase "UC2 Sign in with Google" as UC2
+  usecase "UC3 Onboard: set target band,\nexam date, diagnostic" as UC3
+  usecase "UC4 Take Reading test" as UC4
+  usecase "UC5 Take Listening test" as UC5
+  usecase "UC6 Write essay and\nget AI review" as UC6
+  usecase "UC10 Resubmit and see\nband change" as UC10
+  usecase "UC7 Record Speaking answer\nand get AI review" <<planned>> as UC7
+  usecase "Extract and record\nmistakes" as UCX
+  usecase "UC8 View mistakes notebook\nand main blocker (band gap)" as UC8
+  usecase "UC9 Get task for today\n(daily plan / study plan)" as UC9
+  usecase "Adaptive item selection\n(IRT / knowledge tracing)" <<planned>> as UC15
+  usecase "UC11 Build vocabulary\n(save words, daily quiz)" as UC11
+  usecase "UC12 View analytics,\nhistory and profile" as UC12
+  usecase "UC13 Import content packs" as UC13
+  usecase "UC14 Validate content packs" as UC14
+}
+
+Guest --> UC1
+Guest --> UC2
+Cand -up-|> Guest
+Cand --> UC3
+Cand --> UC4
+Cand --> UC5
+Cand --> UC6
+Cand --> UC10
+Cand --> UC7
+Cand --> UC8
+Cand --> UC9
+Cand --> UC11
+Cand --> UC12
+Admin --> UC13
+Admin --> UC14
+
+UC6 ..> UCX : <<include>>
+UC7 ..> UCX : <<include>>
+UC10 .> UC6 : <<include>>
+UC15 .> UC9 : <<extend>>
+
+UC2 --> Google
+UC6 --> Gemini
+UC7 --> Gemini
+UC11 --> Gemini
+@enduml

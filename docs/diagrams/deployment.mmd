@@ -1,0 +1,47 @@
+---
+config:
+  layout: elk
+---
+%% Testora: Deployment diagram (production)
+%% Source: render.yaml, backend/Dockerfile, backend/start-render.sh, .github/workflows/ci.yml
+flowchart LR
+    classDef node fill:#eff6ff,stroke:#2563eb,color:#0f172a
+    classDef ext fill:#e5e7eb,stroke:#4b5563,color:#0f172a
+    classDef ci fill:#f0fdf4,stroke:#15803d,color:#0f172a
+
+    BR["<b>User device</b><br/>Web browser<br/>(desktop / mobile)"]:::node
+
+    subgraph Vercel["Vercel"]
+        FE["Next.js frontend<br/>testora.studio<br/>NEXT_PUBLIC_API_URL<br/>inlined at build"]:::node
+    end
+
+    subgraph Render["Render · web service testora-api (Docker)"]
+        API["FastAPI app (uvicorn)<br/>start-render.sh: alembic upgrade head,<br/>then serve · health check /health/ready"]:::node
+        FS[("Container disk<br/>speaking audio (private),<br/>static listening audio")]:::node
+        API --- FS
+    end
+
+    subgraph Neon["Neon"]
+        DB[("PostgreSQL<br/>managed, TLS")]:::node
+    end
+    GEM["<b>Google Gemini API</b><br/>gemini-2.5-flash"]:::ext
+    GOO["<b>Google OAuth 2.0</b>"]:::ext
+
+    subgraph GH["GitHub"]
+        REPO["Repository<br/>RakhatBalga/Testora"]:::ci
+        CI["GitHub Actions CI<br/>backend: migration heads,<br/>content validators, pytest<br/>frontend: lint, typecheck,<br/>tests, build"]:::ci
+        REPO --> CI
+    end
+
+    BR -- "HTTPS: pages, JS" --> FE
+    BR -- "HTTPS: REST/JSON + Bearer JWT<br/>(CORS: testora.studio)" --> API
+    API -- "SQL over TLS" --> DB
+    API -- "HTTPS: grading" --> GEM
+    API -- "HTTPS: token exchange, userinfo" --> GOO
+    REPO -. "deploy main" .-> FE
+    REPO -. "deploy main" .-> API
+
+    style Vercel fill:#f8fafc,stroke:#2563eb
+    style Render fill:#f8fafc,stroke:#2563eb
+    style Neon fill:#f8fafc,stroke:#2563eb
+    style GH fill:#ffffff,stroke:#15803d

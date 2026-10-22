@@ -1,8 +1,62 @@
 # Testora — AI IELTS Coach
 
-Grade → extract mistakes → name the band blocker → tell the user what to do
-today → re-grade → show the band move. FastAPI + PostgreSQL backend, Next.js
-frontend, Gemini grading, with a local-only mock fallback for development.
+**Diploma project:** Development of an Intelligent IELTS Exam Preparation System Based on Large Language Models and Machine Learning Methods (Testora).
+Astana IT University, Software Engineering, 2026–2027.
+
+Live prototype: **https://testora.studio** · YouTrack: **https://testora-diploma.youtrack.cloud** (project `TST`) · Documentation: [`docs/`](docs/)
+
+## Problem
+IELTS candidates who prepare on their own lack affordable, explainable feedback on Writing and Speaking. Existing trainers give a band per attempt, but not *why* the band is stuck and what to do next.
+
+## Target users
+People worldwide preparing for IELTS (Academic / General Training) for study, work or immigration — primarily budget-limited self-learners.
+
+## What Testora does
+Grade → extract mistakes → name the band blocker → tell the user what to do today → re-grade → show the band move.
+- LLM-based Writing assessment on the four IELTS criteria with mistake extraction (Gemini, provider-independent layer).
+- Weakness model (recency-weighted mistakes, 14-day half-life) and band gap → task for today.
+- Reading and Listening tests with automatic checking and verbatim evidence for every answer.
+- Research modules: Speaking assessment (Whisper ASR, fluency features, score regression) and adaptive practice (Rasch/IRT, knowledge tracing).
+
+## Expected outcomes
+A deployed platform with the full coach loop, integrated Speaking and adaptive modules, and an experimental report on assessment quality (MAE, QWK, ±0.5 band agreement vs expert scores; WER; AUC) plus a user pilot.
+
+## Team
+| Member | GitHub | Responsibilities |
+|---|---|---|
+| Rakhat Balgabekov | [@RakhatBalga](https://github.com/RakhatBalga) | LLM-based assessment core (Writing), weakness model and personalization, architecture, backend, deployment |
+| Nurhan Turganbek | [@nurhan-ghost](https://github.com/nurhan-ghost) | Speaking ML module, adaptive Reading/Listening practice, security and reliability, practice UI, content, testing |
+| Supervisor: Tomiris Zhaksylyk | — | Supervision and review |
+
+## Scope and current status (October 2026)
+- **In scope:** IELTS only, web app (desktop + mobile browser), all four skills, AI assessment, personalization, experimental evaluation.
+- **Out of scope:** other exams, native mobile apps, official score certification, social features.
+- **Status:** platform deployed; Writing grading, Reading/Listening, weakness model v1 and the daily-task loop implemented. Speaking UI is temporarily disabled; Speaking ML and adaptive models exist as research code (integration planned). Accuracy against expert scores is not measured yet — datasets planned for Nov 2026. Details: [docs/10-project-management.md](docs/10-project-management.md).
+
+## Documentation (probationary period, tag `prob-period-1`)
+| # | Section | File |
+|---|---|---|
+| 1 | Project proposal | [docs/01-project-proposal.md](docs/01-project-proposal.md) |
+| 2 | Evidence of relevance (user interviews) | [docs/02-evidence-of-relevance.md](docs/02-evidence-of-relevance.md) |
+| 3 | Literature review | [docs/03-literature-review.md](docs/03-literature-review.md) |
+| 4 | Existing systems comparison | [docs/04-existing-systems-comparison.md](docs/04-existing-systems-comparison.md) |
+| 5 | Technology comparison | [docs/05-technology-comparison.md](docs/05-technology-comparison.md) |
+| 6 | Requirements specification | [docs/06-requirements.md](docs/06-requirements.md) |
+| 7 | Architecture and diagrams | [docs/07-architecture.md](docs/07-architecture.md) · sources in [docs/diagrams/](docs/diagrams/) |
+| 8 | UX / prototype | [docs/08-ux-prototype.md](docs/08-ux-prototype.md) |
+| 9 | Verification and evaluation plan | [docs/09-verification-plan.md](docs/09-verification-plan.md) |
+| 10 | Project management and risks | [docs/10-project-management.md](docs/10-project-management.md) |
+| 11 | Supervisor feedback | [docs/11-supervisor-feedback.md](docs/11-supervisor-feedback.md) |
+
+## Repository structure
+- `frontend/` — Next.js app (Feature-Sliced Design)
+- `backend/` — FastAPI app (Clean Architecture), Alembic migrations, content packs, tests (`backend/tests`), ML research code
+- `docs/` — diploma documentation; `docs/diagrams/` — editable diagram sources (`.mmd`, `.puml`) with PNG/SVG exports
+- `.github/workflows/` — CI
+- `.env.example`, `backend/.env.example` — configuration examples (no real secrets in the repo)
+
+## Workflow
+YouTrack task `TST-<id>` → branch `TST-<id>-short-name` → commits `TST-<id>: …` → pull request referencing the task → review by the other team member → merge to `main`. Each submission is tagged (`prob-period-1`, `pre-defense-1`, …); submitted tags are not moved.
 
 ## Stack
 - **Frontend:** Next.js 16 (App Router) + TypeScript + Tailwind v4 — `frontend/`
