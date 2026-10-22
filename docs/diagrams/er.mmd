@@ -1,138 +1,54 @@
 %% Testora: key data entities (subset of backend/app/domain/models)
-%% Table and column names verified against SQLAlchemy models; not all columns shown.
+%% Table names verified against SQLAlchemy models; only keys and main columns shown.
+%% Not shown: writing_tasks, speaking_tasks, mistake_reviews, daily_word_quizzes, ai_quota_buckets, listening_progress, diagnostic_sessions, ai_reservations, oauth_flows.
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "22px", "fontFamily": "Times New Roman, serif", "primaryColor": "#ffffff", "primaryBorderColor": "#000000", "primaryTextColor": "#000000", "lineColor": "#000000", "clusterBkg": "#f2f2f2", "clusterBorder": "#000000", "tertiaryColor": "#f2f2f2"}, "flowchart": {"nodeSpacing": 40, "rankSpacing": 55}}}%%
 erDiagram
-    users {
-        int id PK
-        string username UK
-        string email UK
-        string google_id UK
-        float target_band
-        float current_level
-        date exam_date
-        string primary_focus
-    }
-    tests {
-        int id PK
-        string title
-        string test_type "reading | listening"
-        string difficulty
-        string content_version
-    }
-    sections {
-        int id PK
-        int test_id FK
-        text passage
-        string audio_url
-    }
-    questions {
-        int id PK
+    direction TB
+    users { int id PK
+        string username
+        float target_band }
+    tests { int id PK
+        string test_type }
+    sections { int id PK
+        int test_id FK }
+    questions { int id PK
         int section_id FK
-        string question_type
-        json correct_answer
-        json evidence
-    }
-    attempts {
-        int id PK
+        json evidence }
+    attempts { int id PK
         int user_id FK
         int test_id FK
-        int score
-        float band
-        string mode
-    }
-    answer_records {
-        int id PK
+        float band }
+    answer_records { int id PK
         int attempt_id FK
         int question_id FK
-        string user_answer
-        bool is_correct
-    }
-    writing_tasks {
-        int id PK
-        int task_type
-        string essay_type
-        text prompt
-    }
-    writing_submissions {
-        int id PK
+        bool is_correct }
+    writing_submissions { int id PK
         int user_id FK
-        int task_id FK
-        text text
-        string status
         float band
-        json feedback
-    }
-    speaking_tasks {
-        int id PK
-        int part
-        json questions
-    }
-    speaking_submissions {
-        int id PK
+        json feedback }
+    speaking_submissions { int id PK
         int user_id FK
-        int task_id FK
-        string audio_url
-        float band
-        json feedback
-    }
-    mistakes {
-        int id PK
-        int user_id FK
-        int submission_id "polymorphic, by skill"
-        string skill
-        string category
-        string subskill
-        int severity "1..3"
-    }
-    mistake_reviews {
-        int id PK
+        float band }
+    mistakes { int id PK
         int user_id FK
         string skill
-        int source_id
-        string status
-    }
-    study_plan_items {
-        int id PK
+        int severity }
+    study_plan_items { int id PK
         int user_id FK
-        date scheduled_date
-        string skill
-        string source_type
-        string status
-    }
-    saved_words {
-        int id PK
+        string status }
+    saved_words { int id PK
         int user_id FK
-        string word
-        json enrichment
-        string status
-    }
-    daily_word_quizzes {
-        int id PK
-        int user_id FK
-        date quiz_date
-        int score
-    }
-    ai_quota_buckets {
-        int user_id PK
-        string kind
-        string period
-        int used
-    }
+        string word }
 
-    users ||--o{ attempts : takes
     tests ||--|{ sections : has
     sections ||--|{ questions : has
+    users ||--o{ attempts : takes
     tests ||--o{ attempts : "attempted in"
     attempts ||--|{ answer_records : contains
     questions ||--o{ answer_records : "answered in"
     users ||--o{ writing_submissions : writes
-    writing_tasks ||--o{ writing_submissions : "answered by"
     users ||--o{ speaking_submissions : records
-    speaking_tasks ||--o{ speaking_submissions : "answered by"
     users ||--o{ mistakes : accumulates
     writing_submissions ||..o{ mistakes : "graded into"
-    speaking_submissions ||..o{ mistakes : "graded into"
-    users ||--o{ mistake_reviews : reviews
     users ||--o{ study_plan_items : plans
     users ||--o{ saved_words : saves
-    users ||--o{ daily_word_quizzes : takes
-    users ||--o{ ai_quota_buckets : "limited by"

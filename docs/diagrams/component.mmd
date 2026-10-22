@@ -1,95 +1,34 @@
 %% Testora: Component diagram (draft)
-%% Names verified against frontend/src and backend/app in RakhatBalga/Testora@main
+%% Names verified against frontend/src and backend/app in RakhatBalga/Testora@main.
 %% Arrows = "depends on / calls". Dependencies point inward (api -> application -> domain);
-%% infrastructure implements adapters used by the outer layers.
+%% infrastructure implements the adapters. Full module lists: docs/07-architecture.md, section 7.4.
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "22px", "fontFamily": "Times New Roman, serif", "primaryColor": "#ffffff", "primaryBorderColor": "#000000", "primaryTextColor": "#000000", "lineColor": "#000000", "clusterBkg": "#f2f2f2", "clusterBorder": "#000000"}, "flowchart": {"nodeSpacing": 40, "rankSpacing": 55}}}%%
 flowchart TB
-    classDef fe fill:#dbeafe,stroke:#2563eb,color:#0f172a,font-size:15px
-    classDef api fill:#e0e7ff,stroke:#4338ca,color:#0f172a,font-size:15px
-    classDef app fill:#dcfce7,stroke:#15803d,color:#0f172a,font-size:15px
-    classDef dom fill:#fef9c3,stroke:#a16207,color:#0f172a,font-size:15px
-    classDef infra fill:#fee2e2,stroke:#b91c1c,color:#0f172a,font-size:15px
-    classDef ext fill:#e5e7eb,stroke:#4b5563,color:#0f172a,font-size:15px
-    classDef research fill:#fafafa,stroke:#737373,color:#404040,stroke-dasharray:6 4,font-size:15px
+    FE["<b>Frontend</b> — Next.js, Feature-Sliced Design<br/>app · widgets · features · entities · shared (API client)"]
 
-    subgraph FE["Frontend · Next.js App Router · Feature-Sliced Design (frontend/src)"]
-        direction LR
-        FE_app["<b>app/</b> routes<br/>reading · listening · writing<br/>speaking · mistakes · study-plan<br/>vocabulary · analytics · history<br/>profile · login · register"]:::fe
-        FE_widgets["<b>widgets/</b><br/>app-shell<br/>coach-dashboard<br/>landing"]:::fe
-        FE_features["<b>features/</b><br/>auth · reading-session<br/>listening-session · test-session<br/>writing-task · feedback<br/>mistake-notebook · study-plan<br/>vocabulary · progress-impact · streak"]:::fe
-        FE_entities["<b>entities/</b><br/>coach · dashboard<br/>test"]:::fe
-        FE_shared["<b>shared/</b><br/>api client (JWT in<br/>sessionStorage) · auth<br/>ui · config · lib"]:::fe
-        FE_app --> FE_widgets --> FE_features --> FE_entities --> FE_shared
-    end
-
-    subgraph API["Backend api/ · FastAPI routers (backend/app/api)"]
-        direction LR
-        R_auth["<b>/auth</b><br/>register · login · me<br/>google/start · google"]:::api
-        R_tests["<b>/tests · /results<br/>/listening</b><br/>catalogue, submit,<br/>review"]:::api
-        R_ai["<b>/writing · /speaking</b><br/>tasks · submit · quota<br/>submissions · retry"]:::api
-        R_coach["<b>/analytics · /learning</b><br/>band-gap · blockers · weaknesses<br/>daily-plan · study-plan · mistakes"]:::api
-        R_other["<b>/history · /vocabulary</b><br/>compare · words<br/>daily-quiz"]:::api
-        R_deps["<b>dependencies</b><br/>get_db<br/>get_current_user"]:::api
-    end
-
-    subgraph APP["Backend application/ · use-case services"]
-        direction LR
-        S_grading["<b>grading pipeline</b><br/>writing_precheck · quota<br/>mistakes (record / clear)"]:::app
-        S_analytics["<b>analytics/</b><br/>weakness · band_gap · daily_plan<br/>recommendations · progress<br/>trajectory · streak · weekly<br/>blocker_history"]:::app
-        S_learning["<b>learning/</b><br/>dashboard · diagnostic<br/>study_plan · notebook"]:::app
-        S_misc["<b>history · comparison<br/>vocabulary · oauth</b>"]:::app
-    end
-
-    subgraph DOM["Backend domain/ · entities and pure rules"]
-        direction LR
-        D_rules["<b>scoring · listening_scoring · band</b><br/>answer checking, raw score to IELTS band"]:::dom
-        D_models["<b>models/</b><br/>user · test · attempt · writing · speaking<br/>mistake · learning · vocabulary · ai_quota · oauth"]:::dom
-    end
-
-    subgraph INF["Backend infrastructure/ · adapters"]
-        direction LR
-        I_ai["<b>ai/</b> provider adapter<br/>factory: mock | claude | gemini<br/>prompts · schemas · vocab<br/>concurrency"]:::infra
-        I_db["<b>database</b><br/>SQLAlchemy engine,<br/>sessions"]:::infra
-        I_sec["<b>security</b><br/>JWT HS256<br/>(bcrypt in /auth)"]:::infra
-        I_rl["<b>ratelimit</b><br/>in-process,<br/>auth routes"]:::infra
-        I_cfg["<b>config · logging<br/>errortracking · time</b>"]:::infra
-    end
-
-    PG[("<b>PostgreSQL</b><br/>Neon in production<br/>schema via Alembic")]:::ext
-    GEM["<b>Google Gemini API</b>"]:::ext
-    GOO["<b>Google OAuth 2.0</b>"]:::ext
-
-    subgraph TOOLS["Content tooling · backend/ CLI"]
+    subgraph BE["Backend — FastAPI, Clean Architecture"]
         direction TB
-        T_import["import_content.py"]:::infra
-        T_validate["validate_reading.py<br/>validate_listening.py<br/>validate_writing.py"]:::infra
+        API["<b>api/</b> — REST routers<br/>auth · tests · listening · writing · speaking<br/>analytics · learning · history · vocabulary"]
+        APP["<b>application/</b> — use-case services<br/>grading pipeline · mistakes · weakness and band gap<br/>daily plan · study plan · history · vocabulary · OAuth"]
+        DOM["<b>domain/</b> — entities and pure rules<br/>models · answer scoring · IELTS band conversion"]
+        INF["<b>infrastructure/</b> — adapters<br/>database · AI provider (mock | claude | gemini)<br/>security (JWT) · rate limiting · config"]
+        API --> APP --> DOM
+        APP --> INF
     end
 
-    subgraph ML["backend/ml · research, integration planned"]
-        direction TB
-        ML_speak["<b>Speaking</b>: asr (faster-whisper)<br/>speech_features · train_speaking"]:::research
-        ML_adapt["<b>Adaptive</b>: irt (Rasch 1PL)<br/>knowledge_tracing (BKT)<br/>recommendation · evaluate_adaptive"]:::research
-        ML_common["data · metrics<br/>export_responses"]:::research
-    end
+    ML["<b>backend/ml</b> — research, integration planned<br/>Speaking: Whisper ASR, fluency features, regression<br/>Adaptive: Rasch / IRT, knowledge tracing"]
+    CLI["<b>Content tooling</b> (CLI)<br/>import_content · validate_*"]
 
-    FE_shared == "REST / JSON over HTTPS<br/>Authorization: Bearer JWT" ==> API
-    API --> APP
-    R_tests --> D_rules
-    APP --> D_models
-    R_ai --> I_ai
-    S_misc -- "vocabulary coach" --> I_ai
-    R_auth --> I_rl
-    R_deps --> I_sec
-    D_models --> I_db
-    I_db --> PG
-    I_ai -- "HTTPS" --> GEM
-    R_auth -- "HTTPS: code exchange, userinfo" --> GOO
-    T_import --> I_db
-    ML_common -. "offline pseudonymised export" .-> PG
+    PG[("<b>PostgreSQL</b><br/>Neon, Alembic migrations")]
+    GEM["<b>Google Gemini API</b>"]
+    GOO["<b>Google OAuth 2.0</b>"]
 
-    style FE fill:#f8fafc,stroke:#2563eb
-    style API fill:#f8fafc,stroke:#4338ca
-    style APP fill:#f8fafc,stroke:#15803d
-    style DOM fill:#f8fafc,stroke:#a16207
-    style INF fill:#f8fafc,stroke:#b91c1c
-    style TOOLS fill:#ffffff,stroke:#b91c1c,stroke-dasharray:4 3
-    style ML fill:#ffffff,stroke:#737373,stroke-dasharray:6 4
+    FE -- "REST / JSON over HTTPS, JWT" --> API
+    INF --> PG
+    INF -- "HTTPS" --> GEM
+    API -- "OAuth code exchange" --> GOO
+    CLI --> PG
+    ML -. "offline pseudonymised export" .-> PG
+
+    classDef dashed stroke-dasharray: 6 4
+    class ML,CLI dashed
