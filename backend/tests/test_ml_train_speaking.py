@@ -43,3 +43,12 @@ def test_signed_error_distinguishes_overgrading_from_undergrading():
     assert over['mean_signed_error'] == 1
     assert under['mean_signed_error'] == -1
     assert over['rmse'] == under['rmse'] == 1
+
+
+def test_missingness_report_keeps_train_and_test_separate():
+    report = train_compare(synthetic_rows())
+    for split, count_key in [('train', 'train_count'), ('holdout', 'test_count')]:
+        missing = report['feature_missingness'][split]
+        assert missing['mean_asr_confidence']['missing'] == report[count_key]
+        assert missing['word_count']['missing'] == 0
+        assert missing['word_count']['total'] == report[count_key]
