@@ -31,6 +31,8 @@ def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
     for row in train:
         counts[(row.learner_id, row.skill_key)][0] += int(row.correct)
         counts[(row.learner_id, row.skill_key)][1] += 1
+    train_learners = {r.learner_id for r in train}
+    train_items = {r.item_key for r in train}
     predictions = []
     for _, bucket_iter in groupby(test, key=lambda r: r.answered_at):
         bucket = list(bucket_iter)
@@ -42,6 +44,8 @@ def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
             supported = irt.item_support.get(row.item_key, 0) >= 10
             predictions.append({
                 "response_id": row.response_id, "correct": int(row.correct), "skill": row.skill,
+                "new_learner": row.learner_id not in train_learners,
+                "new_item": row.item_key not in train_items,
                 "error_rate_baseline": (successes + 1) / (total + 2),
                 "irt": irt_p, "bkt": bkt_p,
                 "blend": ((irt_p if supported else 0.5) + bkt_p) / 2,
@@ -66,6 +70,10 @@ def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
         "metrics": metrics, "predictions": predictions,
         "by_skill": {skill: summarize([r for r in predictions if r["skill"] == skill])
                      for skill in ("reading", "listening")},
+        "cold_start": {field: {
+            "unseen_at_cutoff": summarize([r for r in predictions if r[field]]),
+            "seen_in_training": summarize([r for r in predictions if not r[field]])}
+            for field in ("new_learner", "new_item")},
         "settings": {"train_fraction": train_fraction, "irt_regularization": irt.regularization,
                      "irt_online_learning_rate": 0.2, "blend_min_item_support": 10,
                      "bkt_parameters": {k: asdict(v) for k, v in bkt.parameters.items()},
