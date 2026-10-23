@@ -37,3 +37,10 @@ def test_evaluator_rejects_unsplittable_data():
     rows = synthetic_rows()
     with pytest.raises(ValueError, match="distinct timestamps"):
         evaluate([r.model_copy(update={"answered_at": rows[0].answered_at}) for r in rows])
+
+
+def test_conflicting_item_types_rejected_before_training():
+    rows = synthetic_rows()
+    rows[7] = rows[7].model_copy(update={'question_type': 'gap'})
+    with pytest.raises(ValueError, match='Conflicting'):
+        evaluate(rows)

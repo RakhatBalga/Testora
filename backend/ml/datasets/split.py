@@ -17,6 +17,11 @@ def temporal_split(records: list[ResponseRecord], train_fraction: float):
         raise ValueError("train_fraction must be inside (0, 1)")
     if len({r.response_id for r in records}) != len(records):
         raise ValueError("Duplicate response IDs")
+    item_types = {}
+    for row in records:
+        previous = item_types.setdefault(row.item_key, row.question_type)
+        if previous != row.question_type:
+            raise ValueError("Conflicting question types for a versioned item")
     unique = first_responses(records)
     if len(unique) < 4:
         raise ValueError("At least four first responses required")
