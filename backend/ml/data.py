@@ -41,6 +41,13 @@ class ResponseRecord(Record):
     correct: bool = Field(strict=True)
     answered_at: datetime
 
+    @field_validator("response_id", "learner_id", "item_id", "content_version", "question_type")
+    @classmethod
+    def nonblank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("must not be blank")
+        return value.strip()
+
     @field_validator("answered_at")
     @classmethod
     def timezone_required(cls, value: datetime) -> datetime:
@@ -76,12 +83,14 @@ def read_jsonl(path: Path, model: type[T]) -> list[T]:
             records.append(record)
         except ValueError as exc:
             # Do not echo transcripts or other raw personal data in errors.
-            raise ValueError(f"Invalid {model.__name__} at line {number}") from exc
+            raise ValueError(f"Invalid {model.__name__} at line {number}") from None
     if not records:
         raise ValueError("Dataset is empty")
     return records
 
 
 def write_report(path: Path, report: dict) -> None:
+    payload = json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
+    with path.open("x", encoding="utf-8") as handle:
+        handle.write(payload)

@@ -16,10 +16,16 @@ from ml.speech_features import FEATURE_VERSION, extract_features
 def audio_paths(samples: list[SpeakingSample], root: Path) -> list[Path]:
     root = root.resolve()
     paths = []
+    fingerprints = set()
     for sample in samples:
         path = (root / sample.audio_path).resolve()
         if not path.is_relative_to(root) or not path.is_file():
             raise ValueError(f"Sample {sample.sample_id}: audio must exist inside audio-root")
+        with path.open("rb") as handle:
+            fingerprint = hashlib.file_digest(handle, "sha256").hexdigest()
+        if fingerprint in fingerprints:
+            raise ValueError("Duplicate audio recordings would bias the experiment")
+        fingerprints.add(fingerprint)
         paths.append(path)
     return paths
 

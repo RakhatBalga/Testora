@@ -83,3 +83,40 @@ def auc(labels: list[int], probabilities: list[float]) -> float | None:
         rank_sum += sum(y for y, _ in ordered[i:j]) * (i + 1 + j) / 2
         i = j
     return (rank_sum - positive * (positive + 1) / 2) / (positive * negative)
+
+
+def brier(labels: list[int], probabilities: list[float]) -> float:
+    pairs = _pairs(labels, probabilities)
+    if any(y not in (0, 1) or not 0 <= p <= 1 for y, p in pairs):
+        raise ValueError("Expected binary labels and probabilities in [0, 1]")
+    return sum((y - p) ** 2 for y, p in pairs) / len(pairs)
+
+
+def log_loss(labels: list[int], probabilities: list[float]) -> float:
+    brier(labels, probabilities)  # Shared validation, including finite values.
+    epsilon = 1e-15
+    clipped = [min(1 - epsilon, max(epsilon, p)) for p in probabilities]
+    return -sum(y * math.log(p) + (1 - y) * math.log1p(-p)
+                for y, p in zip(labels, clipped)) / len(labels)
+
+
+def reliability_bins(labels: list[int], probabilities: list[float], bins: int = 10) -> list[dict]:
+    brier(labels, probabilities)
+    if isinstance(bins, bool) or not isinstance(bins, int) or bins < 1:
+        raise ValueError("bins must be a positive integer")
+    groups = [[] for _ in range(bins)]
+    for y, p in zip(labels, probabilities):
+        groups[min(bins - 1, int(p * bins))].append((y, p))
+    return [{"lower": i / bins, "upper": (i + 1) / bins, "count": len(group),
+             "mean_probability": sum(p for _, p in group) / len(group) if group else None,
+             "observed_correct": sum(y for y, _ in group) / len(group) if group else None}
+            for i, group in enumerate(groups)]
+
+
+def band_agreement(actual: list[float], predicted: list[float], tolerance: float = 0.5) -> float:
+    pairs = _pairs(actual, predicted)
+    if not math.isfinite(tolerance) or tolerance < 0:
+        raise ValueError("Tolerance must be finite and nonnegative")
+    if any(not 0 <= v <= 9 for pair in pairs for v in pair):
+        raise ValueError("Expected bands in [0, 9]")
+    return sum(abs(a - p) <= tolerance for a, p in pairs) / len(pairs)

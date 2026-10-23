@@ -9,33 +9,31 @@ from pathlib import Path
 from ml.data import ResponseRecord, read_jsonl, write_report
 from ml.irt import fit_rasch
 from ml.knowledge_tracing import fit_bkt
-from ml.metrics import auc
+from ml.metrics import auc, brier, log_loss, reliability_bins
+from ml.datasets.split import temporal_split
+
+
+def summarize(predictions: list[dict]) -> dict:
+    if not predictions:
+        return {"count": 0, "correct": 0, "incorrect": 0, "auc_status": "empty", "metrics": {}}
+    labels = [r["correct"] for r in predictions]
+    return {"count": len(predictions), "correct": sum(labels), "incorrect": len(labels) - sum(labels),
+            "auc_status": "available" if len(set(labels)) == 2 else "single_class", "metrics": {
+        model: {"auc": auc(labels, [r[model] for r in predictions]),
+                "brier": brier(labels, [r[model] for r in predictions]),
+                "log_loss": log_loss(labels, [r[model] for r in predictions])}
+        for model in ("error_rate_baseline", "irt", "bkt", "blend")}}
 
 
 def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
-    if not 0 < train_fraction < 1:
-        raise ValueError("train_fraction must be inside (0, 1)")
-    if len({r.response_id for r in records}) != len(records):
-        raise ValueError("Duplicate response IDs")
-    # Repeated attempts can measure answer memory instead of unseen-item skill.
-    unique, seen = [], set()
-    for row in sorted(records, key=lambda r: (r.answered_at, r.response_id)):
-        key = (row.learner_id, row.item_key)
-        if key not in seen:
-            unique.append(row)
-            seen.add(key)
-    if len(unique) < 4:
-        raise ValueError("At least four first responses required")
-    cutoff = unique[min(len(unique) - 1, max(1, int(len(unique) * train_fraction)))].answered_at
-    train = [r for r in unique if r.answered_at < cutoff]
-    test = [r for r in unique if r.answered_at >= cutoff]
-    if not train or not test:
-        raise ValueError("Need distinct timestamps on both sides of the split")
+    train, test, cutoff = temporal_split(records, train_fraction)
     irt, bkt = fit_rasch(train), fit_bkt(train)
     counts = defaultdict(lambda: [0, 0])
     for row in train:
         counts[(row.learner_id, row.skill_key)][0] += int(row.correct)
         counts[(row.learner_id, row.skill_key)][1] += 1
+    train_learners = {r.learner_id for r in train}
+    train_items = {r.item_key for r in train}
     predictions = []
     for _, bucket_iter in groupby(test, key=lambda r: r.answered_at):
         bucket = list(bucket_iter)
@@ -46,7 +44,9 @@ def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
             bkt_p = bkt.probability(row.learner_id, row.skill_key)
             supported = irt.item_support.get(row.item_key, 0) >= 10
             predictions.append({
-                "response_id": row.response_id, "correct": int(row.correct),
+                "response_id": row.response_id, "correct": int(row.correct), "skill": row.skill,
+                "new_learner": row.learner_id not in train_learners,
+                "new_item": row.item_key not in train_items,
                 "error_rate_baseline": (successes + 1) / (total + 2),
                 "irt": irt_p, "bkt": bkt_p,
                 "blend": ((irt_p if supported else 0.5) + bkt_p) / 2,
@@ -61,12 +61,21 @@ def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
     for model in ("error_rate_baseline", "irt", "bkt", "blend"):
         probabilities = [r[model] for r in predictions]
         metrics[model] = {"auc": auc(labels, probabilities),
-                          "brier": sum((y - p) ** 2 for y, p in zip(labels, probabilities)) / len(labels)}
+                          "brier": brier(labels, probabilities),
+                          "log_loss": log_loss(labels, probabilities),
+                          "reliability_bins": reliability_bins(labels, probabilities)}
     return {
         "schema_version": "adaptive-experiment.v1", "cutoff": cutoff.isoformat(),
         "train_count": len(train), "test_count": len(test),
-        "excluded_repeated_responses": len(records) - len(unique),
+        "holdout": summarize(predictions),
+        "excluded_repeated_responses": len(records) - len(train) - len(test),
         "metrics": metrics, "predictions": predictions,
+        "by_skill": {skill: summarize([r for r in predictions if r["skill"] == skill])
+                     for skill in ("reading", "listening")},
+        "cold_start": {field: {
+            "unseen_at_cutoff": summarize([r for r in predictions if r[field]]),
+            "seen_in_training": summarize([r for r in predictions if not r[field]])}
+            for field in ("new_learner", "new_item")},
         "settings": {"train_fraction": train_fraction, "irt_regularization": irt.regularization,
                      "irt_online_learning_rate": 0.2, "blend_min_item_support": 10,
                      "bkt_parameters": {k: asdict(v) for k, v in bkt.parameters.items()},
