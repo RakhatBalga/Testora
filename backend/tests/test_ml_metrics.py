@@ -39,3 +39,11 @@ def test_brier_validates_probabilities_and_scores_calibration():
     assert brier([0, 1], [0.5, 0.5]) == 0.25
     with pytest.raises(ValueError):
         brier([1], [1.1])
+
+
+def test_log_loss_penalizes_confident_errors_and_handles_endpoints():
+    from ml.metrics import log_loss
+    assert log_loss([0, 1], [0, 1]) < 1e-10
+    assert log_loss([0, 1], [1, 0]) > log_loss([0, 1], [0.5, 0.5])
+    with pytest.raises(ValueError):
+        log_loss([0], [float('nan')])

@@ -9,7 +9,7 @@ from pathlib import Path
 from ml.data import ResponseRecord, read_jsonl, write_report
 from ml.irt import fit_rasch
 from ml.knowledge_tracing import fit_bkt
-from ml.metrics import auc, brier
+from ml.metrics import auc, brier, log_loss
 from ml.datasets.split import temporal_split
 
 
@@ -45,7 +45,8 @@ def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
     for model in ("error_rate_baseline", "irt", "bkt", "blend"):
         probabilities = [r[model] for r in predictions]
         metrics[model] = {"auc": auc(labels, probabilities),
-                          "brier": brier(labels, probabilities)}
+                          "brier": brier(labels, probabilities),
+                          "log_loss": log_loss(labels, probabilities)}
     return {
         "schema_version": "adaptive-experiment.v1", "cutoff": cutoff.isoformat(),
         "train_count": len(train), "test_count": len(test),
