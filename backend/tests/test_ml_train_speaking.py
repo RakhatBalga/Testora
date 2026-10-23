@@ -92,3 +92,14 @@ def test_cli_passes_requested_holdout_fraction(tmp_path, monkeypatch):
     monkeypatch.setattr(module, 'train_compare', capture)
     module.main([str(source), '--model', 'tiny.en', '--test-size', '0.4', '--output', str(tmp_path / 'report.json')])
     assert seen['test_size'] == 0.4
+
+
+def test_model_artifacts_require_a_new_run_directory(tmp_path):
+    directory = tmp_path / 'run'
+    directory.mkdir()
+    model = directory / 'linear_regression.joblib'
+    model.write_bytes(b'previous-model')
+    with pytest.raises(FileExistsError):
+        train_compare(synthetic_rows(), artifacts=directory)
+    assert model.read_bytes() == b'previous-model'
+    assert list(directory.iterdir()) == [model]

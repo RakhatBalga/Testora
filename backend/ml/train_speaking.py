@@ -63,7 +63,7 @@ def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path 
     }
     scores = {}
     if artifacts:
-        artifacts.mkdir(parents=True, exist_ok=True)
+        artifacts.mkdir(parents=True, exist_ok=False)
     for name, estimator in models.items():
         # All preprocessing is fit only on training speakers.
         pipeline = make_pipeline(SimpleImputer(strategy="median", add_indicator=True, keep_empty_features=True),
