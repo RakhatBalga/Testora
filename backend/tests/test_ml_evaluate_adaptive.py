@@ -52,7 +52,7 @@ def test_per_skill_report_accounts_for_all_heldout_rows():
     report = evaluate(rows)
     assert sum(s['count'] for s in report['by_skill'].values()) == report['test_count']
     assert report['by_skill']['listening']['metrics']['blend']['auc'] is None
-    assert evaluate(synthetic_rows())['by_skill']['listening'] == {'count': 0, 'metrics': {}}
+    assert evaluate(synthetic_rows())['by_skill']['listening'] == {'count': 0, 'correct': 0, 'incorrect': 0, 'auc_status': 'empty', 'metrics': {}}
 
 
 def test_cold_start_membership_uses_only_training_history():
@@ -63,3 +63,12 @@ def test_cold_start_membership_uses_only_training_history():
     assert report['predictions'][-1]['new_item'] is True
     for group in report['cold_start'].values():
         assert sum(s['count'] for s in group.values()) == report['test_count']
+
+
+def test_auc_status_explains_single_class_holdout():
+    rows = synthetic_rows()
+    rows = [r.model_copy(update={'correct': True}) for r in rows]
+    held = evaluate(rows)['holdout']
+    assert held['auc_status'] == 'single_class'
+    assert held['correct'] == held['count']
+    assert held['incorrect'] == 0

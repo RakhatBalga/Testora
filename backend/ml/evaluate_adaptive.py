@@ -15,9 +15,10 @@ from ml.datasets.split import temporal_split
 
 def summarize(predictions: list[dict]) -> dict:
     if not predictions:
-        return {"count": 0, "metrics": {}}
+        return {"count": 0, "correct": 0, "incorrect": 0, "auc_status": "empty", "metrics": {}}
     labels = [r["correct"] for r in predictions]
-    return {"count": len(predictions), "metrics": {
+    return {"count": len(predictions), "correct": sum(labels), "incorrect": len(labels) - sum(labels),
+            "auc_status": "available" if len(set(labels)) == 2 else "single_class", "metrics": {
         model: {"auc": auc(labels, [r[model] for r in predictions]),
                 "brier": brier(labels, [r[model] for r in predictions]),
                 "log_loss": log_loss(labels, [r[model] for r in predictions])}
@@ -66,6 +67,7 @@ def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
     return {
         "schema_version": "adaptive-experiment.v1", "cutoff": cutoff.isoformat(),
         "train_count": len(train), "test_count": len(test),
+        "holdout": summarize(predictions),
         "excluded_repeated_responses": len(records) - len(train) - len(test),
         "metrics": metrics, "predictions": predictions,
         "by_skill": {skill: summarize([r for r in predictions if r["skill"] == skill])
