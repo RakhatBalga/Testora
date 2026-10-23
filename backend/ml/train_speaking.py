@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import math
 from pathlib import Path
 
 from ml.data import Record, write_report
@@ -22,7 +23,9 @@ def score_summary(actual, predicted):
     return {"mae": mae(actual, predicted),
             "qwk": qwk(actual, [half_band(v) for v in predicted]),
             "within_half_band": band_agreement(actual, predicted),
-            "within_one_band": band_agreement(actual, predicted, 1.0)}
+            "within_one_band": band_agreement(actual, predicted, 1.0),
+            "mean_signed_error": sum(p - a for a, p in zip(actual, predicted)) / len(actual),
+            "rmse": math.sqrt(sum((p - a) ** 2 for a, p in zip(actual, predicted)) / len(actual))}
 
 
 def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path | None = None):

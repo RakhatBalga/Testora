@@ -34,3 +34,12 @@ def test_band_agreement_uses_unrounded_predictions_and_inclusive_boundary():
     assert metrics['within_one_band'] == pytest.approx(2 / 3)
     with pytest.raises(ValueError):
         score_summary([5], [float('nan')])
+
+
+def test_signed_error_distinguishes_overgrading_from_undergrading():
+    from ml.train_speaking import score_summary
+    over = score_summary([5, 6], [6, 7])
+    under = score_summary([5, 6], [4, 5])
+    assert over['mean_signed_error'] == 1
+    assert under['mean_signed_error'] == -1
+    assert over['rmse'] == under['rmse'] == 1
