@@ -7,12 +7,12 @@ Requirement: 3–5 discussions with user representatives; distinguish verified f
 - **Format:** structured interview in Telegram; each respondent answered the same 6 questions in writing. Participants agreed to the use of their answers; no names are stored.
 - **Interviewers:** Rakhat Balgabekov, Nurhan Turganbek.
 - **Questions:**
-  1. Have you taken IELTS, or are you preparing for it? What band do you need, and what did you get or expect?
-  2. How did you prepare, and roughly how much did you spend?
-  3. Which part is the hardest for you, and why?
-  4. Who checked your essays and Speaking? Was it clear what your mistakes were and why your score was not improving?
-  5. Would you use an app that grades essays on the 4 IELTS criteria, finds repeated mistakes and gives a task for today? What would make you trust an AI score?
-  6. How often would you use it, and how much would you pay per month?
+    1. Have you taken IELTS, or are you preparing for it? What band do you need, and what did you get or expect?
+    2. How did you prepare, and roughly how much did you spend?
+    3. Which part is the hardest for you, and why?
+    4. Who checked your essays and Speaking? Was it clear what your mistakes were and why your score was not improving?
+    5. Would you use an app that grades essays on the 4 IELTS criteria, finds repeated mistakes and gives a task for today? What would make you trust an AI score?
+    6. How often would you use it, and how much would you pay per month?
 
 Full guide: `docs/interviews/interview-guide.md`.
 
