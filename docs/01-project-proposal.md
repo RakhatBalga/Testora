@@ -20,7 +20,7 @@ Existing online trainers (see section 4) can already give a band score per crite
 
 **Problem:** budget-limited IELTS candidates lack affordable, explainable and personalized feedback that connects individual attempts into a learning path — what is wrong, why the band is stuck, what to do today, and whether it helped.
 
-> Verification status: the problem is based on the team's own preparation experience, analysis of existing systems (section 4) and literature (section 3). It is being validated through 3–5 interviews with IELTS candidates (section 2); findings that are not yet confirmed by interviews are treated as assumptions.
+> Verification status: the problem is based on the team's own preparation experience, analysis of existing systems (section 4) and literature (section 3). It was checked in 5 interviews with IELTS candidates (section 2): Writing is the hardest part for 4 of 5, and the missing piece in current AI feedback is tracking repeated mistakes. Findings not confirmed by interviews are treated as assumptions.
 
 ## 1.4 Target users
 - **Primary:** people worldwide preparing for IELTS Academic or General Training for study, work or immigration, especially those with a limited budget who prepare on their own.
