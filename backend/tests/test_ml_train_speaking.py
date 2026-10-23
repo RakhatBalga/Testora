@@ -77,3 +77,18 @@ def test_incomplete_llm_coverage_never_produces_subset_metrics():
     assert 'mae' not in result
     assert result['coverage']['available'] == result['coverage']['required'] - 1
     assert len(complete['models']['llm_transcript']['predictions']) == complete['test_count']
+
+
+def test_cli_passes_requested_holdout_fraction(tmp_path, monkeypatch):
+    import json
+    import ml.train_speaking as module
+    source = tmp_path / 'benchmark.json'
+    source.write_text(json.dumps({'schema_version': 'asr-comparison.v1', 'runs': [
+        {'config': {'model': 'tiny.en'}, 'feature_version': module.FEATURE_VERSION, 'samples': []}]}))
+    seen = {}
+    def capture(rows, **kwargs):
+        seen.update(kwargs)
+        return {}
+    monkeypatch.setattr(module, 'train_compare', capture)
+    module.main([str(source), '--model', 'tiny.en', '--test-size', '0.4', '--output', str(tmp_path / 'report.json')])
+    assert seen['test_size'] == 0.4

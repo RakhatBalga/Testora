@@ -110,21 +110,22 @@ def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path 
     }
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("benchmark", type=Path)
     parser.add_argument("--model", required=True, help="Whisper model name in the ASR comparison")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--artifacts", type=Path)
     parser.add_argument("--seed", type=int, default=42)
-    args = parser.parse_args()
+    parser.add_argument("--test-size", type=float, default=0.25)
+    args = parser.parse_args(argv)
     source = json.loads(args.benchmark.read_text(encoding="utf-8"))
     if source.get("schema_version") != "asr-comparison.v1":
         raise ValueError("Expected asr-comparison.v1")
     runs = [r for r in source["runs"] if r["config"]["model"] == args.model]
     if len(runs) != 1 or runs[0].get("feature_version") != FEATURE_VERSION:
         raise ValueError("Select one compatible ASR run")
-    report = train_compare(runs[0]["samples"], seed=args.seed, artifacts=args.artifacts)
+    report = train_compare(runs[0]["samples"], seed=args.seed, test_size=args.test_size, artifacts=args.artifacts)
     report.update(asr_model=args.model, benchmark_sha256=hashlib.sha256(args.benchmark.read_bytes()).hexdigest())
     write_report(args.output, report)
 
