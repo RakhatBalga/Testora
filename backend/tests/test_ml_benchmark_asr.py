@@ -32,3 +32,19 @@ def test_audio_root_cannot_be_escaped(tmp_path):
     (tmp_path / "outside.wav").write_bytes(b"synthetic")
     with pytest.raises(ValueError, match="inside audio-root"):
         audio_paths([sample("../outside.wav")], root)
+
+
+def test_identical_audio_copies_rejected_even_with_different_speakers(tmp_path):
+    (tmp_path / 'one.wav').write_bytes(b'same-recording')
+    (tmp_path / 'two.wav').write_bytes(b'same-recording')
+    samples = [sample(), sample('two.wav').model_copy(update={'sample_id': 'two', 'speaker_id': 'other'})]
+    with pytest.raises(ValueError, match='Duplicate audio'):
+        audio_paths(samples, tmp_path)
+
+def test_training_rejects_duplicated_audio_fingerprints():
+    from ml.train_speaking import train_compare
+    from ml.speech_features import FEATURE_NAMES
+    rows = [dict(sample_id=str(i), speaker_id=str(i), expert_band=6,
+                 audio_sha256='a' * 64, features={name: 1 for name in FEATURE_NAMES}) for i in range(4)]
+    with pytest.raises(ValueError, match='Duplicate audio'):
+        train_compare(rows)

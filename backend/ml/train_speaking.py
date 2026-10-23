@@ -42,6 +42,9 @@ def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path 
     from sklearn.preprocessing import StandardScaler
 
     samples = [FeatureSample.model_validate({k: r[k] for k in FeatureSample.model_fields if k in r}) for r in rows]
+    fingerprints = [r["audio_sha256"] for r in rows if r.get("audio_sha256") is not None]
+    if len(fingerprints) != len(set(fingerprints)):
+        raise ValueError("Duplicate audio recordings would leak between speakers or bias evaluation")
     samples.sort(key=lambda r: (r.speaker_id, r.sample_id))
     if len({r.sample_id for r in samples}) != len(samples):
         raise ValueError("Duplicate samples would bias evaluation")
