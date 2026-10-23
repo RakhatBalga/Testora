@@ -52,3 +52,7 @@ def test_missingness_report_keeps_train_and_test_separate():
         assert missing['mean_asr_confidence']['missing'] == report[count_key]
         assert missing['word_count']['missing'] == 0
         assert missing['word_count']['total'] == report[count_key]
+
+
+def test_shuffling_manifest_does_not_change_speaking_results():
+    assert train_compare(synthetic_rows()) == train_compare(list(reversed(synthetic_rows())))
