@@ -85,6 +85,12 @@ def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path 
         score_summary(y[test].tolist(), llm)
         if all(v is not None for v in llm) else {"status": "missing_held_out_scores"}
     )
+    scores["llm_transcript"]["coverage"] = {
+        "available": sum(v is not None for v in llm), "required": len(llm)}
+    if all(v is not None for v in llm):
+        scores["llm_transcript"]["predictions"] = [
+            {"sample_id": samples[i].sample_id, "expert_band": samples[i].expert_band,
+             "predicted_band": p} for i, p in zip(test, llm)]
     return {
         "schema_version": "speaking-experiment.v1", "feature_version": FEATURE_VERSION,
         "seed": seed, "test_size": test_size, "sklearn_version": sklearn.__version__,

@@ -65,3 +65,15 @@ def test_split_manifest_accounts_for_every_sample_once():
     assert train | held == {r['sample_id'] for r in synthetic_rows()}
     assert sum(report['band_distribution']['train'].values()) == len(train)
     assert sum(report['band_distribution']['holdout'].values()) == len(held)
+
+
+def test_incomplete_llm_coverage_never_produces_subset_metrics():
+    rows = synthetic_rows()
+    complete = train_compare(rows)
+    held_id = complete['split_samples']['holdout'][0]
+    next(r for r in rows if r['sample_id'] == held_id)['llm_band'] = None
+    result = train_compare(rows)['models']['llm_transcript']
+    assert result['status'] == 'missing_held_out_scores'
+    assert 'mae' not in result
+    assert result['coverage']['available'] == result['coverage']['required'] - 1
+    assert len(complete['models']['llm_transcript']['predictions']) == complete['test_count']
