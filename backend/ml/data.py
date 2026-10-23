@@ -76,7 +76,7 @@ def read_jsonl(path: Path, model: type[T]) -> list[T]:
             records.append(record)
         except ValueError as exc:
             # Do not echo transcripts or other raw personal data in errors.
-            raise ValueError(f"Invalid {model.__name__} at line {number}") from exc
+            raise ValueError(f"Invalid {model.__name__} at line {number}") from None
     if not records:
         raise ValueError("Dataset is empty")
     return records
