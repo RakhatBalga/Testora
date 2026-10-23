@@ -41,6 +41,13 @@ class ResponseRecord(Record):
     correct: bool = Field(strict=True)
     answered_at: datetime
 
+    @field_validator("response_id", "learner_id", "item_id", "content_version", "question_type")
+    @classmethod
+    def nonblank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("must not be blank")
+        return value.strip()
+
     @field_validator("answered_at")
     @classmethod
     def timezone_required(cls, value: datetime) -> datetime:

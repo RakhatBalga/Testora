@@ -15,3 +15,12 @@ def test_invalid_record_traceback_hides_payload(tmp_path):
         assert 'line 1' in text
     else:
         pytest.fail('Invalid record accepted')
+
+
+@pytest.mark.parametrize('field', ['response_id', 'learner_id', 'item_id', 'content_version', 'question_type'])
+def test_blank_response_identifiers_rejected(field):
+    row = dict(response_id='r', learner_id='u', item_id='q', content_version='v1',
+               question_type='choice', skill='reading', correct=True, answered_at='2026-01-01T00:00:00Z')
+    row[field] = '  '
+    with pytest.raises(ValueError):
+        ResponseRecord(**row)
