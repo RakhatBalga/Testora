@@ -25,3 +25,12 @@ def test_training_rejects_duplicate_or_insufficient_speakers():
         train_compare(synthetic_rows() + synthetic_rows()[:1])
     with pytest.raises(ValueError, match="four"):
         train_compare(synthetic_rows()[:4])
+
+
+def test_band_agreement_uses_unrounded_predictions_and_inclusive_boundary():
+    from ml.train_speaking import score_summary
+    metrics = score_summary([5, 6, 7], [5.5, 7, 8.1])
+    assert metrics['within_half_band'] == pytest.approx(1 / 3)
+    assert metrics['within_one_band'] == pytest.approx(2 / 3)
+    with pytest.raises(ValueError):
+        score_summary([5], [float('nan')])

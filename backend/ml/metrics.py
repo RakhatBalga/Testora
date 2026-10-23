@@ -111,3 +111,12 @@ def reliability_bins(labels: list[int], probabilities: list[float], bins: int = 
              "mean_probability": sum(p for _, p in group) / len(group) if group else None,
              "observed_correct": sum(y for y, _ in group) / len(group) if group else None}
             for i, group in enumerate(groups)]
+
+
+def band_agreement(actual: list[float], predicted: list[float], tolerance: float = 0.5) -> float:
+    pairs = _pairs(actual, predicted)
+    if not math.isfinite(tolerance) or tolerance < 0:
+        raise ValueError("Tolerance must be finite and nonnegative")
+    if any(not 0 <= v <= 9 for pair in pairs for v in pair):
+        raise ValueError("Expected bands in [0, 9]")
+    return sum(abs(a - p) <= tolerance for a, p in pairs) / len(pairs)

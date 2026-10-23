@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from ml.data import Record, write_report
-from ml.metrics import half_band, mae, qwk
+from ml.metrics import half_band, mae, qwk, band_agreement
 from ml.speech_features import FEATURE_NAMES, FEATURE_VERSION
 from pydantic import Field
 
@@ -16,6 +16,13 @@ class FeatureSample(Record):
     expert_band: float = Field(ge=0, le=9, multiple_of=0.5)
     llm_band: float | None = Field(default=None, ge=0, le=9)
     features: dict[str, float | None]
+
+
+def score_summary(actual, predicted):
+    return {"mae": mae(actual, predicted),
+            "qwk": qwk(actual, [half_band(v) for v in predicted]),
+            "within_half_band": band_agreement(actual, predicted),
+            "within_one_band": band_agreement(actual, predicted, 1.0)}
 
 
 def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path | None = None):
@@ -59,8 +66,7 @@ def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path 
         pipeline.fit(x[train], y[train])
         predicted = np.clip(pipeline.predict(x[test]), 0, 9).tolist()
         scores[name] = {
-            "mae": mae(y[test].tolist(), predicted),
-            "qwk": qwk(y[test].tolist(), [half_band(v) for v in predicted]),
+            **score_summary(y[test].tolist(), predicted),
             "predictions": [{"sample_id": samples[i].sample_id, "predicted_band": p,
                              "expert_band": samples[i].expert_band} for i, p in zip(test, predicted)],
         }
@@ -71,7 +77,7 @@ def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path 
     # Compare only on exactly the same held-out recordings, never a convenient subset.
     llm = [samples[i].llm_band for i in test]
     scores["llm_transcript"] = (
-        {"mae": mae(y[test].tolist(), llm), "qwk": qwk(y[test].tolist(), [half_band(v) for v in llm])}
+        score_summary(y[test].tolist(), llm)
         if all(v is not None for v in llm) else {"status": "missing_held_out_scores"}
     )
     return {
