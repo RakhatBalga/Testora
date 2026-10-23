@@ -44,3 +44,12 @@ def test_conflicting_item_types_rejected_before_training():
     rows[7] = rows[7].model_copy(update={'question_type': 'gap'})
     with pytest.raises(ValueError, match='Conflicting'):
         evaluate(rows)
+
+
+def test_per_skill_report_accounts_for_all_heldout_rows():
+    rows = synthetic_rows()
+    rows[-1] = rows[-1].model_copy(update={'skill': 'listening'})
+    report = evaluate(rows)
+    assert sum(s['count'] for s in report['by_skill'].values()) == report['test_count']
+    assert report['by_skill']['listening']['metrics']['blend']['auc'] is None
+    assert evaluate(synthetic_rows())['by_skill']['listening'] == {'count': 0, 'metrics': {}}

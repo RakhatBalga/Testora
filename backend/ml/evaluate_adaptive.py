@@ -13,6 +13,17 @@ from ml.metrics import auc, brier, log_loss, reliability_bins
 from ml.datasets.split import temporal_split
 
 
+def summarize(predictions: list[dict]) -> dict:
+    if not predictions:
+        return {"count": 0, "metrics": {}}
+    labels = [r["correct"] for r in predictions]
+    return {"count": len(predictions), "metrics": {
+        model: {"auc": auc(labels, [r[model] for r in predictions]),
+                "brier": brier(labels, [r[model] for r in predictions]),
+                "log_loss": log_loss(labels, [r[model] for r in predictions])}
+        for model in ("error_rate_baseline", "irt", "bkt", "blend")}}
+
+
 def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
     train, test, cutoff = temporal_split(records, train_fraction)
     irt, bkt = fit_rasch(train), fit_bkt(train)
@@ -30,7 +41,7 @@ def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
             bkt_p = bkt.probability(row.learner_id, row.skill_key)
             supported = irt.item_support.get(row.item_key, 0) >= 10
             predictions.append({
-                "response_id": row.response_id, "correct": int(row.correct),
+                "response_id": row.response_id, "correct": int(row.correct), "skill": row.skill,
                 "error_rate_baseline": (successes + 1) / (total + 2),
                 "irt": irt_p, "bkt": bkt_p,
                 "blend": ((irt_p if supported else 0.5) + bkt_p) / 2,
@@ -53,6 +64,8 @@ def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
         "train_count": len(train), "test_count": len(test),
         "excluded_repeated_responses": len(records) - len(train) - len(test),
         "metrics": metrics, "predictions": predictions,
+        "by_skill": {skill: summarize([r for r in predictions if r["skill"] == skill])
+                     for skill in ("reading", "listening")},
         "settings": {"train_fraction": train_fraction, "irt_regularization": irt.regularization,
                      "irt_online_learning_rate": 0.2, "blend_min_item_support": 10,
                      "bkt_parameters": {k: asdict(v) for k, v in bkt.parameters.items()},
