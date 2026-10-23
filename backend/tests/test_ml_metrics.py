@@ -47,3 +47,13 @@ def test_log_loss_penalizes_confident_errors_and_handles_endpoints():
     assert log_loss([0, 1], [1, 0]) > log_loss([0, 1], [0.5, 0.5])
     with pytest.raises(ValueError):
         log_loss([0], [float('nan')])
+
+
+def test_reliability_bins_include_one_and_preserve_empty_groups():
+    from ml.metrics import reliability_bins
+    bins = reliability_bins([0, 1, 1], [0, 0.5, 1], bins=4)
+    assert [b['count'] for b in bins] == [1, 0, 1, 1]
+    assert bins[1]['observed_correct'] is None
+    assert bins[-1]['mean_probability'] == 1
+    with pytest.raises(ValueError):
+        reliability_bins([1], [0.5], bins=0)
