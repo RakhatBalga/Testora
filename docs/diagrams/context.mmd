@@ -1,0 +1,20 @@
+%% Testora: System Context diagram (C4 level 1)
+%% Source of truth: backend/app/main.py, api/routers/auth.py, infrastructure/ai/factory.py, render.yaml
+flowchart LR
+    classDef person fill:#1d4ed8,stroke:#1e3a8a,color:#ffffff,stroke-width:2px
+    classDef system fill:#2563eb,stroke:#1e3a8a,color:#ffffff,stroke-width:3px
+    classDef ext fill:#e5e7eb,stroke:#6b7280,color:#111827,stroke-width:2px
+
+    candidate(["<b>IELTS Candidate</b><br/>[Person]<br/>Prepares for IELTS Academic,<br/>practises and follows the coach"]):::person
+    maintainer(["<b>Content Maintainer</b><br/>[Person, project team]<br/>Authors and validates<br/>test content packs"]):::person
+
+    testora["<b>Testora</b><br/>[Software System]<br/>Intelligent IELTS preparation system:<br/>Reading / Listening tests, AI Writing review,<br/>mistake memory, band-gap analytics,<br/>daily plan, vocabulary builder"]:::system
+
+    gemini["<b>Google Gemini API</b><br/>[External System]<br/>LLM grading of Writing<br/>(and Speaking, gated),<br/>vocabulary enrichment"]:::ext
+    google["<b>Google OAuth 2.0</b><br/>[External System]<br/>Identity provider for<br/>'Sign in with Google'"]:::ext
+
+    candidate -- "Takes tests, submits essays,<br/>views blockers and daily tasks<br/>[HTTPS, browser]" --> testora
+    maintainer -- "Imports and validates content<br/>packs (JSON) with CLI scripts" --> testora
+    testora -- "Essay text + rubric prompt;<br/>receives band, criteria, mistakes<br/>[HTTPS, JSON]" --> gemini
+    testora -- "Authorization-code + PKCE flow;<br/>code exchange, user info<br/>[HTTPS]" --> google
+    candidate -. "Consents on Google<br/>account screen" .-> google

@@ -1,0 +1,54 @@
+%% Testora: key data entities (subset of backend/app/domain/models)
+%% Table names verified against SQLAlchemy models; only keys and main columns shown.
+%% Not shown: writing_tasks, speaking_tasks, mistake_reviews, daily_word_quizzes, ai_quota_buckets, listening_progress, diagnostic_sessions, ai_reservations, oauth_flows.
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "22px", "fontFamily": "Times New Roman, serif", "primaryColor": "#ffffff", "primaryBorderColor": "#000000", "primaryTextColor": "#000000", "lineColor": "#000000", "clusterBkg": "#f2f2f2", "clusterBorder": "#000000", "tertiaryColor": "#f2f2f2"}, "flowchart": {"nodeSpacing": 40, "rankSpacing": 55}}}%%
+erDiagram
+    direction TB
+    users { int id PK
+        string username
+        float target_band }
+    tests { int id PK
+        string test_type }
+    sections { int id PK
+        int test_id FK }
+    questions { int id PK
+        int section_id FK
+        json evidence }
+    attempts { int id PK
+        int user_id FK
+        int test_id FK
+        float band }
+    answer_records { int id PK
+        int attempt_id FK
+        int question_id FK
+        bool is_correct }
+    writing_submissions { int id PK
+        int user_id FK
+        float band
+        json feedback }
+    speaking_submissions { int id PK
+        int user_id FK
+        float band }
+    mistakes { int id PK
+        int user_id FK
+        string skill
+        int severity }
+    study_plan_items { int id PK
+        int user_id FK
+        string status }
+    saved_words { int id PK
+        int user_id FK
+        string word }
+
+    tests ||--|{ sections : has
+    sections ||--|{ questions : has
+    users ||--o{ attempts : takes
+    tests ||--o{ attempts : "attempted in"
+    attempts ||--|{ answer_records : contains
+    questions ||--o{ answer_records : "answered in"
+    users ||--o{ writing_submissions : writes
+    users ||--o{ speaking_submissions : records
+    users ||--o{ mistakes : accumulates
+    writing_submissions ||..o{ mistakes : "graded into"
+    users ||--o{ study_plan_items : plans
+    users ||--o{ saved_words : saves

@@ -1,0 +1,38 @@
+---
+config:
+  layout: elk
+---
+%% Testora: Deployment diagram (production)
+%% Source: render.yaml, backend/Dockerfile, backend/start-render.sh, .github/workflows/ci.yml
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "22px", "fontFamily": "Times New Roman, serif", "primaryColor": "#ffffff", "primaryBorderColor": "#000000", "primaryTextColor": "#000000", "lineColor": "#000000", "clusterBkg": "#f2f2f2", "clusterBorder": "#000000", "tertiaryColor": "#f2f2f2"}, "flowchart": {"nodeSpacing": 40, "rankSpacing": 55}}}%%
+flowchart TB
+    BR["<b>User device</b><br/>web browser, desktop or mobile"]
+
+    subgraph Vercel["Vercel"]
+        FE["<b>Next.js frontend</b><br/>testora.studio"]
+    end
+
+    subgraph Render["Render — Docker web service"]
+        API["<b>FastAPI (uvicorn)</b><br/>migrations on start<br/>health check /health/ready"]
+        FS[("Container disk<br/>audio files")]
+        API --- FS
+    end
+
+    subgraph Neon["Neon"]
+        DB[("<b>PostgreSQL</b><br/>managed, TLS")]
+    end
+
+    GEM["<b>Google Gemini API</b>"]
+    GOO["<b>Google OAuth 2.0</b>"]
+
+    subgraph GH["GitHub"]
+        REPO["Repository"] --> CI["<b>Actions CI</b><br/>tests, validators, build"]
+    end
+
+    BR -- "HTTPS: pages" --> FE
+    BR -- "HTTPS: REST / JSON, JWT" --> API
+    API -- "SQL over TLS" --> DB
+    API -- "HTTPS" --> GEM
+    API -- "HTTPS" --> GOO
+    REPO -. "deploy main" .-> FE
+    REPO -. "deploy main" .-> API

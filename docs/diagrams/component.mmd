@@ -1,0 +1,34 @@
+%% Testora: Component diagram (draft)
+%% Names verified against frontend/src and backend/app in RakhatBalga/Testora@main.
+%% Arrows = "depends on / calls". Dependencies point inward (api -> application -> domain);
+%% infrastructure implements the adapters. Full module lists: docs/07-architecture.md, section 7.4.
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "22px", "fontFamily": "Times New Roman, serif", "primaryColor": "#ffffff", "primaryBorderColor": "#000000", "primaryTextColor": "#000000", "lineColor": "#000000", "clusterBkg": "#f2f2f2", "clusterBorder": "#000000"}, "flowchart": {"nodeSpacing": 40, "rankSpacing": 55}}}%%
+flowchart TB
+    FE["<b>Frontend</b> — Next.js, Feature-Sliced Design<br/>app · widgets · features · entities · shared (API client)"]
+
+    subgraph BE["Backend — FastAPI, Clean Architecture"]
+        direction TB
+        API["<b>api/</b> — REST routers<br/>auth · tests · listening · writing · speaking<br/>analytics · learning · history · vocabulary"]
+        APP["<b>application/</b> — use-case services<br/>grading pipeline · mistakes · weakness and band gap<br/>daily plan · study plan · history · vocabulary · OAuth"]
+        DOM["<b>domain/</b> — entities and pure rules<br/>models · answer scoring · IELTS band conversion"]
+        INF["<b>infrastructure/</b> — adapters<br/>database · AI provider (mock | claude | gemini)<br/>security (JWT) · rate limiting · config"]
+        API --> APP --> DOM
+        APP --> INF
+    end
+
+    ML["<b>backend/ml</b> — research, integration planned<br/>Speaking: Whisper ASR, fluency features, regression<br/>Adaptive: Rasch / IRT, knowledge tracing"]
+    CLI["<b>Content tooling</b> (CLI)<br/>import_content · validate_*"]
+
+    PG[("<b>PostgreSQL</b><br/>Neon, Alembic migrations")]
+    GEM["<b>Google Gemini API</b>"]
+    GOO["<b>Google OAuth 2.0</b>"]
+
+    FE -- "REST / JSON over HTTPS, JWT" --> API
+    INF --> PG
+    INF -- "HTTPS" --> GEM
+    API -- "OAuth code exchange" --> GOO
+    CLI --> PG
+    ML -. "offline pseudonymised export" .-> PG
+
+    classDef dashed stroke-dasharray: 6 4
+    class ML,CLI dashed
