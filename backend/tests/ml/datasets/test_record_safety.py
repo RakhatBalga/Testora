@@ -24,3 +24,16 @@ def test_blank_response_identifiers_rejected(field):
     row[field] = '  '
     with pytest.raises(ValueError):
         ResponseRecord(**row)
+
+
+def test_report_never_overwrites_existing_result(tmp_path):
+    path = tmp_path / 'report.json'
+    write_report(path, {'value': 1})
+    before = path.read_bytes()
+    with pytest.raises(FileExistsError):
+        write_report(path, {'value': 2})
+    assert path.read_bytes() == before
+    invalid = tmp_path / 'invalid.json'
+    with pytest.raises(ValueError):
+        write_report(invalid, {'value': float('nan')})
+    assert not invalid.exists()

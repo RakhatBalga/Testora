@@ -90,5 +90,7 @@ def read_jsonl(path: Path, model: type[T]) -> list[T]:
 
 
 def write_report(path: Path, report: dict) -> None:
+    payload = json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(report, indent=2, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
+    with path.open("x", encoding="utf-8") as handle:
+        handle.write(payload)
