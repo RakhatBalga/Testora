@@ -56,3 +56,12 @@ def test_missingness_report_keeps_train_and_test_separate():
 
 def test_shuffling_manifest_does_not_change_speaking_results():
     assert train_compare(synthetic_rows()) == train_compare(list(reversed(synthetic_rows())))
+
+
+def test_split_manifest_accounts_for_every_sample_once():
+    report = train_compare(synthetic_rows())
+    train, held = map(set, [report['split_samples']['train'], report['split_samples']['holdout']])
+    assert train.isdisjoint(held)
+    assert train | held == {r['sample_id'] for r in synthetic_rows()}
+    assert sum(report['band_distribution']['train'].values()) == len(train)
+    assert sum(report['band_distribution']['holdout'].values()) == len(held)

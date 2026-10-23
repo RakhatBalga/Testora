@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 import math
+from collections import Counter
 from pathlib import Path
 
 from ml.data import Record, write_report
@@ -89,6 +90,10 @@ def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path 
         "seed": seed, "test_size": test_size, "sklearn_version": sklearn.__version__,
         "train_speakers": sorted({groups[i] for i in train}), "test_speakers": sorted({groups[i] for i in test}),
         "train_count": len(train), "test_count": len(test), "models": scores,
+        "split_samples": {split: [samples[i].sample_id for i in indices]
+                          for split, indices in (("train", train), ("holdout", test))},
+        "band_distribution": {split: dict(sorted(Counter(str(samples[i].expert_band) for i in indices).items()))
+                              for split, indices in (("train", train), ("holdout", test))},
         "feature_missingness": {
             split: {name: {"missing": sum(samples[i].features[name] is None for i in indices),
                            "total": len(indices)} for name in FEATURE_NAMES}
