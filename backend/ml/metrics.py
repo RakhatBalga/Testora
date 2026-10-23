@@ -83,3 +83,10 @@ def auc(labels: list[int], probabilities: list[float]) -> float | None:
         rank_sum += sum(y for y, _ in ordered[i:j]) * (i + 1 + j) / 2
         i = j
     return (rank_sum - positive * (positive + 1) / 2) / (positive * negative)
+
+
+def brier(labels: list[int], probabilities: list[float]) -> float:
+    pairs = _pairs(labels, probabilities)
+    if any(y not in (0, 1) or not 0 <= p <= 1 for y, p in pairs):
+        raise ValueError("Expected binary labels and probabilities in [0, 1]")
+    return sum((y - p) ** 2 for y, p in pairs) / len(pairs)

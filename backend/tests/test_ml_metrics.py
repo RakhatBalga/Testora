@@ -31,3 +31,11 @@ def test_auc_handles_ties_order_and_missing_classes():
         auc([0, 1], [0.1, float("nan")])
     with pytest.raises(ValueError):
         mae([], [])
+
+
+def test_brier_validates_probabilities_and_scores_calibration():
+    from ml.metrics import brier
+    assert brier([0, 1], [0, 1]) == 0
+    assert brier([0, 1], [0.5, 0.5]) == 0.25
+    with pytest.raises(ValueError):
+        brier([1], [1.1])
