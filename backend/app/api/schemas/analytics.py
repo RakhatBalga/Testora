@@ -4,6 +4,7 @@ Envelopes and the stable fields are typed; payloads that are assembled from
 several sources and evolve with the product are `dict[str, Any]`. All models
 allow extra keys, so documenting a response never drops data from it.
 """
+
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict

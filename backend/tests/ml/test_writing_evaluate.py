@@ -19,6 +19,7 @@ def provider(labels, fn, cap_flags=None):
             if cap_flags is not None:
                 fb.flags = cap_flags
             return fb
+
     return G()
 
 
@@ -31,12 +32,25 @@ def setup(tmp_path):
     kw = dict(cache_path=cache, runs=3)
     # flat 7.0 grader (the compression problem), accurate grader, flaky grader.
     collect(test, provider(labels, lambda y: 7.0), provider="flat", model="m", prompt_version="v1", **kw)
-    noise = iter(range(10 ** 6))
-    collect(test, provider(labels, lambda y: min(9, max(0, y + [0, 0.5, -0.5, 0, 0][next(noise) % 5]))),
-            provider="good", model="m", prompt_version="v1", **kw)
-    flaky_calls = iter(range(10 ** 6))
-    collect(test, provider(labels, lambda y: None if next(flaky_calls) % 4 == 0 else y),
-            provider="flaky", model="m", prompt_version="v1", cache_path=cache, runs=1)
+    noise = iter(range(10**6))
+    collect(
+        test,
+        provider(labels, lambda y: min(9, max(0, y + [0, 0.5, -0.5, 0, 0][next(noise) % 5]))),
+        provider="good",
+        model="m",
+        prompt_version="v1",
+        **kw,
+    )
+    flaky_calls = iter(range(10**6))
+    collect(
+        test,
+        provider(labels, lambda y: None if next(flaky_calls) % 4 == 0 else y),
+        provider="flaky",
+        model="m",
+        prompt_version="v1",
+        cache_path=cache,
+        runs=1,
+    )
     return test, train, load_cache(cache), cache
 
 
@@ -86,8 +100,10 @@ def test_per_criterion_metrics_and_markdown(setup):
     report, _ = run(setup, ci_criteria=True)
     good = block(report, "good:m")["targets"]
     assert "task" in good and "lexical" in good and good["task"]["n"] == 30
-    md = ev.render_markdown({**report, "meta": {}}, {"split": "test", "generated_at": "now", "dataset_sha256": "x",
-                                                      "protocol_deviations": ["demo deviation"]})
+    md = ev.render_markdown(
+        {**report, "meta": {}},
+        {"split": "test", "generated_at": "now", "dataset_sha256": "x", "protocol_deviations": ["demo deviation"]},
+    )
     assert "| good:m |" in md and "constant mean" in md and "WARNING: demo deviation" in md
     assert "Paired bootstrap" in md and "Run-to-run stability" in md
 
@@ -95,8 +111,18 @@ def test_per_criterion_metrics_and_markdown(setup):
 def test_human_human_ceiling_row():
     gold = []
     for i, (a, b) in enumerate([(6.0, 6.0), (6.5, 6.0), (7.0, 7.5), (5.5, 5.5), (6.0, 6.5), (7.0, 7.0)]):
-        gold.append(Essay(id=f"g{i}", task_type=2, prompt="p", text=f"gold {i}", overall=a, source="x", split="gold",
-                          rater_scores=[RaterScore(rater_id="T1", overall=a), RaterScore(rater_id="T2", overall=b)]))
+        gold.append(
+            Essay(
+                id=f"g{i}",
+                task_type=2,
+                prompt="p",
+                text=f"gold {i}",
+                overall=a,
+                source="x",
+                split="gold",
+                rater_scores=[RaterScore(rater_id="T1", overall=a), RaterScore(rater_id="T2", overall=b)],
+            )
+        )
     report = ev.evaluate(gold, [], n_boot=50)
     ceiling = block(report, "human vs human (ceiling)")
     assert ceiling["kind"] == "human" and ceiling["targets"]["overall"]["n"] == 6
@@ -107,8 +133,14 @@ def test_cap_hit_rate_uses_flags_when_present(tmp_path):
     test = make_essays(10, split="test")
     labels = {e.text: e.overall for e in test}
     cache = tmp_path / "c.jsonl"
-    collect(test, provider(labels, lambda y: 6.0, cap_flags={"off_topic": True}), cache_path=cache,
-            provider="capped", model="m", prompt_version="v")
+    collect(
+        test,
+        provider(labels, lambda y: 6.0, cap_flags={"off_topic": True}),
+        cache_path=cache,
+        provider="capped",
+        model="m",
+        prompt_version="v",
+    )
     report = ev.evaluate(test, ev.systems_from_cache(load_cache(cache), test), n_boot=0)
     assert block(report, "capped:m")["cap_hit_rate"] == 1.0
 
@@ -119,8 +151,21 @@ def test_cli_protects_test_split_and_checks_prereg(tmp_path, setup):
     essays = test + train
     write_essays(ds, essays)
     manifest.write_text(json.dumps(build_manifest(essays, [], seed=1, test_fraction=0.3)))
-    base = ["--dataset", str(ds), "--manifest", str(manifest), "--split", "test", "--cache", str(cache),
-            "--n-boot", "50", "--only", "good", "flat"]
+    base = [
+        "--dataset",
+        str(ds),
+        "--manifest",
+        str(manifest),
+        "--split",
+        "test",
+        "--cache",
+        str(cache),
+        "--n-boot",
+        "50",
+        "--only",
+        "good",
+        "flat",
+    ]
     with pytest.raises(SystemExit, match="protected"):
         ev.main(base)
     prereg = tmp_path / "prereg.md"
@@ -146,6 +191,7 @@ def test_cli_run_mock_and_trained_bundle_leak_guard(tmp_path):
     pytest.importorskip("sklearn")
     pytest.importorskip("joblib")
     from ml.train_writing import train
+
     train_set = make_essays(50, n_prompts=6, seed=1)
     test = make_essays(20, n_prompts=4, seed=2, split="test", prefix="t")
     ds = tmp_path / "d.jsonl"
@@ -153,9 +199,27 @@ def test_cli_run_mock_and_trained_bundle_leak_guard(tmp_path):
     train(train_set, folds=3, out_dir=tmp_path / "model")
     bundle = tmp_path / "model" / "writing_models.joblib"
     out = tmp_path / "rep"
-    assert ev.main(["--dataset", str(ds), "--split", "test", "--allow-unregistered", "--run-mock",
-                    "--mock-cache", str(tmp_path / "mock.jsonl"), "--model-bundle", str(bundle),
-                    "--n-boot", "50", "--out", str(out)]) == 0
+    assert (
+        ev.main(
+            [
+                "--dataset",
+                str(ds),
+                "--split",
+                "test",
+                "--allow-unregistered",
+                "--run-mock",
+                "--mock-cache",
+                str(tmp_path / "mock.jsonl"),
+                "--model-bundle",
+                str(bundle),
+                "--n-boot",
+                "50",
+                "--out",
+                str(out),
+            ]
+        )
+        == 0
+    )
     names = [b["name"] for b in json.loads((tmp_path / "rep.json").read_text())["systems"]]
     assert {"constant mean", "constant mode", "ridge", "gbm", "mock:rules-v1"} <= set(names)
     with pytest.raises(ValueError, match="trained on"):

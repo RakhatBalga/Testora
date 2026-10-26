@@ -6,6 +6,7 @@ body, exceptions/timeouts, truncation) is surfaced as `error=True` with no
 exception escaping — so the router saves the submission as *failed* instead of
 persisting a bogus Band-0 grade.
 """
+
 import json
 
 import pytest
@@ -47,6 +48,7 @@ _VALID_ESSAY = (
 
 # ----------------------------- parsing / schema -----------------------------
 
+
 def test_parse_plain_json():
     assert gemini._parse(json.dumps(_VALID_WRITING))["band"] == 6.5
 
@@ -74,8 +76,13 @@ _EXAMINER_T2 = {
     "position_clear": True,
     "off_topic": False,
     "errors": [
-        {"category": "grammar", "subskill": "articles", "severity": 2,
-         "snippet": "in the society", "correction": "in society"},
+        {
+            "category": "grammar",
+            "subskill": "articles",
+            "severity": 2,
+            "snippet": "in the society",
+            "correction": "in society",
+        },
     ],
 }
 
@@ -94,10 +101,18 @@ def test_writing_valid_response(monkeypatch):
 
 
 def test_writing_verbatim_error_becomes_mistake(monkeypatch):
-    examiner = {**_EXAMINER_T2, "errors": [
-        {"category": "grammar", "subskill": "articles", "severity": 2,
-         "snippet": "Schools can provide rules", "correction": "Schools can set rules"},
-    ]}
+    examiner = {
+        **_EXAMINER_T2,
+        "errors": [
+            {
+                "category": "grammar",
+                "subskill": "articles",
+                "severity": 2,
+                "snippet": "Schools can provide rules",
+                "correction": "Schools can set rules",
+            },
+        ],
+    }
     monkeypatch.setattr(gemini.settings, "WRITING_COACH_ENABLED", False)
     monkeypatch.setattr(gemini, "_generate", lambda *a, **k: json.dumps(examiner))
     fb = gemini.GeminiWritingGrader().grade(task_type=2, prompt="p", text=_VALID_ESSAY, min_words=60)
@@ -227,6 +242,7 @@ def test_writing_truncated_response_is_error(monkeypatch):
 
 # ----------------------------- speaking grader ------------------------------
 
+
 def test_speaking_valid_response(monkeypatch, tmp_path):
     audio = tmp_path / "a.webm"
     audio.write_bytes(b"fake-audio-bytes")
@@ -243,9 +259,12 @@ def test_speaking_valid_response(monkeypatch, tmp_path):
 def test_speaking_overall_never_taken_from_model_and_bands_clamped(monkeypatch, tmp_path):
     audio = tmp_path / "a.webm"
     audio.write_bytes(b"x")
-    reply = {**_VALID_SPEAKING, "band": 9.0,
-             "pronunciation": {"band": 12, "justification": ""},
-             "fluency_coherence": {"band": 6.3, "justification": ""}}
+    reply = {
+        **_VALID_SPEAKING,
+        "band": 9.0,
+        "pronunciation": {"band": 12, "justification": ""},
+        "fluency_coherence": {"band": 6.3, "justification": ""},
+    }
     monkeypatch.setattr(gemini, "_generate", lambda contents, system, **k: json.dumps(reply))
     fb = gemini.GeminiSpeakingGrader().grade(part=1, questions=["Q"], audio_path=str(audio))
     assert fb.criteria["Pronunciation"] == 9.0
@@ -269,6 +288,7 @@ def test_speaking_missing_file_is_error(monkeypatch):
 
 
 # ----------------------------- retry / backoff ------------------------------
+
 
 def test_generate_retries_then_succeeds(monkeypatch):
     calls = {"n": 0}

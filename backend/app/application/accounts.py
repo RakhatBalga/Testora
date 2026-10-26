@@ -1,4 +1,5 @@
 """Account use cases: registration, login, profile, avatar, logout."""
+
 import bcrypt
 from fastapi import HTTPException
 from sqlalchemy.exc import IntegrityError
@@ -55,8 +56,14 @@ def change_username(db: Session, user: User, username: str) -> str:
     return create_access_token(user.id, user.token_version or 0)
 
 
-_PLAN_FIELDS = {"target_band", "current_level", "exam_date", "weekly_study_days",
-                "daily_study_minutes", "primary_focus"}
+_PLAN_FIELDS = {
+    "target_band",
+    "current_level",
+    "exam_date",
+    "weekly_study_days",
+    "daily_study_minutes",
+    "primary_focus",
+}
 
 
 def update_profile(db: Session, user: User, fields: dict) -> User:
@@ -85,9 +92,9 @@ def _avatar_key(avatar: str | None) -> str | None:
     if not avatar:
         return None
     if avatar.startswith(DB_AVATAR_URL_PREFIX):
-        return DB_PREFIX + avatar[len(DB_AVATAR_URL_PREFIX):]
+        return DB_PREFIX + avatar[len(DB_AVATAR_URL_PREFIX) :]
     if avatar.startswith(LOCAL_AVATAR_URL_PREFIX):
-        return avatar[len(LOCAL_AVATAR_URL_PREFIX):]
+        return avatar[len(LOCAL_AVATAR_URL_PREFIX) :]
     return None
 
 
@@ -104,8 +111,9 @@ def set_avatar(db: Session, user: User, data: bytes) -> User:
     storage = get_storage()
     key = storage.save(db, kind="avatar", owner_id=user.id, data=data, content_type=content_type)
     previous = user.avatar
-    user.avatar = (DB_AVATAR_URL_PREFIX + key[len(DB_PREFIX):] if key.startswith(DB_PREFIX)
-                   else LOCAL_AVATAR_URL_PREFIX + key)
+    user.avatar = (
+        DB_AVATAR_URL_PREFIX + key[len(DB_PREFIX) :] if key.startswith(DB_PREFIX) else LOCAL_AVATAR_URL_PREFIX + key
+    )
     db.add(user)
     _remove_avatar(db, previous)
     db.commit()

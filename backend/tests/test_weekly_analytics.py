@@ -26,12 +26,42 @@ def test_weekly_weakest_uses_only_recent_graded_events():
         db.add_all([user, writing_task, speaking_task, listening, reading])
         db.flush()
         now = utcnow()
-        db.add_all([
-            WritingSubmission(user_id=user.id, task_id=writing_task.id, text="x", word_count=1, status="graded", band=7.0, created_at=now),
-            SpeakingSubmission(user_id=user.id, task_id=speaking_task.id, audio_url="a.webm", band=6.5, created_at=now - timedelta(days=2)),
-            Attempt(user_id=user.id, test_id=listening.id, score=24, total=40, band=6.0, created_at=now - timedelta(days=1)),
-            Attempt(user_id=user.id, test_id=reading.id, score=10, total=40, band=4.0, created_at=now - timedelta(days=8)),
-        ])
+        db.add_all(
+            [
+                WritingSubmission(
+                    user_id=user.id,
+                    task_id=writing_task.id,
+                    text="x",
+                    word_count=1,
+                    status="graded",
+                    band=7.0,
+                    created_at=now,
+                ),
+                SpeakingSubmission(
+                    user_id=user.id,
+                    task_id=speaking_task.id,
+                    audio_url="a.webm",
+                    band=6.5,
+                    created_at=now - timedelta(days=2),
+                ),
+                Attempt(
+                    user_id=user.id,
+                    test_id=listening.id,
+                    score=24,
+                    total=40,
+                    band=6.0,
+                    created_at=now - timedelta(days=1),
+                ),
+                Attempt(
+                    user_id=user.id,
+                    test_id=reading.id,
+                    score=10,
+                    total=40,
+                    band=4.0,
+                    created_at=now - timedelta(days=8),
+                ),
+            ]
+        )
         db.commit()
 
         result = compute_weekly_weakest(db, user.id)

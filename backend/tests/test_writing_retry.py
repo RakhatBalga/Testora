@@ -121,9 +121,7 @@ def test_retry_updates_existing_failed_submission(monkeypatch, db, retry_fixture
     assert out["id"] == submission_id
     assert out["status"] == "graded"
     assert out["band"] == 7.5
-    assert out["feedback"]["why_not_higher_band"] == (
-        "To reach 8.0, make examples more specific."
-    )
+    assert out["feedback"]["why_not_higher_band"] == ("To reach 8.0, make examples more specific.")
 
     rows = db.query(Mistake).filter(Mistake.submission_id == submission_id).all()
     assert len(rows) == 1

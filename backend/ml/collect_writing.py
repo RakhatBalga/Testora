@@ -10,6 +10,7 @@ on the next invocation unless --no-retry-failed, and always counted in the
 coverage that evaluate_writing reports. The cache holds essay hashes, not essay
 text, but raw model output can quote essays: keep it out of Git (ml/data/ is ignored).
 """
+
 import argparse
 import json
 import time
@@ -62,9 +63,14 @@ class CollectSummary:
     failure_reasons: dict[str, int] = field(default_factory=dict)
 
     def as_dict(self) -> dict:
-        return {"requested": self.requested, "cached_ok": self.cached_ok, "new_ok": self.new_ok,
-                "failed": self.failed, "aborted": self.aborted,
-                "failure_reasons": self.failure_reasons}
+        return {
+            "requested": self.requested,
+            "cached_ok": self.cached_ok,
+            "new_ok": self.new_ok,
+            "failed": self.failed,
+            "aborted": self.aborted,
+            "failure_reasons": self.failure_reasons,
+        }
 
 
 def _flags(feedback) -> dict | None:
@@ -72,10 +78,23 @@ def _flags(feedback) -> dict | None:
     return dict(flags) if isinstance(flags, dict) and flags else None
 
 
-def collect(essays: list[Essay], grader, *, provider: str, model: str, prompt_version: str,
-            cache_path: Path, runs: int = 1, seed: int = 0, rps: float = 0.0,
-            retry_failed: bool = True, abort_after: int = 20,
-            sleep=time.sleep, clock=time.monotonic, progress=None) -> CollectSummary:
+def collect(
+    essays: list[Essay],
+    grader,
+    *,
+    provider: str,
+    model: str,
+    prompt_version: str,
+    cache_path: Path,
+    runs: int = 1,
+    seed: int = 0,
+    rps: float = 0.0,
+    retry_failed: bool = True,
+    abort_after: int = 20,
+    sleep=time.sleep,
+    clock=time.monotonic,
+    progress=None,
+) -> CollectSummary:
     """Grade every essay `runs` times. Run order is run-major so a partial pass
     still has complete first runs (the primary prediction)."""
     cache_path = Path(cache_path)
@@ -127,25 +146,61 @@ def _count(summary: CollectSummary, reason) -> None:
 
 
 def _grade_once(grader, essay, provider, model, prompt_version, seed, run, clock) -> dict:
-    base = {"cache_version": CACHE_VERSION, "essay_hash": essay.text_hash, "essay_id": essay.id,
-            "provider": provider, "model": model, "prompt_version": prompt_version,
-            "seed": seed, "run": run, "task_type": essay.task_type,
-            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+    base = {
+        "cache_version": CACHE_VERSION,
+        "essay_hash": essay.text_hash,
+        "essay_id": essay.id,
+        "provider": provider,
+        "model": model,
+        "prompt_version": prompt_version,
+        "seed": seed,
+        "run": run,
+        "task_type": essay.task_type,
+        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
     started = clock()
     try:
-        fb = graders.grade_call(grader, task_type=essay.task_type, prompt=essay.prompt,
-                                text=essay.text, min_words=min_words_for(essay.task_type), seed=seed)
+        fb = graders.grade_call(
+            grader,
+            task_type=essay.task_type,
+            prompt=essay.prompt,
+            text=essay.text,
+            min_words=min_words_for(essay.task_type),
+            seed=seed,
+        )
     except Exception as exc:  # any provider failure is data, not a crash
-        return {**base, "ok": False, "error": f"{type(exc).__name__}: {str(exc)[:120]}",
-                "latency": round(clock() - started, 3), "band": None, "criteria": {},
-                "flags": None, "raw": None}
+        return {
+            **base,
+            "ok": False,
+            "error": f"{type(exc).__name__}: {str(exc)[:120]}",
+            "latency": round(clock() - started, 3),
+            "band": None,
+            "criteria": {},
+            "flags": None,
+            "raw": None,
+        }
     latency = round(clock() - started, 3)
     if getattr(fb, "error", False):
-        return {**base, "ok": False, "error": f"grader error: {str(getattr(fb, 'summary', ''))[:100]}",
-                "latency": latency, "band": None, "criteria": {}, "flags": None, "raw": None}
-    return {**base, "ok": True, "error": None, "latency": latency, "band": float(fb.band),
-            "criteria": canonical_criteria(fb.criteria), "flags": _flags(fb),
-            "raw": fb.to_dict() if hasattr(fb, "to_dict") else None}
+        return {
+            **base,
+            "ok": False,
+            "error": f"grader error: {str(getattr(fb, 'summary', ''))[:100]}",
+            "latency": latency,
+            "band": None,
+            "criteria": {},
+            "flags": None,
+            "raw": None,
+        }
+    return {
+        **base,
+        "ok": True,
+        "error": None,
+        "latency": latency,
+        "band": float(fb.band),
+        "criteria": canonical_criteria(fb.criteria),
+        "flags": _flags(fb),
+        "raw": fb.to_dict() if hasattr(fb, "to_dict") else None,
+    }
 
 
 def main(argv=None):
@@ -172,14 +227,26 @@ def main(argv=None):
     grader = graders.make_grader(args.provider)
     model = args.model or graders.model_name(args.provider, grader)
     version = graders.prompt_version(args.prompt_version)
-    print(f"collecting {len(essays)} essays x {args.runs} runs: provider={args.provider} "
-          f"model={model} prompt_version={version} seed={args.seed}")
+    print(
+        f"collecting {len(essays)} essays x {args.runs} runs: provider={args.provider} "
+        f"model={model} prompt_version={version} seed={args.seed}"
+    )
     summary = collect(
-        essays, grader, provider=args.provider, model=model, prompt_version=version,
-        cache_path=args.cache, runs=args.runs, seed=args.seed, rps=args.rps,
-        retry_failed=not args.no_retry_failed, abort_after=args.abort_after,
+        essays,
+        grader,
+        provider=args.provider,
+        model=model,
+        prompt_version=version,
+        cache_path=args.cache,
+        runs=args.runs,
+        seed=args.seed,
+        rps=args.rps,
+        retry_failed=not args.no_retry_failed,
+        abort_after=args.abort_after,
         progress=lambda s, e, run, rec: print(
-            f"  run {run} {e.id}: {'ok band=%s' % rec['band'] if rec['ok'] else 'FAILED ' + rec['error']}"))
+            f"  run {run} {e.id}: {'ok band=%s' % rec['band'] if rec['ok'] else 'FAILED ' + rec['error']}"
+        ),
+    )
     print(json.dumps(summary.as_dict(), indent=2))
     return 1 if summary.aborted or summary.failed else 0
 

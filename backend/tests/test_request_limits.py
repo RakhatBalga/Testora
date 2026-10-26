@@ -1,4 +1,5 @@
 """Rate-limit client IP parsing, limiter pruning, request body cap, input bounds."""
+
 import logging
 from types import SimpleNamespace
 
@@ -17,8 +18,7 @@ from app.main import app
 
 def _request(peer, forwarded_for=None):
     headers = {"x-forwarded-for": forwarded_for} if forwarded_for else {}
-    return SimpleNamespace(client=SimpleNamespace(host=peer), headers=headers,
-                           url=SimpleNamespace(path="/auth/login"))
+    return SimpleNamespace(client=SimpleNamespace(host=peer), headers=headers, url=SimpleNamespace(path="/auth/login"))
 
 
 @pytest.fixture(autouse=True)

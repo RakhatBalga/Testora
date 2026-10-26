@@ -43,9 +43,7 @@ def get_quota(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return quota_status(
-        db, WritingSubmission, current_user, settings.FREE_WRITING_SUBMISSIONS
-    )
+    return quota_status(db, WritingSubmission, current_user, settings.FREE_WRITING_SUBMISSIONS)
 
 
 @router.post(

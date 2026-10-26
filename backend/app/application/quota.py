@@ -6,6 +6,7 @@ worker leaves its reservation charged until `reconcile_stale_reservations`
 releases it (on startup and lazily per user). Known failures refund lifetime
 reviews, but never the daily budgets.
 """
+
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -61,24 +62,35 @@ def enforce_free_quota(db: Session, model, user, limit: int, skill: str) -> None
 
 def _quota_error(kind: str, limit: int) -> HTTPException:
     if kind == "global":
-        return HTTPException(503, {
-            "code": "ai_global_budget_exhausted",
-            "message": "AI reviews are paused for today because the daily capacity is used up. "
-                       "Please try again tomorrow.",
-            "resets_at": local_midnight_after_now().isoformat(),
-        }, headers={"Retry-After": "3600"})
+        return HTTPException(
+            503,
+            {
+                "code": "ai_global_budget_exhausted",
+                "message": "AI reviews are paused for today because the daily capacity is used up. "
+                "Please try again tomorrow.",
+                "resets_at": local_midnight_after_now().isoformat(),
+            },
+            headers={"Retry-After": "3600"},
+        )
     if kind == "attempts":
         reset = local_midnight_after_now()
         now = datetime.now(reset.tzinfo)
-        return HTTPException(429, {
-            "code": "ai_daily_limit",
-            "message": "Daily AI limit reached. This limit covers reviews and vocabulary, including failed attempts.",
-            "resets_at": reset.isoformat(),
-        }, headers={"Retry-After": str(max(1, int((reset - now).total_seconds())))})
-    return HTTPException(403, {
-        "code": "ai_free_reviews_exhausted",
-        "message": f"You've used your {limit} free {kind} reviews. This allowance does not reset daily.",
-    })
+        return HTTPException(
+            429,
+            {
+                "code": "ai_daily_limit",
+                "message": "Daily AI limit reached. This limit covers reviews and vocabulary, including failed attempts.",
+                "resets_at": reset.isoformat(),
+            },
+            headers={"Retry-After": str(max(1, int((reset - now).total_seconds())))},
+        )
+    return HTTPException(
+        403,
+        {
+            "code": "ai_free_reviews_exhausted",
+            "message": f"You've used your {limit} free {kind} reviews. This allowance does not reset daily.",
+        },
+    )
 
 
 def _upsert_insert(db: Session):
@@ -87,12 +99,22 @@ def _upsert_insert(db: Session):
 
 def _increment(db: Session, user_id: int, kind: str, period: str, limit: int, initial: int = 0):
     insert = _upsert_insert(db)
-    db.execute(insert(AIQuotaBucket).values(user_id=user_id, kind=kind, period=period, used=initial)
-               .on_conflict_do_nothing(index_elements=["user_id", "kind", "period"]))
-    changed = db.execute(update(AIQuotaBucket).where(
-        AIQuotaBucket.user_id == user_id, AIQuotaBucket.kind == kind,
-        AIQuotaBucket.period == period, AIQuotaBucket.used < limit,
-    ).values(used=AIQuotaBucket.used + 1).execution_options(synchronize_session=False))
+    db.execute(
+        insert(AIQuotaBucket)
+        .values(user_id=user_id, kind=kind, period=period, used=initial)
+        .on_conflict_do_nothing(index_elements=["user_id", "kind", "period"])
+    )
+    changed = db.execute(
+        update(AIQuotaBucket)
+        .where(
+            AIQuotaBucket.user_id == user_id,
+            AIQuotaBucket.kind == kind,
+            AIQuotaBucket.period == period,
+            AIQuotaBucket.used < limit,
+        )
+        .values(used=AIQuotaBucket.used + 1)
+        .execution_options(synchronize_session=False)
+    )
     if changed.rowcount != 1:
         raise _quota_error(kind, limit)
 
@@ -102,11 +124,20 @@ def _increment_global(db: Session, period: str) -> None:
     limit = settings.AI_GLOBAL_DAILY_ATTEMPTS
     if limit < 0:
         return
-    db.execute(_upsert_insert(db)(AIGlobalBudget).values(period=period, used=0)
-               .on_conflict_do_nothing(index_elements=["period"]))
-    changed = db.execute(update(AIGlobalBudget).where(
-        AIGlobalBudget.period == period, AIGlobalBudget.used < limit,
-    ).values(used=AIGlobalBudget.used + 1).execution_options(synchronize_session=False))
+    db.execute(
+        _upsert_insert(db)(AIGlobalBudget)
+        .values(period=period, used=0)
+        .on_conflict_do_nothing(index_elements=["period"])
+    )
+    changed = db.execute(
+        update(AIGlobalBudget)
+        .where(
+            AIGlobalBudget.period == period,
+            AIGlobalBudget.used < limit,
+        )
+        .values(used=AIGlobalBudget.used + 1)
+        .execution_options(synchronize_session=False)
+    )
     if changed.rowcount != 1:
         raise _quota_error("global", limit)
 
@@ -115,23 +146,37 @@ def reconcile_stale_reservations(db: Session, user_id: int | None = None) -> int
     """Release reservations whose worker died and refund their lifetime review."""
     cutoff = utcnow() - timedelta(minutes=settings.grading_stale_minutes)
     query = db.query(AIReservation).filter(
-        AIReservation.status == "reserved", AIReservation.created_at < cutoff,
+        AIReservation.status == "reserved",
+        AIReservation.created_at < cutoff,
     )
     if user_id is not None:
         query = query.filter(AIReservation.user_id == user_id)
     released = 0
     for row in query.all():
-        changed = db.execute(update(AIReservation).where(
-            AIReservation.id == row.id, AIReservation.status == "reserved",
-        ).values(status="expired", active_resource=None).execution_options(synchronize_session=False))
+        changed = db.execute(
+            update(AIReservation)
+            .where(
+                AIReservation.id == row.id,
+                AIReservation.status == "reserved",
+            )
+            .values(status="expired", active_resource=None)
+            .execution_options(synchronize_session=False)
+        )
         if changed.rowcount != 1:
             continue
         released += 1
         if row.charged:
-            db.execute(update(AIQuotaBucket).where(
-                AIQuotaBucket.user_id == row.user_id, AIQuotaBucket.kind == row.kind,
-                AIQuotaBucket.period == "lifetime", AIQuotaBucket.used > 0,
-            ).values(used=AIQuotaBucket.used - 1).execution_options(synchronize_session=False))
+            db.execute(
+                update(AIQuotaBucket)
+                .where(
+                    AIQuotaBucket.user_id == row.user_id,
+                    AIQuotaBucket.kind == row.kind,
+                    AIQuotaBucket.period == "lifetime",
+                    AIQuotaBucket.used > 0,
+                )
+                .values(used=AIQuotaBucket.used - 1)
+                .execution_options(synchronize_session=False)
+            )
     if released:
         db.commit()
     return released
@@ -149,8 +194,11 @@ def reserve_ai_call(db: Session, user, kind: str, *, model=None, limit: int = -1
     key = uuid.uuid4().hex
     try:
         # Take the resource before budget locks, matching completion lock order.
-        db.add(AIReservation(id=key, user_id=user_id, kind=kind, charged=charged,
-                             active_resource=resource, status="reserved"))
+        db.add(
+            AIReservation(
+                id=key, user_id=user_id, kind=kind, charged=charged, active_resource=resource, status="reserved"
+            )
+        )
         db.flush()
         day = local_today().isoformat()
         _increment(db, user_id, "attempts", day, settings.AI_DAILY_ATTEMPTS)
@@ -171,13 +219,24 @@ def reserve_ai_call(db: Session, user, kind: str, *, model=None, limit: int = -1
         db.rollback()
         raise
     finally:
-        changed = db.execute(update(AIReservation).where(
-            AIReservation.id == key, AIReservation.status == "reserved",
-        ).values(status="completed" if result.success else "released", active_resource=None)
-          .execution_options(synchronize_session=False))
+        changed = db.execute(
+            update(AIReservation)
+            .where(
+                AIReservation.id == key,
+                AIReservation.status == "reserved",
+            )
+            .values(status="completed" if result.success else "released", active_resource=None)
+            .execution_options(synchronize_session=False)
+        )
         if changed.rowcount == 1 and charged and not result.success:
-            db.execute(update(AIQuotaBucket).where(
-                AIQuotaBucket.user_id == user_id, AIQuotaBucket.kind == kind,
-                AIQuotaBucket.period == "lifetime",
-            ).values(used=AIQuotaBucket.used - 1).execution_options(synchronize_session=False))
+            db.execute(
+                update(AIQuotaBucket)
+                .where(
+                    AIQuotaBucket.user_id == user_id,
+                    AIQuotaBucket.kind == kind,
+                    AIQuotaBucket.period == "lifetime",
+                )
+                .values(used=AIQuotaBucket.used - 1)
+                .execution_options(synchronize_session=False)
+            )
         db.commit()

@@ -71,21 +71,27 @@ def get_test(
             "duration_minutes": test.duration_minutes,
             "difficulty": test.difficulty,
             "question_count": sum(len(section.questions) for section in test.sections),
-            "sections": [{
-                "id": section.id,
-                "order": section.order,
-                "title": section.title,
-                "instructions": section.instructions,
-                "passage": None,
-                "audio_url": section.audio_url,
-                "questions": [{
-                    "id": question.id,
-                    "text": question.text,
-                    "question_type": question.question_type,
-                    "options": question.options,
-                    "order": question.order,
-                    "evidence": None,
-                } for question in section.questions],
-            } for section in test.sections],
+            "sections": [
+                {
+                    "id": section.id,
+                    "order": section.order,
+                    "title": section.title,
+                    "instructions": section.instructions,
+                    "passage": None,
+                    "audio_url": section.audio_url,
+                    "questions": [
+                        {
+                            "id": question.id,
+                            "text": question.text,
+                            "question_type": question.question_type,
+                            "options": question.options,
+                            "order": question.order,
+                            "evidence": None,
+                        }
+                        for question in section.questions
+                    ],
+                }
+                for section in test.sections
+            ],
         }
     return test

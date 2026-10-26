@@ -54,7 +54,15 @@ def test_pkce_and_single_use(db):
         consume_flow(db, state, REDIRECT)
 
 
-@pytest.mark.parametrize("redirect", ["https://evil.test/auth/google/callback", REDIRECT + "?next=evil", REDIRECT + "/", "http://localhost:3000.evil.test/auth/google/callback"])
+@pytest.mark.parametrize(
+    "redirect",
+    [
+        "https://evil.test/auth/google/callback",
+        REDIRECT + "?next=evil",
+        REDIRECT + "/",
+        "http://localhost:3000.evil.test/auth/google/callback",
+    ],
+)
 def test_redirect_must_exactly_match_configured_callback(db, redirect):
     with pytest.raises(HTTPException) as error:
         auth.google_start(GoogleStartRequest(state=secrets.token_urlsafe(32), redirect_uri=redirect), db)
@@ -65,6 +73,7 @@ def test_redirect_must_exactly_match_configured_callback(db, redirect):
 def test_missing_and_expired_state_rejected_before_google(db, monkeypatch):
     def unexpected(*args, **kwargs):
         pytest.fail("Invalid state must not call Google")
+
     monkeypatch.setattr(httpx, "Client", unexpected)
     state, _ = start(db)
     db.query(OAuthFlow).update({OAuthFlow.expires_at: utcnow() - timedelta(seconds=1)})
@@ -79,6 +88,7 @@ def test_missing_and_expired_state_rejected_before_google(db, monkeypatch):
 def test_exchange_sends_pkce_and_only_trusts_verified_email(db, monkeypatch, verified):
     state, params = start(db)
     requests = []
+
     def handler(request):
         requests.append(request)
         if request.url == google_auth.GOOGLE_TOKEN_URL:
@@ -88,7 +98,10 @@ def test_exchange_sends_pkce_and_only_trusts_verified_email(db, monkeypatch, ver
             assert params["code_challenge"] == [challenge]
             assert data["redirect_uri"] == [REDIRECT]
             return httpx.Response(200, json={"access_token": "google-token"})
-        return httpx.Response(200, json={"id": "google-user", "email": "student@example.com", "verified_email": verified})
+        return httpx.Response(
+            200, json={"id": "google-user", "email": "student@example.com", "verified_email": verified}
+        )
+
     client_type = httpx.Client
     monkeypatch.setattr(httpx, "Client", lambda **kw: client_type(transport=httpx.MockTransport(handler)))
     payload = GoogleAuthRequest(code="code", state=state, redirect_uri=REDIRECT)
@@ -107,9 +120,12 @@ def test_exchange_sends_pkce_and_only_trusts_verified_email(db, monkeypatch, ver
 
 
 @pytest.mark.parametrize("stage", ["token", "profile"])
-@pytest.mark.parametrize("fault,expected", [("timeout", 504), ("network", 503), ("unavailable", 503), ("invalid_json", 502)])
+@pytest.mark.parametrize(
+    "fault,expected", [("timeout", 504), ("network", 503), ("unavailable", 503), ("invalid_json", 502)]
+)
 def test_provider_failures_are_actionable_and_do_not_create_accounts(db, monkeypatch, stage, fault, expected):
     state, _ = start(db)
+
     def handler(request):
         if stage == "profile" and request.url == google_auth.GOOGLE_TOKEN_URL:
             return httpx.Response(200, json={"access_token": "test-token"})
@@ -120,6 +136,7 @@ def test_provider_failures_are_actionable_and_do_not_create_accounts(db, monkeyp
         if fault == "unavailable":
             return httpx.Response(503, text="sensitive upstream details")
         return httpx.Response(200, text="not json")
+
     client_type = httpx.Client
     monkeypatch.setattr(httpx, "Client", lambda **kw: client_type(transport=httpx.MockTransport(handler)))
     payload = GoogleAuthRequest(code="code", state=state, redirect_uri=REDIRECT)

@@ -9,6 +9,7 @@ Client IP behind a proxy: the right-most X-Forwarded-For hop that is not one of
 our own trusted proxies. The left-most entry is client-controlled and must never
 be used for rate limiting.
 """
+
 import logging
 import threading
 import time
@@ -64,7 +65,11 @@ def _log_first_proxied_request(peer: str, forwarded_for: str, resolved: str, tru
         "First proxied request: peer=%s X-Forwarded-For=%r peer_is_trusted_proxy=%s resolved_client_ip=%s "
         "TRUSTED_PROXY_CIDRS=%r. Set TRUSTED_PROXY_CIDRS to the range containing the peer (and any other "
         "proxy hops in X-Forwarded-For) so rate limiting sees real client IPs.",
-        peer, forwarded_for, trusted, resolved, settings.TRUSTED_PROXY_CIDRS,
+        peer,
+        forwarded_for,
+        trusted,
+        resolved,
+        settings.TRUSTED_PROXY_CIDRS,
     )
 
 

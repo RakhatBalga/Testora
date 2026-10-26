@@ -4,6 +4,7 @@ GET /history                        — unified list across all four skills
 GET /history/compare?a=X&b=Y        — side-by-side diff of two same-skill attempts
 GET /history/{item_id}              — detail for one attempt (item_id = 'writing-5')
 """
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 

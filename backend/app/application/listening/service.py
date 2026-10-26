@@ -1,4 +1,5 @@
 """Listening use cases: catalog, progress autosave, versioned submit and review."""
+
 from fastapi import HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -42,34 +43,38 @@ def _catalog_item(test: Test, question_count: int) -> dict:
 def _public_test(test: Test) -> dict:
     count = sum(len(section.questions) for section in test.sections)
     result = _catalog_item(test, count)
-    result.update({
-        "schema_version": PUBLIC_SCHEMA,
-        "intro_notice": _metadata(test).get("intro_notice", "Audio begins after a five-second pause."),
-        "sections": [],
-    })
+    result.update(
+        {
+            "schema_version": PUBLIC_SCHEMA,
+            "intro_notice": _metadata(test).get("intro_notice", "Audio begins after a five-second pause."),
+            "sections": [],
+        }
+    )
     for section in test.sections:
         section_meta = section.section_metadata or {}
-        result["sections"].append({
-            "id": section.id,
-            "order": section.order,
-            "title": section.title,
-            "instructions": section.instructions,
-            "audio_url": section.audio_url,
-            "audio_start": float(section_meta.get("audio_start", 0)),
-            "audio_end": float(section_meta.get("audio_end", 0)),
-            "map_asset": section_meta.get("map_asset"),
-            "questions": [
-                {
-                    "id": q.id,
-                    "order": q.order,
-                    "text": q.text,
-                    "question_type": q.question_type,
-                    "options": q.options,
-                    "word_limit": (q.question_metadata or {}).get("word_limit"),
-                }
-                for q in section.questions
-            ],
-        })
+        result["sections"].append(
+            {
+                "id": section.id,
+                "order": section.order,
+                "title": section.title,
+                "instructions": section.instructions,
+                "audio_url": section.audio_url,
+                "audio_start": float(section_meta.get("audio_start", 0)),
+                "audio_end": float(section_meta.get("audio_end", 0)),
+                "map_asset": section_meta.get("map_asset"),
+                "questions": [
+                    {
+                        "id": q.id,
+                        "order": q.order,
+                        "text": q.text,
+                        "question_type": q.question_type,
+                        "options": q.options,
+                        "word_limit": (q.question_metadata or {}).get("word_limit"),
+                    }
+                    for q in section.questions
+                ],
+            }
+        )
     return result
 
 
@@ -103,8 +108,11 @@ def list_catalog(db: Session) -> list[dict]:
         .group_by(Section.test_id)
         .all()
     )
-    tests = [test for test in db.query(Test).order_by(Test.id).all()
-             if is_published(test) and not _metadata(test).get("superseded_by")]
+    tests = [
+        test
+        for test in db.query(Test).order_by(Test.id).all()
+        if is_published(test) and not _metadata(test).get("superseded_by")
+    ]
     return [_catalog_item(test, counts.get(test.id, 0)) for test in tests]
 
 
@@ -184,11 +192,19 @@ def submit(db: Session, user: User, test_id: int, payload) -> dict:
         ).update({"status": "submitted", "updated_at": utcnow()}, synchronize_session=False)
 
     attempt, _created = save_graded_attempt(
-        db, user, test,
-        graded=graded, score=score, total=len(questions), breakdown=breakdown,
-        review_map=review_map, duration_seconds=payload.duration_seconds,
-        content_version=test.content_version, mode=payload.mode,
-        submission_key=payload.submission_key, before_commit=mark_progress_submitted,
+        db,
+        user,
+        test,
+        graded=graded,
+        score=score,
+        total=len(questions),
+        breakdown=breakdown,
+        review_map=review_map,
+        duration_seconds=payload.duration_seconds,
+        content_version=test.content_version,
+        mode=payload.mode,
+        submission_key=payload.submission_key,
+        before_commit=mark_progress_submitted,
     )
     return _submit_response(attempt)
 
@@ -199,53 +215,61 @@ def _evidence(question: Question, section: Section) -> list[dict]:
     segments = (section.section_metadata or {}).get("transcript_segments", [])
     selected = [segment for segment in segments if segment.get("id") in wanted]
     if selected:
-        return [{
-            "segment_id": segment.get("id"),
-            "start": segment.get("start"),
-            "end": segment.get("end"),
-            "quote": segment.get("text", ""),
-        } for segment in selected]
-    return [{"segment_id": None, "start": None, "end": None, "quote": span.get("text", "")}
-            for span in (question.evidence or [])]
+        return [
+            {
+                "segment_id": segment.get("id"),
+                "start": segment.get("start"),
+                "end": segment.get("end"),
+                "quote": segment.get("text", ""),
+            }
+            for segment in selected
+        ]
+    return [
+        {"segment_id": None, "start": None, "end": None, "quote": span.get("text", "")}
+        for span in (question.evidence or [])
+    ]
 
 
 def review(db: Session, user: User, attempt_id: int) -> dict:
     attempt = db.query(Attempt).filter(Attempt.id == attempt_id, Attempt.user_id == user.id).first()
     if not attempt or attempt.test.test_type != "listening":
         raise HTTPException(status_code=404, detail="Listening attempt not found")
-    section_by_question = {
-        question.id: section
-        for section in attempt.test.sections
-        for question in section.questions
-    }
+    section_by_question = {question.id: section for section in attempt.test.sections for question in section.questions}
     base = _submit_response(attempt)
-    base.update({
-        "schema_version": "testora.listening-review.v1",
-        "test_title": attempt.test.title,
-        "duration_seconds": attempt.duration_seconds,
-        "sections": [{
-            "id": section.id,
-            "order": section.order,
-            "title": section.title,
-            "transcript_segments": (section.section_metadata or {}).get("transcript_segments", []),
-        } for section in attempt.test.sections],
-        "answers": [],
-    })
+    base.update(
+        {
+            "schema_version": "testora.listening-review.v1",
+            "test_title": attempt.test.title,
+            "duration_seconds": attempt.duration_seconds,
+            "sections": [
+                {
+                    "id": section.id,
+                    "order": section.order,
+                    "title": section.title,
+                    "transcript_segments": (section.section_metadata or {}).get("transcript_segments", []),
+                }
+                for section in attempt.test.sections
+            ],
+            "answers": [],
+        }
+    )
     records = sorted(attempt.answers, key=lambda record: record.question.order)
     for record in records:
         question = record.question
         section = section_by_question[question.id]
-        base["answers"].append({
-            "question_id": question.id,
-            "order": question.order,
-            "section_order": section.order,
-            "text": question.text,
-            "question_type": question.question_type,
-            "user_answer": record.user_answer,
-            "correct_answer": display_answer(question.correct_answer),
-            "is_correct": record.is_correct,
-            "explanation": question.explanation,
-            "target_skill": (question.question_metadata or {}).get("target_skill"),
-            "evidence": _evidence(question, section),
-        })
+        base["answers"].append(
+            {
+                "question_id": question.id,
+                "order": question.order,
+                "section_order": section.order,
+                "text": question.text,
+                "question_type": question.question_type,
+                "user_answer": record.user_answer,
+                "correct_answer": display_answer(question.correct_answer),
+                "is_correct": record.is_correct,
+                "explanation": question.explanation,
+                "target_skill": (question.question_metadata or {}).get("target_skill"),
+                "evidence": _evidence(question, section),
+            }
+        )
     return base

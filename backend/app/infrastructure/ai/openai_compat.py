@@ -13,6 +13,7 @@ vLLM or SGLang. Only what grading needs:
     from the reply before parsing;
   * fixed `seed` and caller-supplied temperature.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -106,9 +107,7 @@ class OpenAICompatClient:
                         raise SchemaError("server returned a non-JSON body") from exc
                 body = resp.text[:2000]
                 if not is_transient_status(resp.status_code):
-                    raise PermanentError(
-                        f"HTTP {resp.status_code} from {path}", status=resp.status_code, body=body
-                    )
+                    raise PermanentError(f"HTTP {resp.status_code} from {path}", status=resp.status_code, body=body)
                 error: TransientError = TransientError(
                     f"HTTP {resp.status_code} from {path}",
                     status=resp.status_code,
@@ -119,7 +118,9 @@ class OpenAICompatClient:
             delay = self.policy.delay(attempt, error.retry_after)
             logger.warning(
                 "OpenAI-compatible call attempt %d/%d failed: %s",
-                attempt, self.policy.max_attempts, error,
+                attempt,
+                self.policy.max_attempts,
+                error,
             )
             if delay is None:
                 raise error
@@ -185,7 +186,9 @@ class OpenAICompatClient:
         """Return the reply text (think-stripped); the caller validates it."""
         json_schema = schema.model_json_schema()
         if self.json_schema_supported:
-            payload = self._payload(self._messages(system, user), temperature=temperature, max_tokens=max_tokens, seed=seed)
+            payload = self._payload(
+                self._messages(system, user), temperature=temperature, max_tokens=max_tokens, seed=seed
+            )
             payload["response_format"] = {
                 "type": "json_schema",
                 "json_schema": {"name": schema.__name__, "schema": json_schema, "strict": False},

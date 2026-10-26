@@ -4,6 +4,7 @@ Settings require DATABASE_URL/SECRET_KEY at import; set throwaway values before
 the app package is imported so unit tests don't need a real database. The Gemini
 tests never open a DB connection — they exercise the grading logic in isolation.
 """
+
 import os
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost:5432/test")
@@ -60,7 +61,9 @@ def api(monkeypatch, tmp_path):
         token = create_access_token(user.id)
         user_id = user.id
     ns = SimpleNamespace(
-        client=TestClient(app), Session=Session, user_id=user_id,
+        client=TestClient(app),
+        Session=Session,
+        user_id=user_id,
         headers={"Authorization": f"Bearer {token}"},
     )
     try:

@@ -11,10 +11,17 @@ def package(monkeypatch):
     content = json.loads((validator.CONTENT_DIR / "testora-studio-02.json").read_text(encoding="utf-8"))["tests"][0]
     manifest = json.loads((validator.CONTENT_DIR / "testora-studio-02-audio-manifest.json").read_text(encoding="utf-8"))
     # Unit tests isolate content checks; CI separately runs real ffprobe.
-    monkeypatch.setattr(validator, "_probe", lambda path: {
-        "duration_seconds": 651.4, "codec": "aac", "sample_rate": 44100,
-        "channels": 1, "size_bytes": path.stat().st_size,
-    })
+    monkeypatch.setattr(
+        validator,
+        "_probe",
+        lambda path: {
+            "duration_seconds": 651.4,
+            "codec": "aac",
+            "sample_rate": 44100,
+            "channels": 1,
+            "size_bytes": path.stat().st_size,
+        },
+    )
     return content, manifest
 
 

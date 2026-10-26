@@ -1,4 +1,5 @@
 """Validate structured IELTS Academic Writing Task 1 content."""
+
 from __future__ import annotations
 
 import json

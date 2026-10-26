@@ -13,6 +13,7 @@ ceiling when the split has double-marked essays. Predictions of the first run
 Failures are never dropped silently: coverage is a column, and metrics use the
 essays covered by every system (n_common) so rows are directly comparable.
 """
+
 import argparse
 import hashlib
 import json
@@ -35,7 +36,7 @@ PREREG_BLOCK = re.compile(r"```json prereg\s*(\{.*?\})\s*```", re.S)
 class System:
     def __init__(self, name, kind, detail=None):
         self.name, self.kind, self.detail = name, kind, detail or {}
-        self.pred: dict[str, dict[str, float]] = defaultdict(dict)   # target -> id -> band
+        self.pred: dict[str, dict[str, float]] = defaultdict(dict)  # target -> id -> band
         self.flags: dict[str, dict | None] = {}
         self.runs: dict[str, list[float]] = {}
         self.attempted = 0
@@ -44,6 +45,7 @@ class System:
 
 
 # ----------------------------------------------------------------- systems
+
 
 def constant_systems(train: list[Essay], fallback: list[Essay], ids: list[str]) -> list[System]:
     source, fit_on = (train, "train split") if train else (fallback, "evaluated essays (oracle constant)")
@@ -64,8 +66,7 @@ def constant_systems(train: list[Essay], fallback: list[Essay], ids: list[str]) 
     return out
 
 
-def systems_from_cache(records: dict[str, dict], essays: list[Essay], only: set[str] | None = None
-                       ) -> list[System]:
+def systems_from_cache(records: dict[str, dict], essays: list[Essay], only: set[str] | None = None) -> list[System]:
     by_hash = {e.text_hash: e for e in essays}
     groups: dict[tuple, list[dict]] = defaultdict(list)
     for rec in records.values():
@@ -104,12 +105,21 @@ def systems_from_bundle(path: Path, essays: list[Essay]) -> list[System]:
     bundle = load_bundle(path)
     leaked = sorted(set(bundle["train_ids"]) & {e.id for e in essays})
     if leaked:
-        raise ValueError(f"model was trained on {len(leaked)} of the evaluated essays; use --oof "
-                         "(out-of-fold predictions) for the train split instead")
+        raise ValueError(
+            f"model was trained on {len(leaked)} of the evaluated essays; use --oof "
+            "(out-of-fold predictions) for the train split instead"
+        )
     out = []
     for name in MODEL_NAMES:
-        s = System(name, "trained", {"feature_version": bundle["feature_version"],
-                                     "n_train": bundle["n_train"], "train_fingerprint": bundle["train_fingerprint"][:12]})
+        s = System(
+            name,
+            "trained",
+            {
+                "feature_version": bundle["feature_version"],
+                "n_train": bundle["n_train"],
+                "train_fingerprint": bundle["train_fingerprint"][:12],
+            },
+        )
         for target, preds in predict(bundle, name, essays).items():
             for e, p in zip(essays, preds):
                 s.pred[target][e.id] = p
@@ -128,8 +138,9 @@ def systems_from_oof(path: Path, essays: list[Essay]) -> list[System]:
         for key, value in row.items():
             if ":" in key and value is not None:
                 model, target = key.split(":", 1)
-                s = out.setdefault(model, System(f"{model} (grouped CV)", "trained",
-                                                 {"note": "out-of-fold, prompt-grouped"}))
+                s = out.setdefault(
+                    model, System(f"{model} (grouped CV)", "trained", {"note": "out-of-fold, prompt-grouped"})
+                )
                 s.pred[target][row["id"]] = value
     for s in out.values():
         s.attempted = len(ids)
@@ -137,6 +148,7 @@ def systems_from_oof(path: Path, essays: list[Essay]) -> list[System]:
 
 
 # -------------------------------------------------------------- evaluation
+
 
 def _aligned(essays_by_id, ids, labels_of, pred: dict):
     ids = [i for i in ids if i in pred and labels_of(essays_by_id[i]) is not None]
@@ -147,15 +159,27 @@ def _target_label(target):
     return (lambda e: e.overall) if target == "overall" else (lambda e: e.criteria.get(target))
 
 
-def evaluate_system(s: System, essays_by_id: dict, common_ids: list[str], *, n_boot: int, seed: int,
-                    cluster_by_prompt: bool, ci_criteria: bool) -> dict:
+def evaluate_system(
+    s: System,
+    essays_by_id: dict,
+    common_ids: list[str],
+    *,
+    n_boot: int,
+    seed: int,
+    cluster_by_prompt: bool,
+    ci_criteria: bool,
+) -> dict:
     block: dict = {"name": s.name, "kind": s.kind, "detail": s.detail}
     expected = len(essays_by_id)
     covered = len(s.pred["overall"])
     block["coverage"] = {
-        "expected": expected, "covered": covered, "failed": s.failed,
-        "missing": expected - covered - s.failed, "rate": covered / expected if expected else None,
-        "failure_reasons": dict(s.failure_reasons)}
+        "expected": expected,
+        "covered": covered,
+        "failed": s.failed,
+        "missing": expected - covered - s.failed,
+        "rate": covered / expected if expected else None,
+        "failure_reasons": dict(s.failure_reasons),
+    }
     targets = {}
     for target in ("overall", *CRITERIA):
         if target not in s.pred:
@@ -189,38 +213,60 @@ def human_ceiling(essays: list[Essay]) -> dict | None:
             pairs.append((a, b))
     if len(pairs) < 2:
         return None
-    out = {"name": "human vs human (ceiling)", "kind": "human",
-           "detail": {"note": "rater 2 scored against rater 1 (first two raters by id)"},
-           "coverage": {"expected": len(pairs), "covered": len(pairs), "failed": 0, "missing": 0, "rate": 1.0},
-           "targets": {}}
+    out = {
+        "name": "human vs human (ceiling)",
+        "kind": "human",
+        "detail": {"note": "rater 2 scored against rater 1 (first two raters by id)"},
+        "coverage": {"expected": len(pairs), "covered": len(pairs), "failed": 0, "missing": 0, "rate": 1.0},
+        "targets": {},
+    }
     y = [a.overall for a, _ in pairs]
     p = [b.overall for _, b in pairs]
-    out["targets"]["overall"] = {"n": len(pairs), **ws.point_metrics(y, p), **ws.spread_stats(y, p),
-                                 "ci95": ws.bootstrap_ci(y, p, names=ws.POINT_METRICS, n_boot=1000, seed=0)}
+    out["targets"]["overall"] = {
+        "n": len(pairs),
+        **ws.point_metrics(y, p),
+        **ws.spread_stats(y, p),
+        "ci95": ws.bootstrap_ci(y, p, names=ws.POINT_METRICS, n_boot=1000, seed=0),
+    }
     for c in CRITERIA:
         pc = [(a.criteria[c], b.criteria[c]) for a, b in pairs if c in a.criteria and c in b.criteria]
         if len(pc) >= 2:
-            out["targets"][c] = {"n": len(pc), **ws.point_metrics([x for x, _ in pc], [z for _, z in pc]),
-                                 **ws.spread_stats([x for x, _ in pc], [z for _, z in pc])}
+            out["targets"][c] = {
+                "n": len(pc),
+                **ws.point_metrics([x for x, _ in pc], [z for _, z in pc]),
+                **ws.spread_stats([x for x, _ in pc], [z for _, z in pc]),
+            }
     return out
 
 
-def evaluate(essays: list[Essay], systems: list[System], *, train_essays: list[Essay] | None = None,
-             n_boot: int = 2000, seed: int = 0, reference: str | None = None,
-             cluster_by_prompt: bool = False, ci_criteria: bool = False) -> dict:
+def evaluate(
+    essays: list[Essay],
+    systems: list[System],
+    *,
+    train_essays: list[Essay] | None = None,
+    n_boot: int = 2000,
+    seed: int = 0,
+    reference: str | None = None,
+    cluster_by_prompt: bool = False,
+    ci_criteria: bool = False,
+) -> dict:
     by_id = {e.id: e for e in essays}
     ids = sorted(by_id)
     all_systems = constant_systems(train_essays or [], essays, ids) + systems
     common = [i for i in ids if all(i in s.pred["overall"] for s in all_systems)]
     warnings = []
     if len(common) < len(ids):
-        warnings.append(f"metrics use the {len(common)} essays covered by every system "
-                        f"(of {len(ids)}); see each system's coverage")
+        warnings.append(
+            f"metrics use the {len(common)} essays covered by every system (of {len(ids)}); see each system's coverage"
+        )
     if len(common) < 30:
         warnings.append(f"only {len(common)} common essays: confidence intervals are very wide")
-    blocks = [evaluate_system(s, by_id, common, n_boot=n_boot, seed=seed,
-                              cluster_by_prompt=cluster_by_prompt, ci_criteria=ci_criteria)
-              for s in all_systems]
+    blocks = [
+        evaluate_system(
+            s, by_id, common, n_boot=n_boot, seed=seed, cluster_by_prompt=cluster_by_prompt, ci_criteria=ci_criteria
+        )
+        for s in all_systems
+    ]
     ceiling = human_ceiling([by_id[i] for i in ids])
     if ceiling:
         blocks.append(ceiling)
@@ -238,16 +284,28 @@ def evaluate(essays: list[Essay], systems: list[System], *, train_essays: list[E
             if other is ref:
                 continue
             po = [other.pred["overall"][i] for i in common]
-            paired.append({"a": ref.name, "b": other.name, "n": len(common),
-                           "metrics": ws.paired_bootstrap_diff(y, pr, po, n_boot=n_boot, seed=seed,
-                                                               clusters=clusters)})
-    return {"schema_version": REPORT_VERSION, "systems": blocks, "paired_vs_reference": paired,
-            "reference": ref.name if ref else None, "n_essays": len(ids), "n_common": len(common),
-            "bootstrap": {"n_boot": n_boot, "seed": seed, "cluster_by_prompt": cluster_by_prompt},
-            "warnings": warnings}
+            paired.append(
+                {
+                    "a": ref.name,
+                    "b": other.name,
+                    "n": len(common),
+                    "metrics": ws.paired_bootstrap_diff(y, pr, po, n_boot=n_boot, seed=seed, clusters=clusters),
+                }
+            )
+    return {
+        "schema_version": REPORT_VERSION,
+        "systems": blocks,
+        "paired_vs_reference": paired,
+        "reference": ref.name if ref else None,
+        "n_essays": len(ids),
+        "n_common": len(common),
+        "bootstrap": {"n_boot": n_boot, "seed": seed, "cluster_by_prompt": cluster_by_prompt},
+        "warnings": warnings,
+    }
 
 
 # ---------------------------------------------------------- pre-registration
+
 
 def parse_prereg(path: Path) -> dict:
     match = PREREG_BLOCK.search(Path(path).read_text(encoding="utf-8"))
@@ -278,25 +336,34 @@ def threshold_verdict(prereg: dict, report: dict) -> dict | None:
     t = block["targets"]["overall"]
     ci = t.get("ci95", {})
     q_lo = (ci.get("qwk") or {}).get("lo")
-    return {"primary_system": primary, "thresholds": th,
-            "qwk_point_ok": t["qwk"] is not None and t["qwk"] >= th["qwk_min"],
-            "qwk_ci_lower_ok": q_lo is not None and q_lo >= th["qwk_min"],
-            "mae_ok": t["mae"] <= th["mae_max"], "within_0_5_ok": t["within_0_5"] >= th["within_0_5_min"]}
+    return {
+        "primary_system": primary,
+        "thresholds": th,
+        "qwk_point_ok": t["qwk"] is not None and t["qwk"] >= th["qwk_min"],
+        "qwk_ci_lower_ok": q_lo is not None and q_lo >= th["qwk_min"],
+        "mae_ok": t["mae"] <= th["mae_max"],
+        "within_0_5_ok": t["within_0_5"] >= th["within_0_5_min"],
+    }
 
 
-def render_prereg(*, dataset_sha256, manifest: dict | None, systems: list[dict], primary: str | None,
-                  thresholds=None) -> str:
-    payload = {"created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-               "dataset_sha256": dataset_sha256,
-               "split_fingerprints": {s: i["fingerprint"] for s, i in (manifest or {}).get("splits", {}).items()},
-               "systems": systems, "primary_system": primary,
-               "thresholds": thresholds or DEFAULT_THRESHOLDS}
-    template = (Path(__file__).resolve().parents[1] / "calibration" / "PREREGISTRATION_TEMPLATE.md")
+def render_prereg(
+    *, dataset_sha256, manifest: dict | None, systems: list[dict], primary: str | None, thresholds=None
+) -> str:
+    payload = {
+        "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "dataset_sha256": dataset_sha256,
+        "split_fingerprints": {s: i["fingerprint"] for s, i in (manifest or {}).get("splits", {}).items()},
+        "systems": systems,
+        "primary_system": primary,
+        "thresholds": thresholds or DEFAULT_THRESHOLDS,
+    }
+    template = Path(__file__).resolve().parents[1] / "calibration" / "PREREGISTRATION_TEMPLATE.md"
     head = template.read_text(encoding="utf-8") if template.exists() else "# E1 pre-registration\n"
     return head.replace("<<FROZEN_BLOCK>>", "```json prereg\n" + json.dumps(payload, indent=2) + "\n```")
 
 
 # ------------------------------------------------------------------ render
+
 
 def _f(v, digits=3):
     return "n/a" if v is None else f"{v:.{digits}f}"
@@ -304,23 +371,33 @@ def _f(v, digits=3):
 
 def _ci(t, name, digits=3):
     c = (t.get("ci95") or {}).get(name)
-    return f"{_f(t.get(name), digits)} [{_f(c['lo'], digits)}, {_f(c['hi'], digits)}]" if c and c["lo"] is not None \
+    return (
+        f"{_f(t.get(name), digits)} [{_f(c['lo'], digits)}, {_f(c['hi'], digits)}]"
+        if c and c["lo"] is not None
         else _f(t.get(name), digits)
+    )
 
 
 def render_markdown(report: dict, meta: dict) -> str:
-    lines = ["# E1 Writing accuracy report", "",
-             f"- split: `{meta['split']}`; essays: {report['n_essays']}; common to all systems: {report['n_common']}",
-             f"- dataset sha256: `{meta.get('dataset_sha256')}`",
-             f"- generated: {meta['generated_at']}; bootstrap: {report['bootstrap']['n_boot']} resamples, "
-             f"seed {report['bootstrap']['seed']}, cluster_by_prompt={report['bootstrap']['cluster_by_prompt']}"]
+    lines = [
+        "# E1 Writing accuracy report",
+        "",
+        f"- split: `{meta['split']}`; essays: {report['n_essays']}; common to all systems: {report['n_common']}",
+        f"- dataset sha256: `{meta.get('dataset_sha256')}`",
+        f"- generated: {meta['generated_at']}; bootstrap: {report['bootstrap']['n_boot']} resamples, "
+        f"seed {report['bootstrap']['seed']}, cluster_by_prompt={report['bootstrap']['cluster_by_prompt']}",
+    ]
     if meta["split"] == "dev":
         lines.append("- **DEV SET: the prompt was tuned on these essays. Do not report as a result.**")
     for w in report["warnings"] + meta.get("protocol_deviations", []):
         lines.append(f"- WARNING: {w}")
-    lines += ["", "## Overall band (95% bootstrap CI)", "",
-              "| System | n | Coverage | QWK | MAE | within 0.5 | within 1.0 | Pearson | Bias | SD pred/label | Mode share | Cap hit |",
-              "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines += [
+        "",
+        "## Overall band (95% bootstrap CI)",
+        "",
+        "| System | n | Coverage | QWK | MAE | within 0.5 | within 1.0 | Pearson | Bias | SD pred/label | Mode share | Cap hit |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+    ]
     for b in report["systems"]:
         t = b["targets"].get("overall")
         cov = b["coverage"]
@@ -329,16 +406,26 @@ def render_markdown(report: dict, meta: dict) -> str:
             lines.append(f"| {b['name']} | 0 | {cov_s} | | | | | | | | | |")
             continue
         sdr = f"{_f(t['sd_prediction'], 2)}/{_f(t['sd_label'], 2)}"
-        lines.append(f"| {b['name']} | {t['n']} | {cov_s} | {_ci(t, 'qwk')} | {_ci(t, 'mae')} | "
-                     f"{_ci(t, 'within_0_5', 2)} | {_f(t['within_1_0'], 2)} | {_f(t['pearson'])} | "
-                     f"{_f(t['bias'], 2)} | {sdr} | {_f(t['mode_share'], 2)} @ {t['mode_value']} | "
-                     f"{_f(b.get('cap_hit_rate'), 2)} |")
-    lines += ["", "A constant predictor has QWK 0 and Pearson n/a but can still have a respectable MAE; "
-              "read QWK, SD ratio and mode share together.", ""]
+        lines.append(
+            f"| {b['name']} | {t['n']} | {cov_s} | {_ci(t, 'qwk')} | {_ci(t, 'mae')} | "
+            f"{_ci(t, 'within_0_5', 2)} | {_f(t['within_1_0'], 2)} | {_f(t['pearson'])} | "
+            f"{_f(t['bias'], 2)} | {sdr} | {_f(t['mode_share'], 2)} @ {t['mode_value']} | "
+            f"{_f(b.get('cap_hit_rate'), 2)} |"
+        )
+    lines += [
+        "",
+        "A constant predictor has QWK 0 and Pearson n/a but can still have a respectable MAE; "
+        "read QWK, SD ratio and mode share together.",
+        "",
+    ]
     crit = [b for b in report["systems"] if any(c in b["targets"] for c in CRITERIA)]
     if crit:
-        lines += ["## Per-criterion QWK / MAE", "", "| System | " + " | ".join(CRITERIA) + " |",
-                  "|---|" + "---|" * len(CRITERIA)]
+        lines += [
+            "## Per-criterion QWK / MAE",
+            "",
+            "| System | " + " | ".join(CRITERIA) + " |",
+            "|---|" + "---|" * len(CRITERIA),
+        ]
         for b in crit:
             cells = []
             for c in CRITERIA:
@@ -348,26 +435,37 @@ def render_markdown(report: dict, meta: dict) -> str:
         lines.append("")
     stab = [b for b in report["systems"] if b.get("stability")]
     if stab:
-        lines += ["## Run-to-run stability", "",
-                  "| System | runs | essays | mean SD | max SD | essays that flip | ICC(2,1) | mean pairwise QWK |",
-                  "|---|---|---|---|---|---|---|---|"]
+        lines += [
+            "## Run-to-run stability",
+            "",
+            "| System | runs | essays | mean SD | max SD | essays that flip | ICC(2,1) | mean pairwise QWK |",
+            "|---|---|---|---|---|---|---|---|",
+        ]
         for b in stab:
             s = b["stability"]
             if "icc_2_1" not in s:
                 lines.append(f"| {b['name']} | {s['n_runs']} | {s['n_essays']} | {s['note']} | | | | |")
                 continue
-            lines.append(f"| {b['name']} | {s['n_runs']} | {s['n_essays']} | {_f(s['mean_within_essay_sd'])} | "
-                         f"{_f(s['max_within_essay_sd'])} | {_f(s['pct_essays_any_flip'], 2)} | "
-                         f"{_f(s['icc_2_1'])} | {_f(s['mean_pairwise_qwk'])} |")
+            lines.append(
+                f"| {b['name']} | {s['n_runs']} | {s['n_essays']} | {_f(s['mean_within_essay_sd'])} | "
+                f"{_f(s['max_within_essay_sd'])} | {_f(s['pct_essays_any_flip'], 2)} | "
+                f"{_f(s['icc_2_1'])} | {_f(s['mean_pairwise_qwk'])} |"
+            )
         lines.append("")
     if report["paired_vs_reference"]:
-        lines += [f"## Paired bootstrap vs `{report['reference']}` (A minus B, same essays)", "",
-                  "| B | n | dQWK [CI] | p | dMAE [CI] | p |", "|---|---|---|---|---|---|"]
+        lines += [
+            f"## Paired bootstrap vs `{report['reference']}` (A minus B, same essays)",
+            "",
+            "| B | n | dQWK [CI] | p | dMAE [CI] | p |",
+            "|---|---|---|---|---|---|",
+        ]
         for p in report["paired_vs_reference"]:
             q, m = p["metrics"]["qwk"], p["metrics"]["mae"]
-            lines.append(f"| {p['b']} | {p['n']} | {_f(q['diff'])} [{_f(q['lo'])}, {_f(q['hi'])}] | "
-                         f"{_f(q['p_two_sided'], 3)} | {_f(m['diff'])} [{_f(m['lo'])}, {_f(m['hi'])}] | "
-                         f"{_f(m['p_two_sided'], 3)} |")
+            lines.append(
+                f"| {p['b']} | {p['n']} | {_f(q['diff'])} [{_f(q['lo'])}, {_f(q['hi'])}] | "
+                f"{_f(q['p_two_sided'], 3)} | {_f(m['diff'])} [{_f(m['lo'])}, {_f(m['hi'])}] | "
+                f"{_f(m['p_two_sided'], 3)} |"
+            )
         lines.append("")
     if meta.get("verdict"):
         lines += ["## Pre-registered thresholds", "", "```json", json.dumps(meta["verdict"], indent=2), "```", ""]
@@ -376,8 +474,12 @@ def render_markdown(report: dict, meta: dict) -> str:
         c = (b["targets"].get("overall") or {}).get("confusion")
         if not c or b["kind"] in ("human",):
             continue
-        lines += [f"**{b['name']}**", "", "| human \\ system | " + " | ".join(str(x) for x in c["labels"]) + " |",
-                  "|---|" + "---|" * len(c["labels"])]
+        lines += [
+            f"**{b['name']}**",
+            "",
+            "| human \\ system | " + " | ".join(str(x) for x in c["labels"]) + " |",
+            "|---|" + "---|" * len(c["labels"]),
+        ]
         for lab, row in zip(c["labels"], c["matrix"]):
             lines.append(f"| {lab} | " + " | ".join(str(x) for x in row) + " |")
         lines.append("")
@@ -385,6 +487,7 @@ def render_markdown(report: dict, meta: dict) -> str:
 
 
 # --------------------------------------------------------------------- CLI
+
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
@@ -403,8 +506,11 @@ def main(argv=None):
     parser.add_argument("--cluster-by-prompt", action="store_true")
     parser.add_argument("--ci-criteria", action="store_true", help="also bootstrap per-criterion QWK/MAE")
     parser.add_argument("--prereg", type=Path, help="frozen protocol (required for test/gold)")
-    parser.add_argument("--allow-unregistered", action="store_true",
-                        help="evaluate test/gold without a pre-registration (recorded in the report)")
+    parser.add_argument(
+        "--allow-unregistered",
+        action="store_true",
+        help="evaluate test/gold without a pre-registration (recorded in the report)",
+    )
     parser.add_argument("--write-prereg", type=Path, help="write a pre-registration file from the cache and exit")
     parser.add_argument("--primary", help="primary system name for --write-prereg")
     parser.add_argument("--out", type=Path, help="output prefix: writes <out>.md and <out>.json")
@@ -427,10 +533,18 @@ def main(argv=None):
     if args.run_mock:
         from ml import graders
         from ml.collect_writing import collect
-        mock_cache = args.mock_cache or (Path(str(args.out) + "-mock-cache.jsonl") if args.out
-                                         else Path("mock-cache.jsonl"))
-        collect(essays, graders.make_grader("mock"), provider="mock", model=graders.model_name("mock"),
-                prompt_version=graders.prompt_version(), cache_path=mock_cache)
+
+        mock_cache = args.mock_cache or (
+            Path(str(args.out) + "-mock-cache.jsonl") if args.out else Path("mock-cache.jsonl")
+        )
+        collect(
+            essays,
+            graders.make_grader("mock"),
+            provider="mock",
+            model=graders.model_name("mock"),
+            prompt_version=graders.prompt_version(),
+            cache_path=mock_cache,
+        )
         records.update(load_cache(mock_cache))
     systems = systems_from_cache(records, essays, set(args.only) if args.only else None)
     if args.model_bundle:
@@ -441,9 +555,16 @@ def main(argv=None):
         systems += systems_from_oof(args.oof, essays)
 
     if args.write_prereg:
-        reg = [{"provider": s.detail["provider"], "model": s.detail["model"],
-                "prompt_version": s.detail["prompt_version"], "name": s.name}
-               for s in systems if s.kind in ("llm", "rules")]
+        reg = [
+            {
+                "provider": s.detail["provider"],
+                "model": s.detail["model"],
+                "prompt_version": s.detail["prompt_version"],
+                "name": s.name,
+            }
+            for s in systems
+            if s.kind in ("llm", "rules")
+        ]
         text = render_prereg(dataset_sha256=dataset_sha, manifest=manifest, systems=reg, primary=args.primary)
         args.write_prereg.parent.mkdir(parents=True, exist_ok=True)
         with args.write_prereg.open("x", encoding="utf-8") as handle:
@@ -456,16 +577,30 @@ def main(argv=None):
         if args.prereg:
             prereg = parse_prereg(args.prereg)
         elif not args.allow_unregistered:
-            raise SystemExit(f"split {args.split!r} is protected: freeze the protocol first "
-                             "(--write-prereg, then --prereg) or pass --allow-unregistered")
+            raise SystemExit(
+                f"split {args.split!r} is protected: freeze the protocol first "
+                "(--write-prereg, then --prereg) or pass --allow-unregistered"
+            )
     train_essays = [e for e in all_essays if e.split == "train"]
-    report = evaluate(essays, systems, train_essays=train_essays, n_boot=args.n_boot, seed=args.seed,
-                      reference=args.reference, cluster_by_prompt=args.cluster_by_prompt,
-                      ci_criteria=args.ci_criteria)
-    meta = {"split": args.split, "dataset_sha256": dataset_sha,
-            "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "command": " ".join(sys.argv[1:]) if argv is None else " ".join(argv),
-            "protocol_deviations": [], "prereg_sha256": None, "verdict": None}
+    report = evaluate(
+        essays,
+        systems,
+        train_essays=train_essays,
+        n_boot=args.n_boot,
+        seed=args.seed,
+        reference=args.reference,
+        cluster_by_prompt=args.cluster_by_prompt,
+        ci_criteria=args.ci_criteria,
+    )
+    meta = {
+        "split": args.split,
+        "dataset_sha256": dataset_sha,
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "command": " ".join(sys.argv[1:]) if argv is None else " ".join(argv),
+        "protocol_deviations": [],
+        "prereg_sha256": None,
+        "verdict": None,
+    }
     if args.split in PROTECTED_SPLITS and prereg is None:
         meta["protocol_deviations"].append("evaluated WITHOUT a pre-registered protocol")
     if prereg is not None:
@@ -478,7 +613,8 @@ def main(argv=None):
         args.out.parent.mkdir(parents=True, exist_ok=True)
         Path(str(args.out) + ".md").write_text(markdown, encoding="utf-8")
         Path(str(args.out) + ".json").write_text(
-            json.dumps(report, indent=2, ensure_ascii=False, default=str) + "\n", encoding="utf-8")
+            json.dumps(report, indent=2, ensure_ascii=False, default=str) + "\n", encoding="utf-8"
+        )
         print(f"wrote {args.out}.md and {args.out}.json")
     print(markdown)
     return 0

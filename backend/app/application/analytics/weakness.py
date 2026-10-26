@@ -4,6 +4,7 @@ Pure aggregation over the `mistakes` table. No AI. Recent mistakes weigh more
 (exponential recency decay, 14-day half-life); scores are normalised by how many
 attempts could have surfaced the mistake (opportunities).
 """
+
 from collections import defaultdict
 
 from sqlalchemy.orm import Session
@@ -43,10 +44,7 @@ def compute_weaknesses(db: Session, user_id: int, limit: int = 6) -> list[dict]:
 
     opp = opportunities(db, user_id)
     now = utcnow()
-    recent_ids = {
-        skill: set(recent_submission_ids(db, user_id, skill, RECURRING_WINDOW))
-        for skill in _ATTEMPT_NOUN
-    }
+    recent_ids = {skill: set(recent_submission_ids(db, user_id, skill, RECURRING_WINDOW)) for skill in _ATTEMPT_NOUN}
 
     groups: dict[tuple, list[Mistake]] = defaultdict(list)
     for m in mistakes:
@@ -55,20 +53,20 @@ def compute_weaknesses(db: Session, user_id: int, limit: int = 6) -> list[dict]:
     results: list[dict] = []
     for (skill, category, subskill), items in groups.items():
         denom = max(1, opp.get(skill, 1))
-        weighted = sum(
-            i.severity * recency_decay((now - (i.created_at or now)).total_seconds() / 86400)
-            for i in items
-        )
+        weighted = sum(i.severity * recency_decay((now - (i.created_at or now)).total_seconds() / 86400) for i in items)
         intensity = weighted / denom
         # squash to [0, 1): intensity 1 -> 0.50, 2 -> 0.75, 3 -> 0.875
-        score = round(1 - 0.5 ** intensity, 2)
+        score = round(1 - 0.5**intensity, 2)
         frequency = len({i.submission_id for i in items if i.submission_id is not None})
         # FR-8: "recurring" means seen in >= 3 of the user's RECENT attempts, the same
         # window /recurring-mistakes uses, so old fixed habits stop being flagged.
-        recent_frequency = len({
-            i.submission_id for i in items
-            if i.submission_id is not None and i.submission_id in recent_ids.get(skill, ())
-        })
+        recent_frequency = len(
+            {
+                i.submission_id
+                for i in items
+                if i.submission_id is not None and i.submission_id in recent_ids.get(skill, ())
+            }
+        )
 
         results.append(
             {
@@ -131,5 +129,5 @@ def compute_recurring_mistakes(db: Session, user_id: int, limit: int = 6) -> lis
                 }
             )
 
-    out.sort(key=lambda r: (r["occurrences"] / r["window"]), reverse=True)
+    out.sort(key=lambda r: r["occurrences"] / r["window"], reverse=True)
     return out[:limit]

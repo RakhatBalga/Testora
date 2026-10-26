@@ -2,6 +2,7 @@
 
 No network: httpx.MockTransport plays the server (Ollama / vLLM behaviour).
 """
+
 import asyncio
 import json
 
@@ -25,9 +26,12 @@ class _Answer(BaseModel):
 
 
 def _reply(content, finish="stop"):
-    return httpx.Response(200, json={
-        "choices": [{"message": {"role": "assistant", "content": content}, "finish_reason": finish}],
-    })
+    return httpx.Response(
+        200,
+        json={
+            "choices": [{"message": {"role": "assistant", "content": content}, "finish_reason": finish}],
+        },
+    )
 
 
 class _Server:
@@ -177,12 +181,15 @@ def test_think_block_is_stripped_from_reply():
     assert json.loads(_chat_json(c)) == {"band": 6.5}
 
 
-@pytest.mark.parametrize("raw,expected", [
-    ("<think>a</think>{}", "{}"),
-    ("reasoning without opening</think>{}", "{}"),
-    ("{} <think>unterminated", "{}"),
-    ("<THINK>x</THINK> ok", "ok"),
-])
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        ("<think>a</think>{}", "{}"),
+        ("reasoning without opening</think>{}", "{}"),
+        ("{} <think>unterminated", "{}"),
+        ("<THINK>x</THINK> ok", "ok"),
+    ],
+)
 def test_strip_think_variants(raw, expected):
     assert strip_think(raw) == expected
 

@@ -4,9 +4,16 @@ from ml.knowledge_tracing import BKTModel, BKTParameters, fit_bkt
 
 
 def response(user="u", correct=True, question_type="choice", number=0):
-    return ResponseRecord(response_id=f"{user}-{number}", learner_id=user, item_id=str(number),
-                          content_version="v1", skill="reading", question_type=question_type,
-                          correct=correct, answered_at="2026-10-14T10:00:00Z")
+    return ResponseRecord(
+        response_id=f"{user}-{number}",
+        learner_id=user,
+        item_id=str(number),
+        content_version="v1",
+        skill="reading",
+        question_type=question_type,
+        correct=correct,
+        answered_at="2026-10-14T10:00:00Z",
+    )
 
 
 def test_bkt_bayes_update_and_skill_isolation():

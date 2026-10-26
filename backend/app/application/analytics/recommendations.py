@@ -9,6 +9,7 @@ Deterministic — no AI. Pulls from five ranked signals:
 
 Every recommendation carries a `reason` — the exact signal that triggered it.
 """
+
 from collections import defaultdict
 from datetime import datetime
 from statistics import mean
@@ -62,14 +63,10 @@ def _rec(
 def _last_activity(db: Session, user_id: int) -> dict[str, datetime | None]:
     out: dict[str, datetime | None] = {}
     out["writing"] = (
-        db.query(func.max(WritingSubmission.created_at))
-        .filter(WritingSubmission.user_id == user_id)
-        .scalar()
+        db.query(func.max(WritingSubmission.created_at)).filter(WritingSubmission.user_id == user_id).scalar()
     )
     out["speaking"] = (
-        db.query(func.max(SpeakingSubmission.created_at))
-        .filter(SpeakingSubmission.user_id == user_id)
-        .scalar()
+        db.query(func.max(SpeakingSubmission.created_at)).filter(SpeakingSubmission.user_id == user_id).scalar()
     )
     for skill in ("reading", "listening"):
         out[skill] = (
@@ -185,8 +182,7 @@ def compute_recommendations(
             _rec(
                 f"blocker-{skill}-{b['criterion'].replace(' ', '-').lower()}",
                 f"Practice {b['skill']} — focus on {b['criterion']}",
-                b.get("explanation")
-                or f"{b['criterion']} is capping your {b['skill']} band at {b['band_cap']}.",
+                b.get("explanation") or f"{b['criterion']} is capping your {b['skill']} band at {b['band_cap']}.",
                 "blocker",
                 skill,
                 priority,
@@ -244,9 +240,7 @@ def compute_recommendations(
         if weakest_qt:
             skill = weakest_qt["skill"]
             matched_test = _test_for_question_type(db, skill, weakest_qt["question_type"])
-            matched_href = (
-                f"/{skill}/{matched_test.id}" if matched_test else practice_href(skill)
-            )
+            matched_href = f"/{skill}/{matched_test.id}" if matched_test else practice_href(skill)
             recs.append(
                 _rec(
                     f"qt-{skill}-{weakest_qt['question_type']}",

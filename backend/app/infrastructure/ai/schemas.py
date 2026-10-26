@@ -9,6 +9,7 @@ The scoring rules themselves (snap to 0.5, hard caps, overall recomputed in
 code, verbatim snippet check) live in `app.domain.grading` and are shared by
 every provider; this module only adapts the wire format to them.
 """
+
 from __future__ import annotations
 
 import math
@@ -69,8 +70,9 @@ def _clamp_severity(value):
 class WritingError(BaseModel):
     category: ErrorCategory
     subskill: str | None = Field(
-        None, description="e.g. articles, prepositions, tense, agreement, collocation, "
-        "word_choice, repetition, paragraphing, progression, development, support"
+        None,
+        description="e.g. articles, prepositions, tense, agreement, collocation, "
+        "word_choice, repetition, paragraphing, progression, development, support",
     )
     severity: int = Field(1, ge=1, le=3, description="1 minor, 2 recurring, 3 band-limiting")
     snippet: str | None = Field(None, description="the offending text, quoted exactly from the response")
@@ -153,6 +155,7 @@ def examiner_model(task_type: int) -> type[BaseModel]:
 
 
 # ----------------------------- normalization ------------------------------- #
+
 
 def _snap(band: float) -> float:
     """Snap to nearest 0.5 (IELTS half-up) and clamp to 0-9."""
@@ -309,9 +312,7 @@ def _is_optional_refinement(error: WritingError) -> bool:
 
 def _normalize_error_subskill(error: WritingError) -> str | None:
     """Correct common model taxonomy slips before storing Mistake Memory rows."""
-    haystack = " ".join(
-        p for p in [error.subskill, error.explanation, error.correction] if p
-    ).lower()
+    haystack = " ".join(p for p in [error.subskill, error.explanation, error.correction] if p).lower()
     if any(word in haystack for word in ("comma", "semicolon", "full stop", "punctuation")):
         return "punctuation"
     return error.subskill
@@ -363,9 +364,7 @@ def build_feedback(
     else:
         # Coach stage unavailable — still return a useful, examiner-grounded result.
         summary = f"Estimated Band {overall}. Your lowest criterion is {lowest} ({criteria[lowest]})."
-        suggestions = [m.correction for m in mistakes if m.correction][:3] or [
-            f"Focus on {lowest} to lift your band."
-        ]
+        suggestions = [m.correction for m in mistakes if m.correction][:3] or [f"Focus on {lowest} to lift your band."]
         strengths = []
         weaknesses = []
         roadmap = []
@@ -484,12 +483,7 @@ def sanitize_coach_evidence(
     sources = [essay, *verified]
 
     def supported(value: str) -> bool:
-        quotes = [
-            q.strip()
-            for match in _QUOTE_RE.findall(value)
-            for q in match
-            if q.strip()
-        ]
+        quotes = [q.strip() for match in _QUOTE_RE.findall(value) for q in match if q.strip()]
         return all(any(quote in source for source in sources) for quote in quotes)
 
     def clean_list(items: list[str]) -> list[str]:
@@ -507,11 +501,7 @@ def sanitize_coach_evidence(
             "weaknesses": clean_list(coaching.weaknesses),
             "priorities": clean_list(coaching.priorities),
             "roadmap": roadmap,
-            "why_not_higher_band": (
-                coaching.why_not_higher_band
-                if supported(coaching.why_not_higher_band)
-                else ""
-            ),
+            "why_not_higher_band": (coaching.why_not_higher_band if supported(coaching.why_not_higher_band) else ""),
             "summary": coaching.summary if supported(coaching.summary) else "",
         }
     )

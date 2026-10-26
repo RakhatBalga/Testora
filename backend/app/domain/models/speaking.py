@@ -28,6 +28,4 @@ class SpeakingSubmission(Base):
 
     task = relationship("SpeakingTask")
 
-    __table_args__ = (
-        Index("ix_speaking_submissions_user_created", "user_id", "created_at"),
-    )
+    __table_args__ = (Index("ix_speaking_submissions_user_created", "user_id", "created_at"),)

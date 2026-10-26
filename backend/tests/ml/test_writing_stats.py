@@ -1,4 +1,3 @@
-
 import pytest
 
 from ml import writing_stats as ws

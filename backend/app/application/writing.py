@@ -4,6 +4,7 @@ Quota rules: a submission only costs a free review if the AI was actually
 called and succeeded. Pre-check rejections (Band 0) and failed or interrupted
 gradings are free.
 """
+
 import logging
 import threading
 from datetime import timedelta
@@ -93,8 +94,13 @@ def submit_writing(db: Session, user: User, task: WritingTask, text: str) -> Wri
         # Nothing to grade: answer with the Band-0 explanation without touching
         # the AI or the user's free reviews, and keep it out of mistake memory.
         sub = WritingSubmission(
-            user_id=user.id, task_id=task.id, text=text, word_count=precheck.word_count,
-            status="graded", band=0.0, status_updated_at=now,
+            user_id=user.id,
+            task_id=task.id,
+            text=text,
+            word_count=precheck.word_count,
+            status="graded",
+            band=0.0,
+            status_updated_at=now,
             feedback=zero_band_feedback(task.task_type, precheck).to_dict(),
         )
         db.add(sub)
@@ -123,8 +129,12 @@ def submit_writing(db: Session, user: User, task: WritingTask, text: str) -> Wri
                 raise HTTPException(409, "This essay is already being graded.")
             return duplicate
         sub = WritingSubmission(
-            user_id=user.id, task_id=task.id, text=text, word_count=precheck.word_count,
-            status="pending", status_updated_at=now,
+            user_id=user.id,
+            task_id=task.id,
+            text=text,
+            word_count=precheck.word_count,
+            status="pending",
+            status_updated_at=now,
         )
         db.add(sub)
         db.commit()
@@ -149,9 +159,14 @@ def retry_writing(db: Session, user: User, submission_id: int) -> WritingSubmiss
 
 def _grade_and_persist(db: Session, user: User, submission: WritingSubmission, task: WritingTask) -> WritingSubmission:
     with grading_admission():
-        with reserve_ai_call(db, user, "writing", model=WritingSubmission,
-                             limit=settings.FREE_WRITING_SUBMISSIONS,
-                             resource=f"writing:{submission.id}") as reservation:
+        with reserve_ai_call(
+            db,
+            user,
+            "writing",
+            model=WritingSubmission,
+            limit=settings.FREE_WRITING_SUBMISSIONS,
+            resource=f"writing:{submission.id}",
+        ) as reservation:
             db.refresh(submission)
             if submission.status not in ("failed", "pending"):
                 raise HTTPException(409, "This submission was already graded")
@@ -218,8 +233,7 @@ def _perform_grading(db: Session, user: User, submission: WritingSubmission, tas
     if improved:
         submission.improved_text = improved
     if precheck.valid:
-        record_mistakes(db, user_id=user.id, submission_id=submission.id, skill="writing",
-                        mistakes=feedback.mistakes)
+        record_mistakes(db, user_id=user.id, submission_id=submission.id, skill="writing", mistakes=feedback.mistakes)
     db.commit()
     db.refresh(submission)
     return submission

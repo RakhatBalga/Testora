@@ -1,4 +1,5 @@
 """Seven-day skill signal for the dashboard."""
+
 from datetime import timedelta
 from statistics import mean
 

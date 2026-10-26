@@ -2,6 +2,7 @@
 
 No AI calls happen here. Grading writes mistakes; these endpoints only read.
 """
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 

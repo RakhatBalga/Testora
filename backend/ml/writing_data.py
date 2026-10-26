@@ -26,6 +26,7 @@ prompt group; `gold` = the double-marked teacher set.
 
 Raw essays stay outside Git (see calibration/README.md).
 """
+
 import argparse
 import csv
 import hashlib
@@ -49,7 +50,9 @@ SPLITS = ("dev", "train", "test", "gold")
 
 # Display names used by app.infrastructure.ai.schemas -> canonical keys.
 _CRITERION_ALIASES = (
-    ("task", "task"), ("coherence", "coherence"), ("lexical", "lexical"),
+    ("task", "task"),
+    ("coherence", "coherence"),
+    ("lexical", "lexical"),
     ("grammat", "grammar"),
 )
 
@@ -157,6 +160,7 @@ class Essay(Record):
 
 # --------------------------------------------------------------------- IO
 
+
 def read_essays(path: Path) -> list[Essay]:
     essays, seen = [], set()
     for number, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
@@ -167,8 +171,7 @@ def read_essays(path: Path) -> list[Essay]:
             essay = Essay.model_validate_json(line)
         except ValueError as exc:
             # Never echo essay text in errors (may be private).
-            raise ValueError(f"{path}:{number} is not a valid {SCHEMA_VERSION} record: "
-                             f"{type(exc).__name__}") from None
+            raise ValueError(f"{path}:{number} is not a valid {SCHEMA_VERSION} record: {type(exc).__name__}") from None
         if essay.id in seen:
             raise ValueError(f"{path}:{number} duplicate id {essay.id!r}")
         seen.add(essay.id)
@@ -190,8 +193,10 @@ def file_sha256(path: Path) -> str:
 
 # ---------------------------------------------------------------- loaders
 
-def load_calibration_bank(path: Path, *, source: str = "calibration-bank (developer-chosen windows)",
-                          licence: str = "private-dev-only") -> list[Essay]:
+
+def load_calibration_bank(
+    path: Path, *, source: str = "calibration-bank (developer-chosen windows)", licence: str = "private-dev-only"
+) -> list[Essay]:
     """The existing 8-essay bank. Always `dev`, labels are windows, never exact."""
     essays = []
     for number, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
@@ -206,21 +211,37 @@ def load_calibration_bank(path: Path, *, source: str = "calibration-bank (develo
         if low is None or high is None:
             raise ValueError(f"{path}:{number} has no expected band or window")
         kind = "exact" if low == high else "range"
-        essays.append(Essay(
-            id=str(row.get("id") or f"bank_{number:03d}"), task_type=int(row["task_type"]),
-            prompt=row["prompt"], text=row["text"], overall=half_band((low + high) / 2),
-            label_kind=kind, label_min=float(low), label_max=float(high),
-            source=row.get("source") or source, licence=licence, split="dev",
-            notes=row.get("notes")))
+        essays.append(
+            Essay(
+                id=str(row.get("id") or f"bank_{number:03d}"),
+                task_type=int(row["task_type"]),
+                prompt=row["prompt"],
+                text=row["text"],
+                overall=half_band((low + high) / 2),
+                label_kind=kind,
+                label_min=float(low),
+                label_max=float(high),
+                source=row.get("source") or source,
+                licence=licence,
+                split="dev",
+                notes=row.get("notes"),
+            )
+        )
     return essays
 
 
 # Column guess for the Kaggle "IELTS Writing Scored Essays Dataset"; VERIFY
 # against the file you downloaded and override with --map if it differs.
 KAGGLE_DEFAULT_MAP = {
-    "task_type": "Task_Type", "prompt": "Question", "text": "Essay", "overall": "Overall",
-    "task": "Task_Response", "coherence": "Coherence_Cohesion",
-    "lexical": "Lexical_Resource", "grammar": "Range_Accuracy", "id": "",
+    "task_type": "Task_Type",
+    "prompt": "Question",
+    "text": "Essay",
+    "overall": "Overall",
+    "task": "Task_Response",
+    "coherence": "Coherence_Cohesion",
+    "lexical": "Lexical_Resource",
+    "grammar": "Range_Accuracy",
+    "id": "",
 }
 
 
@@ -242,8 +263,9 @@ def _parse_task(raw) -> int | None:
     return int(match.group()) if match else None
 
 
-def load_public_csv(path: Path, *, source: str, licence: str, column_map: dict[str, str] | None = None,
-                    id_prefix: str = "pub") -> tuple[list[Essay], list[dict]]:
+def load_public_csv(
+    path: Path, *, source: str, licence: str, column_map: dict[str, str] | None = None, id_prefix: str = "pub"
+) -> tuple[list[Essay], list[dict]]:
     """Convert a public scored-essay CSV. Returns (essays, skipped_rows_with_reason).
 
     Rows are skipped, never guessed: missing text, prompt, task type or overall.
@@ -254,21 +276,35 @@ def load_public_csv(path: Path, *, source: str, licence: str, column_map: dict[s
     essays, skipped = [], []
     with Path(path).open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
-        missing = [col for key, col in mapping.items()
-                   if col and key in ("task_type", "prompt", "text", "overall")
-                   and col not in (reader.fieldnames or [])]
+        missing = [
+            col
+            for key, col in mapping.items()
+            if col and key in ("task_type", "prompt", "text", "overall") and col not in (reader.fieldnames or [])
+        ]
         if missing:
-            raise ValueError(f"CSV is missing mapped columns {missing}; "
-                             f"found {reader.fieldnames}. Pass --map key=Column.")
+            raise ValueError(
+                f"CSV is missing mapped columns {missing}; found {reader.fieldnames}. Pass --map key=Column."
+            )
         for number, row in enumerate(reader, 2):
+
             def get(key):
                 col = mapping.get(key)
                 return row.get(col) if col else None
+
             task = _parse_task(get("task_type"))
             overall = _parse_band(get("overall"))
             text, prompt = (get("text") or "").strip(), (get("prompt") or "").strip()
-            reason = ("no task type" if task is None else "no overall band" if overall is None
-                      else "empty text" if not text else "empty prompt" if not prompt else None)
+            reason = (
+                "no task type"
+                if task is None
+                else "no overall band"
+                if overall is None
+                else "empty text"
+                if not text
+                else "empty prompt"
+                if not prompt
+                else None
+            )
             if reason:
                 skipped.append({"row": number, "reason": reason})
                 continue
@@ -277,15 +313,25 @@ def load_public_csv(path: Path, *, source: str, licence: str, column_map: dict[s
                 band = _parse_band(get(key))
                 if band is not None:
                     criteria[key] = band
-            essays.append(Essay(
-                id=(get("id") or f"{id_prefix}_{number:05d}"), task_type=task, prompt=prompt,
-                text=text, overall=overall, criteria=criteria, source=source, licence=licence,
-                split="train"))
+            essays.append(
+                Essay(
+                    id=(get("id") or f"{id_prefix}_{number:05d}"),
+                    task_type=task,
+                    prompt=prompt,
+                    text=text,
+                    overall=overall,
+                    criteria=criteria,
+                    source=source,
+                    licence=licence,
+                    split="train",
+                )
+            )
     return essays, skipped
 
 
-def load_gold(path: Path, *, source: str = "AITU double-marked gold set",
-              licence: str = "consented-private") -> list[Essay]:
+def load_gold(
+    path: Path, *, source: str = "AITU double-marked gold set", licence: str = "consented-private"
+) -> list[Essay]:
     """Double-marked gold set.
 
     Input JSONL rows: id, task_type, prompt, text, ratings=[{rater_id, overall,
@@ -316,31 +362,43 @@ def load_gold(path: Path, *, source: str = "AITU double-marked gold set",
                 vals = [s.criteria[key] for s in scores if key in s.criteria]
                 if len(vals) == len(scores):
                     criteria[key] = half_band(sum(vals) / len(vals))
-        essays.append(Essay(
-            id=str(row["id"]), task_type=int(row["task_type"]), prompt=row["prompt"],
-            text=row["text"], overall=overall, criteria=criteria, rater_scores=scores,
-            source=row.get("source") or source, licence=row.get("licence") or licence,
-            split="gold", label_kind=kind, notes=row.get("notes")))
+        essays.append(
+            Essay(
+                id=str(row["id"]),
+                task_type=int(row["task_type"]),
+                prompt=row["prompt"],
+                text=row["text"],
+                overall=overall,
+                criteria=criteria,
+                rater_scores=scores,
+                source=row.get("source") or source,
+                licence=row.get("licence") or licence,
+                split="gold",
+                label_kind=kind,
+                notes=row.get("notes"),
+            )
+        )
     return essays
 
 
 # ------------------------------------------------------------------ dedup
 
-_SKETCH = 24          # bottom-k min-hash sketch size
-_SHINGLE = 5          # word 5-grams
-_MIN_SHARED = 6       # candidate pair if sketches share this many hashes
+_SKETCH = 24  # bottom-k min-hash sketch size
+_SHINGLE = 5  # word 5-grams
+_MIN_SHARED = 6  # candidate pair if sketches share this many hashes
 
 
 def _shingles(text: str) -> set[int]:
     words = normalise_text(text).split()
     if len(words) < _SHINGLE:
         return {int(hashlib.md5(" ".join(words).encode()).hexdigest()[:12], 16)}
-    return {int(hashlib.md5(" ".join(words[i:i + _SHINGLE]).encode()).hexdigest()[:12], 16)
-            for i in range(len(words) - _SHINGLE + 1)}
+    return {
+        int(hashlib.md5(" ".join(words[i : i + _SHINGLE]).encode()).hexdigest()[:12], 16)
+        for i in range(len(words) - _SHINGLE + 1)
+    }
 
 
-def deduplicate(essays: list[Essay], *, near_threshold: float = 0.8
-                ) -> tuple[list[Essay], list[dict]]:
+def deduplicate(essays: list[Essay], *, near_threshold: float = 0.8) -> tuple[list[Essay], list[dict]]:
     """Drop exact (normalised-text hash) and near duplicates (5-gram Jaccard).
 
     The earlier essay in the list wins, so pass sources in priority order
@@ -355,8 +413,9 @@ def deduplicate(essays: list[Essay], *, near_threshold: float = 0.8
     for essay in essays:
         twin = by_hash.get(essay.text_hash)
         if twin is not None:
-            removed.append({"id": essay.id, "duplicate_of": twin.id, "reason": "exact",
-                            "jaccard": 1.0, "split": essay.split})
+            removed.append(
+                {"id": essay.id, "duplicate_of": twin.id, "reason": "exact", "jaccard": 1.0, "split": essay.split}
+            )
             continue
         sh = _shingles(essay.text)
         sketch = sorted(sh)[:_SKETCH]
@@ -374,8 +433,15 @@ def deduplicate(essays: list[Essay], *, near_threshold: float = 0.8
                 near = (other, jac)
                 break
         if near:
-            removed.append({"id": essay.id, "duplicate_of": near[0], "reason": "near",
-                            "jaccard": round(near[1], 4), "split": essay.split})
+            removed.append(
+                {
+                    "id": essay.id,
+                    "duplicate_of": near[0],
+                    "reason": "near",
+                    "jaccard": round(near[1], 4),
+                    "split": essay.split,
+                }
+            )
             continue
         kept.append(essay)
         by_hash[essay.text_hash] = essay
@@ -387,8 +453,8 @@ def deduplicate(essays: list[Essay], *, near_threshold: float = 0.8
 
 # ------------------------------------------------------------------ splits
 
-def assign_public_splits(essays: list[Essay], *, test_fraction: float = 0.3, seed: int = 42
-                         ) -> list[Essay]:
+
+def assign_public_splits(essays: list[Essay], *, test_fraction: float = 0.3, seed: int = 42) -> list[Essay]:
     """Prompt-grouped train/test split of the `train`/`test` pool.
 
     All essays that share a prompt land in the same split. Groups are shuffled
@@ -409,8 +475,12 @@ def assign_public_splits(essays: list[Essay], *, test_fraction: float = 0.3, see
             break
         test_groups.add(gid)
         moved += len(groups[gid])
-    return [e.model_copy(update={"split": ("test" if e.prompt_id in test_groups else "train")})
-            if e.split in ("train", "test") else e for e in essays]
+    return [
+        e.model_copy(update={"split": ("test" if e.prompt_id in test_groups else "train")})
+        if e.split in ("train", "test")
+        else e
+        for e in essays
+    ]
 
 
 def _split_fingerprint(essays: list[Essay]) -> str:
@@ -418,24 +488,37 @@ def _split_fingerprint(essays: list[Essay]) -> str:
     return hashlib.sha256("\n".join(rows).encode()).hexdigest()
 
 
-def build_manifest(essays: list[Essay], removed: list[dict], *, seed: int, test_fraction: float,
-                   dataset_sha256: str | None = None) -> dict:
+def build_manifest(
+    essays: list[Essay], removed: list[dict], *, seed: int, test_fraction: float, dataset_sha256: str | None = None
+) -> dict:
     by_split = defaultdict(list)
     for e in essays:
         by_split[e.split].append(e)
     prompts = {s: {e.prompt_id for e in items} for s, items in by_split.items()}
-    overlaps = {f"{a}&{b}": len(prompts[a] & prompts[b])
-                for a in sorted(prompts) for b in sorted(prompts) if a < b and prompts[a] & prompts[b]}
+    overlaps = {
+        f"{a}&{b}": len(prompts[a] & prompts[b])
+        for a in sorted(prompts)
+        for b in sorted(prompts)
+        if a < b and prompts[a] & prompts[b]
+    }
     return {
-        "schema_version": MANIFEST_VERSION, "essay_schema": SCHEMA_VERSION,
+        "schema_version": MANIFEST_VERSION,
+        "essay_schema": SCHEMA_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "seed": seed, "test_fraction": test_fraction, "dataset_sha256": dataset_sha256,
-        "splits": {s: {"n": len(items), "n_prompts": len(prompts[s]),
-                       "fingerprint": _split_fingerprint(items),
-                       "bands": dict(sorted(Counter(str(e.overall) for e in items).items())),
-                       "tasks": dict(sorted(Counter(str(e.task_type) for e in items).items())),
-                       "ids": sorted(e.id for e in items)}
-                   for s, items in sorted(by_split.items())},
+        "seed": seed,
+        "test_fraction": test_fraction,
+        "dataset_sha256": dataset_sha256,
+        "splits": {
+            s: {
+                "n": len(items),
+                "n_prompts": len(prompts[s]),
+                "fingerprint": _split_fingerprint(items),
+                "bands": dict(sorted(Counter(str(e.overall) for e in items).items())),
+                "tasks": dict(sorted(Counter(str(e.task_type) for e in items).items())),
+                "ids": sorted(e.id for e in items),
+            }
+            for s, items in sorted(by_split.items())
+        },
         "prompt_overlap_between_splits": overlaps,
         "licences": dict(sorted(Counter(e.licence for e in essays).items())),
         "removed_duplicates": removed,
@@ -466,9 +549,18 @@ def verify_manifest(essays: list[Essay], manifest: dict) -> list[str]:
 
 # --------------------------------------------------------------------- CLI
 
-def build_dataset(*, bank: Path | None, public: list[tuple[Path, str, str, dict]], gold: Path | None,
-                  out: Path, manifest: Path, seed: int = 42, test_fraction: float = 0.3,
-                  overwrite: bool = False) -> dict:
+
+def build_dataset(
+    *,
+    bank: Path | None,
+    public: list[tuple[Path, str, str, dict]],
+    gold: Path | None,
+    out: Path,
+    manifest: Path,
+    seed: int = 42,
+    test_fraction: float = 0.3,
+    overwrite: bool = False,
+) -> dict:
     """gold -> public -> bank priority; dedup; prompt-grouped split; write both files."""
     essays: list[Essay] = []
     skipped: list[dict] = []
@@ -485,8 +577,7 @@ def build_dataset(*, bank: Path | None, public: list[tuple[Path, str, str, dict]
     kept, removed = deduplicate(essays)
     kept = assign_public_splits(kept, test_fraction=test_fraction, seed=seed)
     write_essays(out, kept, overwrite=overwrite)
-    info = build_manifest(kept, removed, seed=seed, test_fraction=test_fraction,
-                          dataset_sha256=file_sha256(out))
+    info = build_manifest(kept, removed, seed=seed, test_fraction=test_fraction, dataset_sha256=file_sha256(out))
     info["skipped_public_rows"] = skipped
     manifest = Path(manifest)
     manifest.parent.mkdir(parents=True, exist_ok=True)
@@ -511,8 +602,13 @@ def main(argv=None):
     parser.add_argument("--public-csv", type=Path, help="public IELTS scored-essay CSV (-> train/test)")
     parser.add_argument("--public-source", default="public IELTS scored essays CSV")
     parser.add_argument("--public-licence", default="unknown-verify")
-    parser.add_argument("--map", action="append", default=[], metavar="KEY=COLUMN",
-                        help="CSV column mapping override, e.g. --map prompt=Question")
+    parser.add_argument(
+        "--map",
+        action="append",
+        default=[],
+        metavar="KEY=COLUMN",
+        help="CSV column mapping override, e.g. --map prompt=Question",
+    )
     parser.add_argument("--gold", type=Path, help="double-marked gold JSONL (-> gold)")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, required=True)
@@ -520,15 +616,25 @@ def main(argv=None):
     parser.add_argument("--test-fraction", type=float, default=0.3)
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args(argv)
-    public = ([(args.public_csv, args.public_source, args.public_licence, _parse_map(args.map))]
-              if args.public_csv else [])
-    info = build_dataset(bank=args.bank, public=public, gold=args.gold, out=args.out,
-                         manifest=args.manifest, seed=args.seed, test_fraction=args.test_fraction,
-                         overwrite=args.overwrite)
+    public = (
+        [(args.public_csv, args.public_source, args.public_licence, _parse_map(args.map))] if args.public_csv else []
+    )
+    info = build_dataset(
+        bank=args.bank,
+        public=public,
+        gold=args.gold,
+        out=args.out,
+        manifest=args.manifest,
+        seed=args.seed,
+        test_fraction=args.test_fraction,
+        overwrite=args.overwrite,
+    )
     for split, s in info["splits"].items():
         print(f"{split:5s} n={s['n']:5d} prompts={s['n_prompts']:4d} fingerprint={s['fingerprint'][:12]}")
-    print(f"removed duplicates: {len(info['removed_duplicates'])}; "
-          f"skipped public rows: {len(info['skipped_public_rows'])}")
+    print(
+        f"removed duplicates: {len(info['removed_duplicates'])}; "
+        f"skipped public rows: {len(info['skipped_public_rows'])}"
+    )
 
 
 if __name__ == "__main__":

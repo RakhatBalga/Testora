@@ -5,6 +5,7 @@ Convention: `actual` are human half bands; `predicted` may be continuous (ML
 regressors). QWK and exact agreement use predictions snapped to half bands, every
 other metric uses the raw prediction clipped to [0, 9].
 """
+
 import math
 import random
 from collections import Counter
@@ -12,11 +13,9 @@ from collections import Counter
 from ml.metrics import half_band, mae, qwk
 
 TOLERANCE_EPS = 1e-9
-POINT_METRICS = ("qwk", "mae", "rmse", "bias", "exact", "within_0_5", "within_1_0",
-                 "pearson", "spearman")
+POINT_METRICS = ("qwk", "mae", "rmse", "bias", "exact", "within_0_5", "within_1_0", "pearson", "spearman")
 _CI_FAST = ("qwk", "mae")
-FLAG_REQUIRED_TRUE = ("overview_present", "key_comparisons_present", "all_parts_addressed",
-                      "position_clear")
+FLAG_REQUIRED_TRUE = ("overview_present", "key_comparisons_present", "all_parts_addressed", "position_clear")
 FLAG_FAILURE_TRUE = ("off_topic", "data_accuracy_issue", "fabricated_data")
 
 
@@ -98,11 +97,16 @@ def spread_stats(actual, predicted) -> dict:
     snapped = [half_band(v) for v in p]
     mode_value, mode_count = Counter(snapped).most_common(1)[0]
     sd_pred, sd_label = sd(p), sd(list(actual))
-    return {"n_unique_predictions": len(set(snapped)),
-            "mean_prediction": mean(p), "mean_label": mean(list(actual)),
-            "sd_prediction": sd_pred, "sd_label": sd_label,
-            "sd_ratio": (sd_pred / sd_label) if sd_label > 0 else None,
-            "mode_value": mode_value, "mode_share": mode_count / len(p)}
+    return {
+        "n_unique_predictions": len(set(snapped)),
+        "mean_prediction": mean(p),
+        "mean_label": mean(list(actual)),
+        "sd_prediction": sd_pred,
+        "sd_label": sd_label,
+        "sd_ratio": (sd_pred / sd_label) if sd_label > 0 else None,
+        "mode_value": mode_value,
+        "mode_share": mode_count / len(p),
+    }
 
 
 def confusion_matrix(actual, predicted) -> dict:
@@ -136,8 +140,7 @@ def _resample(n, clusters, rng):
     return idx
 
 
-def bootstrap_ci(actual, predicted, *, names=POINT_METRICS, n_boot=2000, seed=0,
-                 clusters=None, level=0.95) -> dict:
+def bootstrap_ci(actual, predicted, *, names=POINT_METRICS, n_boot=2000, seed=0, clusters=None, level=0.95) -> dict:
     """Percentile bootstrap CI per metric. `clusters` (e.g. prompt ids) enables a
     cluster bootstrap that resamples whole groups. Resamples where a metric is
     undefined are skipped and counted in `n_valid`."""
@@ -154,13 +157,13 @@ def bootstrap_ci(actual, predicted, *, names=POINT_METRICS, n_boot=2000, seed=0,
     out = {}
     for name, values in draws.items():
         values.sort()
-        out[name] = {"lo": _percentile(values, alpha), "hi": _percentile(values, 1 - alpha),
-                     "n_valid": len(values)}
+        out[name] = {"lo": _percentile(values, alpha), "hi": _percentile(values, 1 - alpha), "n_valid": len(values)}
     return out
 
 
-def paired_bootstrap_diff(actual, pred_a, pred_b, *, names=_CI_FAST, n_boot=2000, seed=0,
-                          clusters=None, level=0.95) -> dict:
+def paired_bootstrap_diff(
+    actual, pred_a, pred_b, *, names=_CI_FAST, n_boot=2000, seed=0, clusters=None, level=0.95
+) -> dict:
     """Metric(A) - metric(B) on the SAME resampled essays, with a two-sided
     bootstrap p-value (share of resamples on either side of zero)."""
     rng = random.Random(seed)
@@ -181,11 +184,12 @@ def paired_bootstrap_diff(actual, pred_a, pred_b, *, names=_CI_FAST, n_boot=2000
         le = sum(v <= 0 for v in values) / len(values) if values else None
         ge = sum(v >= 0 for v in values) / len(values) if values else None
         out[name] = {
-            "diff": (None if base_a[name] is None or base_b[name] is None
-                     else base_a[name] - base_b[name]),
-            "lo": _percentile(values, alpha), "hi": _percentile(values, 1 - alpha),
+            "diff": (None if base_a[name] is None or base_b[name] is None else base_a[name] - base_b[name]),
+            "lo": _percentile(values, alpha),
+            "hi": _percentile(values, 1 - alpha),
             "p_two_sided": None if le is None else min(1.0, 2 * min(le, ge)),
-            "n_valid": len(values)}
+            "n_valid": len(values),
+        }
     return out
 
 
@@ -220,8 +224,12 @@ def stability(runs_by_essay: dict[str, list[float]]) -> dict | None:
     k = max(len(v) for v in runs_by_essay.values())
     full = {e: v for e, v in runs_by_essay.items() if len(v) == k}
     if k < 2 or len(full) < 2:
-        return {"n_runs": k, "n_essays": len(full), "n_incomplete": len(runs_by_essay) - len(full),
-                "note": "needs >= 2 runs on >= 2 essays"}
+        return {
+            "n_runs": k,
+            "n_essays": len(full),
+            "n_incomplete": len(runs_by_essay) - len(full),
+            "note": "needs >= 2 runs on >= 2 essays",
+        }
     matrix = [v for v in full.values()]
     pair_qwk = []
     for i in range(k):
@@ -230,16 +238,22 @@ def stability(runs_by_essay: dict[str, list[float]]) -> dict | None:
             if q is not None:
                 pair_qwk.append(q)
     sds = [sd(r) for r in matrix]
-    return {"n_runs": k, "n_essays": len(full), "n_incomplete": len(runs_by_essay) - len(full),
-            "mean_within_essay_sd": mean(sds), "max_within_essay_sd": max(sds),
-            "pct_essays_any_flip": sum(len(set(r)) > 1 for r in matrix) / len(matrix),
-            "icc_2_1": icc_2_1(matrix),
-            "mean_pairwise_qwk": mean(pair_qwk) if pair_qwk else None}
+    return {
+        "n_runs": k,
+        "n_essays": len(full),
+        "n_incomplete": len(runs_by_essay) - len(full),
+        "mean_within_essay_sd": mean(sds),
+        "max_within_essay_sd": max(sds),
+        "pct_essays_any_flip": sum(len(set(r)) > 1 for r in matrix) / len(matrix),
+        "icc_2_1": icc_2_1(matrix),
+        "mean_pairwise_qwk": mean(pair_qwk) if pair_qwk else None,
+    }
 
 
 def cap_hit(flags: dict | None) -> bool | None:
     """True if an examiner cap flag fired; None when flags are unavailable."""
     if not flags:
         return None
-    return (any(flags.get(f) is False for f in FLAG_REQUIRED_TRUE)
-            or any(flags.get(f) is True for f in FLAG_FAILURE_TRUE))
+    return any(flags.get(f) is False for f in FLAG_REQUIRED_TRUE) or any(
+        flags.get(f) is True for f in FLAG_FAILURE_TRUE
+    )

@@ -3,6 +3,7 @@
 The grader (infrastructure/ai) detects mistakes; this records them. Kept
 separate from analytics, which only *reads* these rows.
 """
+
 from sqlalchemy.orm import Session
 
 from app.domain.models.mistake import Mistake

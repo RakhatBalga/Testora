@@ -1,4 +1,3 @@
-
 import pytest
 
 from app.infrastructure.ai.base import Feedback
@@ -20,9 +19,16 @@ class FakeGrader:
             raise TimeoutError("provider timed out")
         if text in self.fail_texts:
             return Feedback(band=0, criteria={}, summary="malformed output", error=True)
-        fb = Feedback(band=6.5, criteria={"Task Response": 6.0, "Coherence & Cohesion": 7.0,
-                                          "Lexical Resource": 6.5, "Grammatical Range & Accuracy": 6.5},
-                      summary="ok")
+        fb = Feedback(
+            band=6.5,
+            criteria={
+                "Task Response": 6.0,
+                "Coherence & Cohesion": 7.0,
+                "Lexical Resource": 6.5,
+                "Grammatical Range & Accuracy": 6.5,
+            },
+            summary="ok",
+        )
         fb.flags = {"off_topic": False, "position_clear": True}
         return fb
 
@@ -57,8 +63,14 @@ def test_failures_are_recorded_counted_and_retried(tmp_path):
     healed = FakeGrader()
     s2 = collect(essays, healed, cache_path=cache, **KW)
     assert healed.calls == 2 and s2.cached_ok == 2 and s2.new_ok == 2 and s2.failed == 0  # only failures retried
-    s3 = collect(essays, FakeGrader(fail_ids=[e.text for e in essays]), cache_path=tmp_path / "d.jsonl",
-                 retry_failed=False, abort_after=3, **KW)
+    s3 = collect(
+        essays,
+        FakeGrader(fail_ids=[e.text for e in essays]),
+        cache_path=tmp_path / "d.jsonl",
+        retry_failed=False,
+        abort_after=3,
+        **KW,
+    )
     assert s3.aborted and s3.failed == 3
 
 
@@ -69,8 +81,10 @@ def test_rate_limit_spaces_calls(tmp_path):
     def sleep(s):
         sleeps.append(s)
         now[0] += s
-    collect(make_essays(4), FakeGrader(), cache_path=tmp_path / "c.jsonl", rps=2.0,
-            sleep=sleep, clock=lambda: now[0], **KW)
+
+    collect(
+        make_essays(4), FakeGrader(), cache_path=tmp_path / "c.jsonl", rps=2.0, sleep=sleep, clock=lambda: now[0], **KW
+    )
     assert len(sleeps) == 3 and all(s == pytest.approx(0.5) for s in sleeps)
 
 
@@ -78,17 +92,20 @@ def test_grade_call_passes_seed_only_when_supported():
     class Seeded:
         def grade(self, *, task_type, prompt, text, min_words, seed=None):
             return seed
+
     assert graders.grade_call(Seeded(), task_type=2, prompt="p", text="t", min_words=250, seed=9) == 9
 
     class Plain:
         def grade(self, *, task_type, prompt, text, min_words):
             return "ok"
+
     assert graders.grade_call(Plain(), task_type=2, prompt="p", text="t", min_words=250, seed=9) == "ok"
 
 
 def test_adapter_mock_and_unavailable_provider(monkeypatch):
     from app.infrastructure.config import settings
     from app.infrastructure.ai.mock import MockWritingGrader
+
     before = settings.AI_PROVIDER
     assert isinstance(graders.make_grader("mock"), MockWritingGrader)
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "")

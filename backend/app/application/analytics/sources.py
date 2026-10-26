@@ -3,6 +3,7 @@
 Bridges the three submission tables (writing_submissions, speaking_submissions,
 attempts) into a uniform per-skill view for the analytics engines.
 """
+
 from statistics import mean
 
 from sqlalchemy.orm import Session

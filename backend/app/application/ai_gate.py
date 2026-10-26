@@ -7,6 +7,7 @@ rate-limit protection), and a bounded number of requests waiting for a slot so
 queued submissions cannot occupy every threadpool thread and starve fast
 endpoints. Excess requests get a clear 503 instead of hanging.
 """
+
 import contextvars
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -27,8 +28,7 @@ _executor = ThreadPoolExecutor(max_workers=settings.MAX_CONCURRENT_GRADINGS, thr
 
 
 def _busy() -> HTTPException:
-    return HTTPException(503, "Grading is busy right now. Please try again in a minute.",
-                         headers={"Retry-After": "30"})
+    return HTTPException(503, "Grading is busy right now. Please try again in a minute.", headers={"Retry-After": "30"})
 
 
 @contextmanager

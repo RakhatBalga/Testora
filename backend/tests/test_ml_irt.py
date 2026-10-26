@@ -4,9 +4,16 @@ from ml.irt import fit_rasch, learner_key
 
 
 def row(user, item, correct, skill="reading"):
-    return ResponseRecord(response_id=f"{user}-{item}-{skill}", learner_id=user, item_id=item,
-                          content_version="v1", skill=skill, question_type="choice", correct=correct,
-                          answered_at="2026-10-14T10:00:00Z")
+    return ResponseRecord(
+        response_id=f"{user}-{item}-{skill}",
+        learner_id=user,
+        item_id=item,
+        content_version="v1",
+        skill=skill,
+        question_type="choice",
+        correct=correct,
+        answered_at="2026-10-14T10:00:00Z",
+    )
 
 
 def test_rasch_orders_difficulty_and_keeps_extreme_items_finite():

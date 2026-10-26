@@ -45,17 +45,16 @@ def item_statistics(db: Session, test_id: int) -> list[dict]:
         sample_size = len(rows)
         selections = Counter(record.user_answer or "No answer" for record, _ in rows if not record.is_correct)
         # Corrected item-total correlation avoids correlating an item with itself.
-        values = [
-            (int(record.is_correct), float(attempt.score - int(record.is_correct)))
-            for record, attempt in rows
-        ]
-        result.append({
-            "question_id": question.id,
-            "order": question.order,
-            "sample_size": sample_size,
-            "facility": round(sum(value for value, _ in values) / sample_size, 3) if sample_size else None,
-            "point_biserial": _point_biserial(values),
-            "distractor_selection": dict(selections.most_common()),
-            "status": "observed" if sample_size else "no_data",
-        })
+        values = [(int(record.is_correct), float(attempt.score - int(record.is_correct))) for record, attempt in rows]
+        result.append(
+            {
+                "question_id": question.id,
+                "order": question.order,
+                "sample_size": sample_size,
+                "facility": round(sum(value for value, _ in values) / sample_size, 3) if sample_size else None,
+                "point_biserial": _point_biserial(values),
+                "distractor_selection": dict(selections.most_common()),
+                "status": "observed" if sample_size else "no_data",
+            }
+        )
     return result

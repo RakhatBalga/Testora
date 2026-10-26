@@ -1,4 +1,5 @@
 """Core coach math: recency decay, recurring window, band gap, streak, timezone."""
+
 from datetime import datetime, timedelta, timezone
 
 import pytest
@@ -45,8 +46,13 @@ def db():
 
 def _essay(db, *, age_days=0.0, band=6.5, status="graded"):
     sub = WritingSubmission(
-        user_id=db.info["user_id"], task_id=db.info["task_id"], text="x", word_count=1,
-        status=status, band=band, created_at=utcnow() - timedelta(days=age_days),
+        user_id=db.info["user_id"],
+        task_id=db.info["task_id"],
+        text="x",
+        word_count=1,
+        status=status,
+        band=band,
+        created_at=utcnow() - timedelta(days=age_days),
     )
     db.add(sub)
     db.commit()
@@ -54,8 +60,17 @@ def _essay(db, *, age_days=0.0, band=6.5, status="graded"):
 
 
 def _mistake(db, sub, subskill="articles", age_days=0.0):
-    db.add(Mistake(user_id=db.info["user_id"], submission_id=sub.id, skill="writing", category="grammar",
-                   subskill=subskill, severity=2, created_at=utcnow() - timedelta(days=age_days)))
+    db.add(
+        Mistake(
+            user_id=db.info["user_id"],
+            submission_id=sub.id,
+            skill="writing",
+            category="grammar",
+            subskill=subskill,
+            severity=2,
+            created_at=utcnow() - timedelta(days=age_days),
+        )
+    )
     db.commit()
 
 
@@ -83,7 +98,7 @@ def test_recurring_needs_three_of_the_recent_window(db):
     for age in range(8):
         _essay(db, age_days=age)
     weak = compute_weaknesses(db, db.info["user_id"])[0]
-    assert weak["frequency"] == 3          # all-time count is still reported
+    assert weak["frequency"] == 3  # all-time count is still reported
     assert weak["recent_frequency"] == 0
     assert weak["recurring"] is False
     assert compute_recurring_mistakes(db, db.info["user_id"]) == []
@@ -110,8 +125,14 @@ def test_failed_and_pending_essays_are_not_opportunities(db):
 
 def test_band_gap_rounds_half_up_and_handles_no_data(db):
     empty = compute_band_gap(db, db.info["user_id"], target=7.5)
-    assert empty == {"current": None, "target": 7.5, "gap": None, "per_skill": {},
-                     "lowest_skill": None, "has_data": False}
+    assert empty == {
+        "current": None,
+        "target": 7.5,
+        "gap": None,
+        "per_skill": {},
+        "lowest_skill": None,
+        "has_data": False,
+    }
     _essay(db, band=6.5)
     listening = ContentTest(title="L", test_type="listening", duration_minutes=30)
     db.add(listening)
@@ -147,11 +168,23 @@ def test_streak_ignores_failed_and_counts_local_days(db, monkeypatch):
     def at(day, hour):
         return datetime(2026, 10, day, hour, 0)
 
-    for created, band, status in [(at(9, 10), 6.5, "graded"), (at(10, 10), 6.5, "graded"),
-                                  (at(10, 21), 6.5, "graded"),   # = the 11th locally
-                                  (at(8, 10), None, "failed")]:  # failed: does not extend the streak
-        db.add(WritingSubmission(user_id=db.info["user_id"], task_id=db.info["task_id"], text="x",
-                                 word_count=1, status=status, band=band, created_at=created))
+    for created, band, status in [
+        (at(9, 10), 6.5, "graded"),
+        (at(10, 10), 6.5, "graded"),
+        (at(10, 21), 6.5, "graded"),  # = the 11th locally
+        (at(8, 10), None, "failed"),
+    ]:  # failed: does not extend the streak
+        db.add(
+            WritingSubmission(
+                user_id=db.info["user_id"],
+                task_id=db.info["task_id"],
+                text="x",
+                word_count=1,
+                status=status,
+                band=band,
+                created_at=created,
+            )
+        )
     db.commit()
     result = compute_streak(db, db.info["user_id"])
     assert result == {"current_streak": 3, "active_today": True}

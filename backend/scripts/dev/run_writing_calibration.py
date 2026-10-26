@@ -7,6 +7,7 @@ converts a legacy calibration JSONL into the `writing-essay.v1` dev split, grade
 it with the chosen provider and prints the evaluation. See calibration/README.md
 ("How to run E1") for the full workflow.
 """
+
 import argparse
 import sys
 import tempfile
@@ -40,8 +41,13 @@ def main() -> int:
         if args.limit:
             collect += ["--limit", str(args.limit)]
         code = collect_writing.main(base[:4] + collect + base[4:])
-        evaluate = base + ["--run-mock", "--mock-cache", str(args.cache.with_name("mock-cache.jsonl")),
-                           "--n-boot", "500"]
+        evaluate = base + [
+            "--run-mock",
+            "--mock-cache",
+            str(args.cache.with_name("mock-cache.jsonl")),
+            "--n-boot",
+            "500",
+        ]
         if args.report:
             evaluate += ["--out", str(args.report)]
         evaluate_writing.main(evaluate)

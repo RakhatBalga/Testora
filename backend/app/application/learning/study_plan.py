@@ -57,10 +57,7 @@ def _candidates(db: Session, user: User) -> list[dict]:
     criterion, criterion_band, writing = _writing_signal(db, user.id)
     preferred_task_type = 1 if criterion == "Task Achievement" else 2
     writing_task = (
-        db.query(WritingTask)
-        .filter(WritingTask.task_type == preferred_task_type)
-        .order_by(WritingTask.id)
-        .first()
+        db.query(WritingTask).filter(WritingTask.task_type == preferred_task_type).order_by(WritingTask.id).first()
     )
     reading_type, reading = _reading_signal(db, user.id)
     minutes = max(15, min(int(user.daily_study_minutes or 30), 90))
@@ -68,35 +65,41 @@ def _candidates(db: Session, user: User) -> list[dict]:
     tasks: list[dict] = []
 
     if criterion and writing_task:
-        tasks.append({
-            "stable_key": f"writing-criterion-{_slug(criterion)}",
-            "title": f"{'Reinforce' if maintaining else 'Improve'} {criterion}",
-            "reason": (
-                f"Your latest Writing score for {criterion} is Band {criterion_band:.1f}; focused practice will help maintain your target level."
-                if maintaining
-                else f"Your latest Writing score for {criterion} is Band {criterion_band:.1f}, making it the clearest limiter below your Band {user.target_band:.1f} target."
-            ),
-            "minutes": min(minutes, writing_task.duration_minutes),
-            "skill": "writing",
-            "action_type": "practice",
-            "href": f"/writing/{writing_task.id}",
-            "source_type": "writing_criterion",
-            "source_ref": str(writing.id),
-        })
+        tasks.append(
+            {
+                "stable_key": f"writing-criterion-{_slug(criterion)}",
+                "title": f"{'Reinforce' if maintaining else 'Improve'} {criterion}",
+                "reason": (
+                    f"Your latest Writing score for {criterion} is Band {criterion_band:.1f}; focused practice will help maintain your target level."
+                    if maintaining
+                    else f"Your latest Writing score for {criterion} is Band {criterion_band:.1f}, making it the clearest limiter below your Band {user.target_band:.1f} target."
+                ),
+                "minutes": min(minutes, writing_task.duration_minutes),
+                "skill": "writing",
+                "action_type": "practice",
+                "href": f"/writing/{writing_task.id}",
+                "source_type": "writing_criterion",
+                "source_ref": str(writing.id),
+            }
+        )
 
     if reading_type and reading_test and reading:
-        label = reading_type.get("label") or str(reading_type.get("question_type", "questions")).replace("_", " ").title()
-        tasks.append({
-            "stable_key": f"reading-type-{_slug(str(reading_type.get('question_type', label)))}",
-            "title": f"Drill {label}",
-            "reason": f"This is your weakest recent Reading question type at {reading_type.get('accuracy', 0):.0f}% accuracy.",
-            "minutes": min(minutes, reading_test.duration_minutes),
-            "skill": "reading",
-            "action_type": "practice",
-            "href": f"/reading/{reading_test.id}",
-            "source_type": "reading_breakdown",
-            "source_ref": str(reading.id),
-        })
+        label = (
+            reading_type.get("label") or str(reading_type.get("question_type", "questions")).replace("_", " ").title()
+        )
+        tasks.append(
+            {
+                "stable_key": f"reading-type-{_slug(str(reading_type.get('question_type', label)))}",
+                "title": f"Drill {label}",
+                "reason": f"This is your weakest recent Reading question type at {reading_type.get('accuracy', 0):.0f}% accuracy.",
+                "minutes": min(minutes, reading_test.duration_minutes),
+                "skill": "reading",
+                "action_type": "practice",
+                "href": f"/reading/{reading_test.id}",
+                "source_type": "reading_breakdown",
+                "source_ref": str(reading.id),
+            }
+        )
 
     recurring = (
         db.query(Mistake)
@@ -106,42 +109,48 @@ def _candidates(db: Session, user: User) -> list[dict]:
     )
     if recurring:
         label = (recurring.subskill or recurring.category).replace("_", " ").title()
-        tasks.append({
-            "stable_key": f"review-writing-{_slug(recurring.subskill or recurring.category)}",
-            "title": f"Review {label}",
-            "reason": "A recent Writing review flagged this pattern; revisiting it before the next essay reduces repeat errors.",
-            "minutes": min(15, minutes),
-            "skill": "writing",
-            "action_type": "review",
-            "href": "/mistakes?skill=writing",
-            "source_type": "mistake",
-            "source_ref": str(recurring.id),
-        })
+        tasks.append(
+            {
+                "stable_key": f"review-writing-{_slug(recurring.subskill or recurring.category)}",
+                "title": f"Review {label}",
+                "reason": "A recent Writing review flagged this pattern; revisiting it before the next essay reduces repeat errors.",
+                "minutes": min(15, minutes),
+                "skill": "writing",
+                "action_type": "review",
+                "href": "/mistakes?skill=writing",
+                "source_type": "mistake",
+                "source_ref": str(recurring.id),
+            }
+        )
 
     if writing_task and not any(task["skill"] == "writing" for task in tasks):
-        tasks.append({
-            "stable_key": "writing-baseline",
-            "title": "Complete a Writing diagnostic task",
-            "reason": "A graded essay gives Testora criterion-level evidence for a more precise plan.",
-            "minutes": min(minutes, writing_task.duration_minutes),
-            "skill": "writing",
-            "action_type": "diagnostic" if not writing else "practice",
-            "href": f"/writing/{writing_task.id}",
-            "source_type": "cold_start",
-            "source_ref": str(writing_task.id),
-        })
+        tasks.append(
+            {
+                "stable_key": "writing-baseline",
+                "title": "Complete a Writing diagnostic task",
+                "reason": "A graded essay gives Testora criterion-level evidence for a more precise plan.",
+                "minutes": min(minutes, writing_task.duration_minutes),
+                "skill": "writing",
+                "action_type": "diagnostic" if not writing else "practice",
+                "href": f"/writing/{writing_task.id}",
+                "source_type": "cold_start",
+                "source_ref": str(writing_task.id),
+            }
+        )
     if reading_test and not any(task["skill"] == "reading" for task in tasks):
-        tasks.append({
-            "stable_key": "reading-baseline",
-            "title": "Complete a Reading practice test",
-            "reason": "A Reading result identifies the question types that need the most attention.",
-            "minutes": min(minutes, reading_test.duration_minutes),
-            "skill": "reading",
-            "action_type": "diagnostic" if not reading else "practice",
-            "href": f"/reading/{reading_test.id}",
-            "source_type": "cold_start",
-            "source_ref": str(reading_test.id),
-        })
+        tasks.append(
+            {
+                "stable_key": "reading-baseline",
+                "title": "Complete a Reading practice test",
+                "reason": "A Reading result identifies the question types that need the most attention.",
+                "minutes": min(minutes, reading_test.duration_minutes),
+                "skill": "reading",
+                "action_type": "diagnostic" if not reading else "practice",
+                "href": f"/reading/{reading_test.id}",
+                "source_type": "cold_start",
+                "source_ref": str(reading_test.id),
+            }
+        )
 
     focus = user.primary_focus or "balanced"
     tasks.sort(key=lambda task: (0 if focus == task["skill"] else 1, task["stable_key"]))

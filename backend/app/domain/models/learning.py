@@ -1,4 +1,3 @@
-
 from sqlalchemy import (
     Column,
     Date,
@@ -30,9 +29,7 @@ class DiagnosticSession(Base):
     started_at = Column(DateTime, default=utcnow, nullable=False)
     completed_at = Column(DateTime, nullable=True)
 
-    __table_args__ = (
-        Index("ix_diagnostic_sessions_user_started", "user_id", "started_at"),
-    )
+    __table_args__ = (Index("ix_diagnostic_sessions_user_started", "user_id", "started_at"),)
 
 
 class StudyPlanItem(Base):

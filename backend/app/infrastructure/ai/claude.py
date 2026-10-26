@@ -10,6 +10,7 @@ constrained output here, so the JSON schema is appended to the system prompt
 and validated locally (one re-ask on failure). The model id is not verified.
 The `anthropic` package is imported lazily and is not in requirements.txt.
 """
+
 import json
 import logging
 import time

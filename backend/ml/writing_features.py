@@ -4,27 +4,85 @@ FEATURE_VERSION must change whenever a feature's definition changes, because
 saved models record it. These are surface features: they measure length, range
 and fluency proxies, not whether the argument answers the prompt.
 """
+
 import math
 import re
 
 FEATURE_VERSION = "writing-features.v1"
 
 LINKERS = {
-    "however", "therefore", "furthermore", "moreover", "consequently", "nevertheless",
-    "nonetheless", "meanwhile", "additionally", "similarly", "conversely", "thus", "hence",
-    "firstly", "secondly", "finally", "although", "whereas", "despite", "while",
+    "however",
+    "therefore",
+    "furthermore",
+    "moreover",
+    "consequently",
+    "nevertheless",
+    "nonetheless",
+    "meanwhile",
+    "additionally",
+    "similarly",
+    "conversely",
+    "thus",
+    "hence",
+    "firstly",
+    "secondly",
+    "finally",
+    "although",
+    "whereas",
+    "despite",
+    "while",
 }
-LINKER_PHRASES = ("in contrast", "on the other hand", "for instance", "for example",
-                  "as a result", "in conclusion", "in addition", "to conclude", "in particular")
-SUBORDINATORS = {"because", "although", "though", "while", "whereas", "since", "unless",
-                 "whether", "which", "who", "whose", "if", "when", "once", "before", "after"}
+LINKER_PHRASES = (
+    "in contrast",
+    "on the other hand",
+    "for instance",
+    "for example",
+    "as a result",
+    "in conclusion",
+    "in addition",
+    "to conclude",
+    "in particular",
+)
+SUBORDINATORS = {
+    "because",
+    "although",
+    "though",
+    "while",
+    "whereas",
+    "since",
+    "unless",
+    "whether",
+    "which",
+    "who",
+    "whose",
+    "if",
+    "when",
+    "once",
+    "before",
+    "after",
+}
 
 FEATURE_NAMES = (
-    "task_type", "log_words", "n_sentences", "mean_sentence_len", "sd_sentence_len",
-    "n_paragraphs", "ttr_root", "mattr_50", "mean_word_len", "long_word_ratio",
-    "linker_rate", "subordinator_rate", "comma_rate",
-    "err_lower_i", "err_no_capital", "err_no_space_after_punct", "err_repeat_word",
-    "err_article_an", "err_letter_run", "err_double_space",
+    "task_type",
+    "log_words",
+    "n_sentences",
+    "mean_sentence_len",
+    "sd_sentence_len",
+    "n_paragraphs",
+    "ttr_root",
+    "mattr_50",
+    "mean_word_len",
+    "long_word_ratio",
+    "linker_rate",
+    "subordinator_rate",
+    "comma_rate",
+    "err_lower_i",
+    "err_no_capital",
+    "err_no_space_after_punct",
+    "err_repeat_word",
+    "err_article_an",
+    "err_letter_run",
+    "err_double_space",
 )
 
 
@@ -42,7 +100,7 @@ def _mattr(words, window=50):
     total = 0.0
     count = len(words) - window + 1
     for i in range(count):
-        total += len(set(words[i:i + window])) / window
+        total += len(set(words[i : i + window])) / window
     return total / count
 
 
@@ -78,8 +136,11 @@ def extract(text: str, task_type: int = 2) -> dict[str, float]:
         "err_no_capital": sum(1 for s in sentences if s[0].isalpha() and s[0].islower()) * per100,
         "err_no_space_after_punct": len(re.findall(r"[a-z][,.;:][A-Za-z]", text)) * per100,
         "err_repeat_word": sum(a == b for a, b in zip(lower, lower[1:])) * per100,
-        "err_article_an": (len(re.findall(r"\ba\s+[aeiou]\w+", low_text))
-                           + len(re.findall(r"\ban\s+[bcdfgjklmnpqrstvwxz]\w+", low_text))) * per100,
+        "err_article_an": (
+            len(re.findall(r"\ba\s+[aeiou]\w+", low_text))
+            + len(re.findall(r"\ban\s+[bcdfgjklmnpqrstvwxz]\w+", low_text))
+        )
+        * per100,
         "err_letter_run": len(re.findall(r"([a-z])\1{2,}", low_text)) * per100,
         "err_double_space": len(re.findall(r"[^\s] {2,}[^\s]", text)) * per100,
     }
@@ -94,6 +155,7 @@ def vector(text: str, task_type: int = 2) -> list[float]:
 # X is a sequence of (task_type, text) pairs.
 def dense_matrix(X):
     import numpy as np
+
     return np.array([vector(text, task) for task, text in X], dtype=float)
 
 

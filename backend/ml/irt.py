@@ -3,6 +3,7 @@
 L2 priors anchor the otherwise translation-invariant scale and keep extreme
 response patterns finite. This is penalized joint fitting, not conditional MLE.
 """
+
 import json
 import math
 from collections import defaultdict
@@ -51,8 +52,12 @@ def fit_rasch(records: list[ResponseRecord], *, regularization=1.0, iterations=1
         key = learner_key(row.learner_id, row.skill)
         users[key].append(row)
         items[row.item_key].append(row)
-    model = RaschModel(abilities=dict.fromkeys(users, 0.0), difficulties=dict.fromkeys(items, 0.0),
-                       item_support={key: len(rows) for key, rows in items.items()}, regularization=regularization)
+    model = RaschModel(
+        abilities=dict.fromkeys(users, 0.0),
+        difficulties=dict.fromkeys(items, 0.0),
+        item_support={key: len(rows) for key, rows in items.items()},
+        regularization=regularization,
+    )
     for iteration in range(iterations):
         change = 0.0
         for key, rows in users.items():

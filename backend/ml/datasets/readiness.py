@@ -6,6 +6,7 @@ python -m ml.datasets.readiness ml/data/responses.jsonl --output ml/reports/read
 Exit codes: 0 = pilot can run (inspect warnings); 2 = blocked. No database access.
 Thresholds describe current pilot code, not proof of statistical sufficiency.
 """
+
 import argparse
 from collections import defaultdict
 import hashlib
@@ -18,9 +19,13 @@ from ml.datasets.split import first_responses, temporal_split
 
 def counts(rows):
     correct = sum(r.correct for r in rows)
-    return {"responses": len(rows), "learners": len({r.learner_id for r in rows}),
-            "items": len({r.item_key for r in rows}), "correct": correct,
-            "incorrect": len(rows) - correct}
+    return {
+        "responses": len(rows),
+        "learners": len({r.learner_id for r in rows}),
+        "items": len({r.item_key for r in rows}),
+        "correct": correct,
+        "incorrect": len(rows) - correct,
+    }
 
 
 def assess(records: list[ResponseRecord], train_fraction=0.75) -> dict:
@@ -62,16 +67,31 @@ def assess(records: list[ResponseRecord], train_fraction=0.75) -> dict:
         type_all[row.skill_key].append(row)
     all_items = {r.item_key: r for r in unique}
     all_types = {r.skill_key: r for r in unique}
-    items = [{"item_id": row.item_id, "skill": row.skill, "content_version": row.content_version,
-              "first_responses": counts(item_all[key]),
-              "train": counts(item_train[key]), "meets_pilot_support": len(item_train[key]) >= 10}
-             for key, row in sorted(all_items.items())]
-    question_types = [{"skill": row.skill, "question_type": row.question_type,
-                       "first_responses": counts(type_all[key]), "train": counts(type_train[key]),
-                       "meets_bkt_fit_threshold": len(type_train[key]) >= 10 and len({r.learner_id for r in type_train[key]}) >= 2}
-                      for key, row in sorted(all_types.items())]
+    items = [
+        {
+            "item_id": row.item_id,
+            "skill": row.skill,
+            "content_version": row.content_version,
+            "first_responses": counts(item_all[key]),
+            "train": counts(item_train[key]),
+            "meets_pilot_support": len(item_train[key]) >= 10,
+        }
+        for key, row in sorted(all_items.items())
+    ]
+    question_types = [
+        {
+            "skill": row.skill,
+            "question_type": row.question_type,
+            "first_responses": counts(type_all[key]),
+            "train": counts(type_train[key]),
+            "meets_bkt_fit_threshold": len(type_train[key]) >= 10 and len({r.learner_id for r in type_train[key]}) >= 2,
+        }
+        for key, row in sorted(all_types.items())
+    ]
     if any(not item["meets_pilot_support"] for item in items):
-        warnings.append("Some items have fewer than 10 training responses; the blend uses a neutral IRT prior for them.")
+        warnings.append(
+            "Some items have fewer than 10 training responses; the blend uses a neutral IRT prior for them."
+        )
     if any(not item["meets_bkt_fit_threshold"] for item in question_types):
         warnings.append("Some question types lack 10 training responses from 2 learners; BKT uses default parameters.")
     train_users = {r.learner_id for r in train}
@@ -83,8 +103,11 @@ def assess(records: list[ResponseRecord], train_fraction=0.75) -> dict:
     for skill in ("reading", "listening"):
         subset = [r for r in unique if r.skill == skill]
         held = [r for r in test if r.skill == skill]
-        by_skill[skill] = {**counts(subset), "holdout": counts(held),
-                           "holdout_auc_available": len({r.correct for r in held}) == 2}
+        by_skill[skill] = {
+            **counts(subset),
+            "holdout": counts(held),
+            "holdout_auc_available": len({r.correct for r in held}) == 2,
+        }
         if not subset:
             warnings.append(f"No {skill} data: this export cannot evaluate that skill.")
         elif test and len({r.correct for r in held}) < 2:
@@ -93,17 +116,31 @@ def assess(records: list[ResponseRecord], train_fraction=0.75) -> dict:
         "schema_version": "response-readiness.v1",
         "status": "blocked" if blockers else "pilot_with_warnings" if warnings else "pilot_ready",
         "can_run_auc_comparison": not blockers,
-        "blockers": blockers, "warnings": warnings,
-        "raw": counts(records), "first_responses": counts(unique),
-        "duplicate_response_ids": duplicates, "excluded_repeats": repeats, "legacy_responses": legacy,
-        "split": {"train_fraction": train_fraction, "cutoff": cutoff.isoformat() if cutoff else None,
-                  "train": counts(train), "holdout": counts(test), "auc_available": auc_available,
-                  "unseen_holdout_learners": cold_users, "unseen_holdout_items": cold_items},
-        "by_skill": by_skill, "items": items, "question_types": question_types,
-        "limitations": ["Pilot thresholds are implementation defaults, not evidence of sufficient sample size.",
-                        "Passing this check does not demonstrate prediction quality or learning gains.",
-                        "Submission timestamps do not measure per-question response order.",
-                        "response.v1 does not contain mode or consent information; inspect export metadata and study records."],
+        "blockers": blockers,
+        "warnings": warnings,
+        "raw": counts(records),
+        "first_responses": counts(unique),
+        "duplicate_response_ids": duplicates,
+        "excluded_repeats": repeats,
+        "legacy_responses": legacy,
+        "split": {
+            "train_fraction": train_fraction,
+            "cutoff": cutoff.isoformat() if cutoff else None,
+            "train": counts(train),
+            "holdout": counts(test),
+            "auc_available": auc_available,
+            "unseen_holdout_learners": cold_users,
+            "unseen_holdout_items": cold_items,
+        },
+        "by_skill": by_skill,
+        "items": items,
+        "question_types": question_types,
+        "limitations": [
+            "Pilot thresholds are implementation defaults, not evidence of sufficient sample size.",
+            "Passing this check does not demonstrate prediction quality or learning gains.",
+            "Submission timestamps do not measure per-question response order.",
+            "response.v1 does not contain mode or consent information; inspect export metadata and study records.",
+        ],
     }
 
 
@@ -115,7 +152,10 @@ def inspect_file(source: Path, train_fraction=0.75):
             continue
         try:
             row = ResponseRecord.model_validate_json(line)
-            if any(not getattr(row, field).strip() for field in ("response_id", "learner_id", "item_id", "content_version", "question_type")):
+            if any(
+                not getattr(row, field).strip()
+                for field in ("response_id", "learner_id", "item_id", "content_version", "question_type")
+            ):
                 raise ValueError("Blank identifier")
             records.append(row)
         except ValueError:
@@ -125,7 +165,9 @@ def inspect_file(source: Path, train_fraction=0.75):
     if invalid_lines:
         report["status"] = "blocked"
         report["can_run_auc_comparison"] = False
-        report["blockers"].append("Invalid records exist; fix the listed lines before using the dataset. Counts cover valid rows only.")
+        report["blockers"].append(
+            "Invalid records exist; fix the listed lines before using the dataset. Counts cover valid rows only."
+        )
     return report
 
 
@@ -142,7 +184,9 @@ def main():
             json.dump(report, handle, indent=2, ensure_ascii=False, allow_nan=False)
             handle.write("\n")
     except (OSError, ValueError) as exc:
-        parser.error(f"Cannot inspect dataset or create report ({type(exc).__name__}). Check paths, encoding, split and existing output.")
+        parser.error(
+            f"Cannot inspect dataset or create report ({type(exc).__name__}). Check paths, encoding, split and existing output."
+        )
     print(json.dumps({key: report[key] for key in ("status", "raw", "first_responses", "blockers", "warnings")}))
     return 0 if report["can_run_auc_comparison"] else 2
 

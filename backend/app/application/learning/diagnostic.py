@@ -109,8 +109,7 @@ def refresh_diagnostic(db: Session, user_id: int) -> dict | None:
             bands.append(float(attempt.band))
 
     completed = all(
-        session.writing_submission_id if skill == "writing" else session.reading_attempt_id
-        for skill in session.skills
+        session.writing_submission_id if skill == "writing" else session.reading_attempt_id for skill in session.skills
     )
     if completed and bands:
         session.status = "completed"

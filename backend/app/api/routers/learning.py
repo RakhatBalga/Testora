@@ -39,8 +39,12 @@ def get_diagnostic(
     return diagnostic_state(db, current_user.id)
 
 
-@router.post("/diagnostic/start", status_code=status.HTTP_201_CREATED, response_model=Payload,
-             dependencies=[Depends(user_rate_limit("learning-write", 30))])
+@router.post(
+    "/diagnostic/start",
+    status_code=status.HTTP_201_CREATED,
+    response_model=Payload,
+    dependencies=[Depends(user_rate_limit("learning-write", 30))],
+)
 def begin_diagnostic(
     payload: DiagnosticStartIn,
     db: Session = Depends(get_db),
@@ -96,7 +100,9 @@ def study_plan(
     return get_weekly_plan(db, current_user)
 
 
-@router.post("/study-plan/recalculate", response_model=Payload, dependencies=[Depends(user_rate_limit("learning-write", 30))])
+@router.post(
+    "/study-plan/recalculate", response_model=Payload, dependencies=[Depends(user_rate_limit("learning-write", 30))]
+)
 def recalculate_study_plan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -139,7 +145,12 @@ def explain_plan_item(
     item = db.query(StudyPlanItem).filter(StudyPlanItem.id == item_id, StudyPlanItem.user_id == current_user.id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Study plan item not found")
-    return {"id": item.id, "title": item.title, "reason": item.reason, "source": {"type": item.source_type, "ref": item.source_ref}}
+    return {
+        "id": item.id,
+        "title": item.title,
+        "reason": item.reason,
+        "source": {"type": item.source_type, "ref": item.source_ref},
+    }
 
 
 @router.get("/mistakes", response_model=Payload)

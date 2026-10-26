@@ -37,5 +37,6 @@ if settings.DATABASE_URL.startswith("postgresql"):
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 class Base(DeclarativeBase):
     pass

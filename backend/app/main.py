@@ -25,6 +25,7 @@ configure_logging()
 init_error_tracking()
 logger = logging.getLogger("testora")
 
+
 def _validate_security_configuration() -> None:
     """In production, refuse to start on a missing/placeholder/weak SECRET_KEY.
 
@@ -86,8 +87,12 @@ def _reconcile_on_startup() -> None:
             writing = reconcile_stale_writing(db)
             reservations = reconcile_stale_reservations(db)
         if writing or reservations:
-            logger.warning("Startup reconciliation: %s stale writing submission(s) marked failed, "
-                           "%s stale AI reservation(s) released", writing, reservations)
+            logger.warning(
+                "Startup reconciliation: %s stale writing submission(s) marked failed, "
+                "%s stale AI reservation(s) released",
+                writing,
+                reservations,
+            )
     except Exception:  # noqa: BLE001 - a DB blip must not stop the app from booting
         logger.exception("Startup reconciliation failed; it will run lazily per user instead")
 
@@ -138,6 +143,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": "Something went wrong on our side. Please try again.", "request_id": rid},
     )
+
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(tests.router, prefix="/tests", tags=["Tests"])

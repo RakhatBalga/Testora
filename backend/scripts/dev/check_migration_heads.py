@@ -7,6 +7,7 @@ a deploy. Run in CI; exits non-zero when >1 head exists.
 Reads the migration scripts directly (ScriptDirectory), so it needs neither a
 database connection nor app settings/env vars.
 """
+
 import sys
 from pathlib import Path
 

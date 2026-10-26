@@ -5,6 +5,7 @@ about the *user's* day, so they must be computed in the configured local
 timezone (APP_TIMEZONE) — otherwise day boundaries shift by several hours for
 CIS/MENA users and streaks break around local midnight.
 """
+
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 

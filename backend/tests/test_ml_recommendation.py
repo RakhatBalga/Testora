@@ -4,8 +4,7 @@ from ml.recommendation import Candidate, recommend
 
 
 def item(identifier, question_type="choice", **kwargs):
-    return Candidate(item_id=identifier, content_version="v1", skill="reading",
-                     question_type=question_type, **kwargs)
+    return Candidate(item_id=identifier, content_version="v1", skill="reading", question_type=question_type, **kwargs)
 
 
 def test_ranking_filters_drafts_seen_and_duplicates():

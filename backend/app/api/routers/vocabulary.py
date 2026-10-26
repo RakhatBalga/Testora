@@ -18,8 +18,12 @@ def _today() -> date:
     return local_today()
 
 
-@router.post("/words", status_code=status.HTTP_201_CREATED, response_model=Payload,
-             dependencies=[Depends(user_rate_limit("vocab-save", 60))])
+@router.post(
+    "/words",
+    status_code=status.HTTP_201_CREATED,
+    response_model=Payload,
+    dependencies=[Depends(user_rate_limit("vocab-save", 60))],
+)
 def save_word(
     payload: SaveWordIn,
     db: Session = Depends(get_db),
@@ -86,9 +90,7 @@ def set_training(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    row = vocab.set_training(
-        db, user_id=current_user.id, word_id=word_id, training=payload.training
-    )
+    row = vocab.set_training(db, user_id=current_user.id, word_id=word_id, training=payload.training)
     if row is None:
         raise HTTPException(status_code=404, detail="Word not found")
     return vocab.serialize_word(row)
@@ -109,9 +111,7 @@ def submit_daily_quiz(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = vocab.grade_daily_quiz(
-        db, user_id=current_user.id, quiz_date=_today(), answers=payload.answers
-    )
+    result = vocab.grade_daily_quiz(db, user_id=current_user.id, quiz_date=_today(), answers=payload.answers)
     if result is None:
         raise HTTPException(status_code=404, detail="No quiz has been generated for today")
     return result

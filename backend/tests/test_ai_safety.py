@@ -1,4 +1,5 @@
 """Provider fallback + production fail-fast guard."""
+
 import importlib
 
 import pytest
@@ -77,6 +78,7 @@ def test_development_weak_secret_key_is_allowed(monkeypatch):
 
 
 # ------------------------------ qwen + overrides ----------------------------
+
 
 def test_effective_provider_qwen_requires_url_and_model(monkeypatch):
     monkeypatch.setattr(settings, "AI_PROVIDER", "qwen")

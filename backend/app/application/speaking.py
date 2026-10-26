@@ -1,4 +1,5 @@
 """Speaking submission use case: store the recording, grade it, keep mistakes."""
+
 import logging
 import os
 import tempfile
@@ -18,8 +19,15 @@ from app.infrastructure.storage.sniff import sniff_audio
 
 logger = logging.getLogger("testora.speaking")
 
-_SUFFIX = {"audio/webm": ".webm", "audio/ogg": ".ogg", "audio/mpeg": ".mp3", "audio/wav": ".wav",
-           "audio/mp4": ".m4a", "audio/aac": ".aac", "audio/flac": ".flac"}
+_SUFFIX = {
+    "audio/webm": ".webm",
+    "audio/ogg": ".ogg",
+    "audio/mpeg": ".mp3",
+    "audio/wav": ".wav",
+    "audio/mp4": ".m4a",
+    "audio/aac": ".aac",
+    "audio/flac": ".flac",
+}
 
 
 def speaking_enabled() -> bool:
@@ -28,10 +36,13 @@ def speaking_enabled() -> bool:
 
 def require_speaking_enabled() -> None:
     if not speaking_enabled():
-        raise HTTPException(status_code=403, detail={
-            "code": "speaking_disabled",
-            "message": "Speaking assessment is not available yet.",
-        })
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "speaking_disabled",
+                "message": "Speaking assessment is not available yet.",
+            },
+        )
 
 
 def task_questions(task: SpeakingTask) -> list[str]:
@@ -54,10 +65,10 @@ def submit_speaking(db: Session, user: User, task: SpeakingTask, audio: bytes) -
     key = None
     with grading_admission():
         try:
-            with reserve_ai_call(db, user, "speaking", model=SpeakingSubmission,
-                                 limit=settings.FREE_SPEAKING_SUBMISSIONS) as reservation:
-                key = storage.save(db, kind="speaking_audio", owner_id=user.id, data=audio,
-                                   content_type=content_type)
+            with reserve_ai_call(
+                db, user, "speaking", model=SpeakingSubmission, limit=settings.FREE_SPEAKING_SUBMISSIONS
+            ) as reservation:
+                key = storage.save(db, kind="speaking_audio", owner_id=user.id, data=audio, content_type=content_type)
                 submission = SpeakingSubmission(user_id=user.id, task_id=task.id, audio_url=key, transcript=None)
                 db.add(submission)
                 db.commit()
@@ -65,8 +76,9 @@ def submit_speaking(db: Session, user: User, task: SpeakingTask, audio: bytes) -
                 reservation.success = not feedback.error
                 if feedback.error:
                     # Keep the recording, but never store a bogus band or mistakes.
-                    logger.warning("Speaking grading failed for user %s task %s: %s",
-                                   user.id, task.id, feedback.summary)
+                    logger.warning(
+                        "Speaking grading failed for user %s task %s: %s", user.id, task.id, feedback.summary
+                    )
                     feedback.summary = "Automatic grading could not be completed. Please try again."
                     submission.feedback = {**feedback.to_dict(), "diagnostics": feedback.diagnostics()}
                     submission.band = None
@@ -76,8 +88,9 @@ def submit_speaking(db: Session, user: User, task: SpeakingTask, audio: bytes) -
                 submission.feedback = {**feedback.to_dict(), "diagnostics": feedback.diagnostics()}
                 submission.band = feedback.band
                 db.flush()  # assign submission.id before recording its mistakes
-                record_mistakes(db, user_id=user.id, submission_id=submission.id,
-                                skill="speaking", mistakes=feedback.mistakes)
+                record_mistakes(
+                    db, user_id=user.id, submission_id=submission.id, skill="speaking", mistakes=feedback.mistakes
+                )
                 db.commit()
                 db.refresh(submission)
                 return submission
@@ -100,8 +113,9 @@ def _grade_audio(task: SpeakingTask, audio: bytes, content_type: str):
         with os.fdopen(handle, "wb") as out:
             out.write(audio)
         grader = get_speaking_grader()
-        return run_graded(grader.grade, part=task.part, questions=task_questions(task),
-                          audio_path=path, transcript=None)
+        return run_graded(
+            grader.grade, part=task.part, questions=task_questions(task), audio_path=path, transcript=None
+        )
     finally:
         try:
             os.unlink(path)

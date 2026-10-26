@@ -13,7 +13,11 @@ AnswerText = Field(max_length=MAX_ANSWER_CHARS)
 
 class AnswerIn(BaseModel):
     question_id: int
-    answer: Optional[Union[Annotated[str, AnswerText], Annotated[List[Annotated[str, AnswerText]], Field(max_length=MAX_ANSWER_ITEMS)]]] = None
+    answer: Optional[
+        Union[
+            Annotated[str, AnswerText], Annotated[List[Annotated[str, AnswerText]], Field(max_length=MAX_ANSWER_ITEMS)]
+        ]
+    ] = None
     marked_for_review: bool = False
 
 

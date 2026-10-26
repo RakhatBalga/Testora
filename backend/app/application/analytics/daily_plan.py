@@ -5,6 +5,7 @@ weakest skill from the band gap, the top recurring mistake, and how long since
 the user last practised each skill. Every task carries a `source` naming the
 signal that produced it, so the plan is fully explainable and reproducible.
 """
+
 from datetime import datetime
 
 from sqlalchemy import func
@@ -28,14 +29,10 @@ def _last_activity(db: Session, user_id: int) -> dict[str, datetime | None]:
     """Most recent graded submission datetime per skill (None if never)."""
     out: dict[str, datetime | None] = {}
     out["writing"] = (
-        db.query(func.max(WritingSubmission.created_at))
-        .filter(WritingSubmission.user_id == user_id)
-        .scalar()
+        db.query(func.max(WritingSubmission.created_at)).filter(WritingSubmission.user_id == user_id).scalar()
     )
     out["speaking"] = (
-        db.query(func.max(SpeakingSubmission.created_at))
-        .filter(SpeakingSubmission.user_id == user_id)
-        .scalar()
+        db.query(func.max(SpeakingSubmission.created_at)).filter(SpeakingSubmission.user_id == user_id).scalar()
     )
     for skill in ("reading", "listening"):
         out[skill] = (

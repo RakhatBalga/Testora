@@ -23,9 +23,7 @@ class Attempt(Base):
     created_at = Column(DateTime, default=utcnow)
 
     test = relationship("Test")
-    answers = relationship(
-        "AnswerRecord", back_populates="attempt", cascade="all, delete-orphan"
-    )
+    answers = relationship("AnswerRecord", back_populates="attempt", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_attempts_user_created", "user_id", "created_at"),
@@ -64,7 +62,10 @@ class ListeningProgress(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            "user_id", "test_id", "content_version", "mode",
+            "user_id",
+            "test_id",
+            "content_version",
+            "mode",
             name="uq_listening_progress_user_test_version_mode",
         ),
         Index("ix_listening_progress_user_updated", "user_id", "updated_at"),

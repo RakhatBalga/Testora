@@ -19,15 +19,23 @@ def create_access_token(user_id: int, token_version: int = 0) -> str:
 def decode_access_token(token: str) -> tuple[int, int]:
     """Return (user_id, token_version); raises JWTError for any invalid token."""
     payload = jwt.decode(
-        token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM],
+        token,
+        settings.SECRET_KEY,
+        algorithms=[settings.ALGORITHM],
         options={"require": ["exp", "iat", "sub"]},
     )
     subject = payload["sub"]
     token_version = payload.get("tv", 0)
-    if (payload.get("version") != 2 or payload.get("type") != "access"
-            or not isinstance(subject, str) or not subject.isascii()
-            or not subject.isdecimal() or subject.startswith("0")
-            or not isinstance(token_version, int) or isinstance(token_version, bool)):
+    if (
+        payload.get("version") != 2
+        or payload.get("type") != "access"
+        or not isinstance(subject, str)
+        or not subject.isascii()
+        or not subject.isdecimal()
+        or subject.startswith("0")
+        or not isinstance(token_version, int)
+        or isinstance(token_version, bool)
+    ):
         raise JWTError("Invalid access token subject or version")
     return int(subject), token_version
 

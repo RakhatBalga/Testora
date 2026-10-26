@@ -10,11 +10,19 @@ from ml.evaluate_adaptive import evaluate
 
 
 def rows():
-    return [ResponseRecord(response_id=f"r{i:03}", learner_id=f"u{i % 4}",
-        item_id=f"q{i}", content_version="v1", skill="reading" if i % 2 else "listening",
-        question_type="short_answer", correct=bool((i // 2) % 2),
-        answered_at=datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(minutes=i))
-        for i in range(24)]
+    return [
+        ResponseRecord(
+            response_id=f"r{i:03}",
+            learner_id=f"u{i % 4}",
+            item_id=f"q{i}",
+            content_version="v1",
+            skill="reading" if i % 2 else "listening",
+            question_type="short_answer",
+            correct=bool((i // 2) % 2),
+            answered_at=datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(minutes=i),
+        )
+        for i in range(24)
+    ]
 
 
 def test_report_matches_actual_experiment_split():
@@ -32,7 +40,9 @@ def test_report_matches_actual_experiment_split():
     assert any("neutral IRT" in warning for warning in report["warnings"])
 
 
-@pytest.mark.parametrize("records", [[], rows()[:3], [r.model_copy(update={"answered_at": rows()[0].answered_at}) for r in rows()]])
+@pytest.mark.parametrize(
+    "records", [[], rows()[:3], [r.model_copy(update={"answered_at": rows()[0].answered_at}) for r in rows()]]
+)
 def test_empty_small_and_simultaneous_datasets_are_blocked(records):
     report = assess(records)
     assert report["status"] == "blocked"
@@ -79,7 +89,10 @@ def test_legacy_and_missing_skill_are_visible():
 
 
 def test_support_threshold_uses_distinct_learners_first_responses():
-    records = [r.model_copy(update={"learner_id": f"u{i}", "item_id": "shared", "skill": "reading"}) for i, r in enumerate(rows())]
+    records = [
+        r.model_copy(update={"learner_id": f"u{i}", "item_id": "shared", "skill": "reading"})
+        for i, r in enumerate(rows())
+    ]
     report = assess(records)
     assert report["items"][0]["meets_pilot_support"]
     assert report["items"][0]["train"]["responses"] == 18

@@ -10,13 +10,15 @@ def grade_listening(questions, answers_map):
         user_answer = answers_map.get(question.id)
         correct = is_correct(question, user_answer)
         score += int(correct)
-        graded.append({
-            "question_id": question.id,
-            "text": question.text,
-            "question_type": question.question_type,
-            "user_answer": display_answer(user_answer) or None,
-            "correct_answer": display_answer(question.correct_answer),
-            "is_correct": correct,
-            "explanation": question.explanation,
-        })
+        graded.append(
+            {
+                "question_id": question.id,
+                "text": question.text,
+                "question_type": question.question_type,
+                "user_answer": display_answer(user_answer) or None,
+                "correct_answer": display_answer(question.correct_answer),
+                "is_correct": correct,
+                "explanation": question.explanation,
+            }
+        )
     return graded, score, build_breakdown(graded)

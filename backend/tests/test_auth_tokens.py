@@ -42,14 +42,17 @@ def test_rename_and_username_reuse_never_transfer_token(db, resolve):
     assert error.value.status_code == 401
 
 
-@pytest.mark.parametrize("claims", [
-    {"sub": "1"},  # Legacy numeric username must not become user ID 1.
-    {"sub": "original"},
-    {"sub": "01", "version": 2, "type": "access"},
-    {"sub": "-1", "version": 2, "type": "access"},
-    {"sub": "1", "version": 2, "type": "refresh"},
-    {"sub": "1", "version": 2, "type": "access", "exp": 1},
-])
+@pytest.mark.parametrize(
+    "claims",
+    [
+        {"sub": "1"},  # Legacy numeric username must not become user ID 1.
+        {"sub": "original"},
+        {"sub": "01", "version": 2, "type": "access"},
+        {"sub": "-1", "version": 2, "type": "access"},
+        {"sub": "1", "version": 2, "type": "refresh"},
+        {"sub": "1", "version": 2, "type": "access", "exp": 1},
+    ],
+)
 @pytest.mark.parametrize("resolve", [get_current_user, _resolve_media_user])
 def test_invalid_or_legacy_claims_are_rejected(db, claims, resolve):
     db.add(User(id=1, username="original", password="hash"))
@@ -57,7 +60,8 @@ def test_invalid_or_legacy_claims_are_rejected(db, claims, resolve):
     now = datetime.now(timezone.utc)
     token = jwt.encode(
         {"iat": now, "exp": now + timedelta(minutes=5), **claims},
-        settings.SECRET_KEY, algorithm=settings.ALGORITHM,
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM,
     )
     with pytest.raises(HTTPException) as error:
         resolve(token=token, db=db)
@@ -65,7 +69,8 @@ def test_invalid_or_legacy_claims_are_rejected(db, claims, resolve):
 
 
 def test_expiration_is_required(db):
-    token = jwt.encode({"sub": "1", "version": 2, "type": "access", "iat": 1},
-                       settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    token = jwt.encode(
+        {"sub": "1", "version": 2, "type": "access", "iat": 1}, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     with pytest.raises(HTTPException):
         get_current_user(token=token, db=db)

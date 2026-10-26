@@ -1,4 +1,5 @@
 """Global AI budget, stuck-grading reconciliation, pre-check refunds, idempotency."""
+
 from datetime import timedelta
 
 import pytest
@@ -35,8 +36,13 @@ def db():
     engine = create_engine("sqlite://")
     Base.metadata.create_all(engine)
     with Session(engine) as session:
-        session.add_all([User(id=1, username="a", password="x"), User(id=2, username="b", password="x"),
-                         WritingTask(id=1, task_type=2, title="T", prompt="P", min_words=5, duration_minutes=40)])
+        session.add_all(
+            [
+                User(id=1, username="a", password="x"),
+                User(id=2, username="b", password="x"),
+                WritingTask(id=1, task_type=2, title="T", prompt="P", min_words=5, duration_minutes=40),
+            ]
+        )
         session.commit()
         yield session
     engine.dispose()
@@ -54,6 +60,7 @@ class _Grader:
 
 
 # ---- global daily AI budget -------------------------------------------------
+
 
 def test_global_budget_fails_closed_across_users(db, monkeypatch):
     monkeypatch.setattr(settings, "AI_GLOBAL_DAILY_ATTEMPTS", 2)
@@ -79,10 +86,17 @@ def test_global_budget_can_be_disabled(db, monkeypatch):
 
 # ---- stuck pending submissions ----------------------------------------------
 
+
 def _stuck_submission(db, minutes_old):
-    sub = WritingSubmission(user_id=1, task_id=1, text=ESSAY, word_count=60, status="pending",
-                            created_at=utcnow() - timedelta(minutes=minutes_old),
-                            status_updated_at=utcnow() - timedelta(minutes=minutes_old))
+    sub = WritingSubmission(
+        user_id=1,
+        task_id=1,
+        text=ESSAY,
+        word_count=60,
+        status="pending",
+        created_at=utcnow() - timedelta(minutes=minutes_old),
+        status_updated_at=utcnow() - timedelta(minutes=minutes_old),
+    )
     db.add(sub)
     db.commit()
     return sub
@@ -104,9 +118,17 @@ def test_dead_worker_reservation_is_refunded_and_retry_unblocked(db, monkeypatch
     monkeypatch.setattr(writing_service, "get_writing_grader", lambda: _Grader())
     stale = _stuck_submission(db, settings.grading_stale_minutes + 5)
     # The killed worker had reserved a review and held the retry lock.
-    db.add(AIReservation(id="dead", user_id=1, kind="writing", charged=True, status="reserved",
-                         active_resource=f"writing:{stale.id}",
-                         created_at=utcnow() - timedelta(minutes=settings.grading_stale_minutes + 5)))
+    db.add(
+        AIReservation(
+            id="dead",
+            user_id=1,
+            kind="writing",
+            charged=True,
+            status="reserved",
+            active_resource=f"writing:{stale.id}",
+            created_at=utcnow() - timedelta(minutes=settings.grading_stale_minutes + 5),
+        )
+    )
     db.add(AIQuotaBucket(user_id=1, kind="writing", period="lifetime", used=1))
     db.commit()
     assert quota_status(db, WritingSubmission, db.get(User, 1), 2)["used"] == 0  # refunded lazily
@@ -125,6 +147,7 @@ def test_reservation_sweep_ignores_recent_reservations(db):
 
 
 # ---- pre-check rejections are free ------------------------------------------
+
 
 def test_precheck_rejection_costs_no_review_and_no_ai_call(db, monkeypatch):
     monkeypatch.setattr(settings, "FREE_WRITING_SUBMISSIONS", 1)
@@ -174,10 +197,17 @@ def test_grader_error_text_never_reaches_the_user(db, monkeypatch):
 
 # ---- answers and attempts ---------------------------------------------------
 
-@pytest.mark.parametrize("given, expected", [
-    ("the  river", "the river"), ("River.", "river"), ("  “River” ", "river"),
-    ("it’s", "it's"), ("A, ", "a"),
-])
+
+@pytest.mark.parametrize(
+    "given, expected",
+    [
+        ("the  river", "the river"),
+        ("River.", "river"),
+        ("  “River” ", "river"),
+        ("it’s", "it's"),
+        ("A, ", "a"),
+    ],
+)
 def test_answer_normalisation(given, expected):
     assert normalize_answer(given) == expected
 
@@ -186,11 +216,14 @@ def test_answer_normalisation(given, expected):
 def reading_db(db):
     test = ContentTest(id=1, title="R", test_type="reading", duration_minutes=60)
     section = Section(id=1, test_id=1, order=0, title="S")
-    db.add_all([test, section,
-                Question(id=1, section_id=1, order=1, text="q", question_type="fill_blank",
-                         correct_answer=["the river"]),
-                Question(id=2, section_id=1, order=2, text="q2", question_type="fill_blank",
-                         correct_answer=["it's"])])
+    db.add_all(
+        [
+            test,
+            section,
+            Question(id=1, section_id=1, order=1, text="q", question_type="fill_blank", correct_answer=["the river"]),
+            Question(id=2, section_id=1, order=2, text="q2", question_type="fill_blank", correct_answer=["it's"]),
+        ]
+    )
     db.commit()
     return db
 
@@ -204,8 +237,9 @@ def test_punctuation_and_spacing_do_not_fail_a_correct_answer(reading_db):
 def test_repeated_submission_key_returns_the_same_attempt(reading_db):
     user, test = reading_db.get(User, 1), reading_db.get(ContentTest, 1)
     graded = [{"question_id": 1, "user_answer": "x", "is_correct": False, "question_type": "fill_blank"}]
-    kwargs = dict(graded=graded, score=0, total=1, breakdown=[], review_map={}, duration_seconds=10,
-                  submission_key="key-12345678")
+    kwargs = dict(
+        graded=graded, score=0, total=1, breakdown=[], review_map={}, duration_seconds=10, submission_key="key-12345678"
+    )
     first, created_first = attempts_service.save_graded_attempt(reading_db, user, test, **kwargs)
     second, created_second = attempts_service.save_graded_attempt(reading_db, user, test, **kwargs)
     assert created_first and not created_second and first.id == second.id
@@ -227,6 +261,7 @@ def test_identical_submit_without_key_is_deduplicated_but_retake_is_not(reading_
 
 
 # ---- grading gate (sync handlers must not hang or starve the threadpool) -----
+
 
 def test_gate_rejects_excess_requests_with_503_instead_of_queueing(monkeypatch):
     import threading

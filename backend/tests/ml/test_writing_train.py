@@ -54,9 +54,13 @@ def test_pipeline_functions_are_picklable_from_a_cli_run():
     """Running `python -m ml.train_writing` makes __main__ the module; functions
     defined there cannot be unpickled by the evaluator."""
     from ml.train_writing import build_pipeline
+
     for name in ("ridge", "gbm"):
         union = build_pipeline(name, 0).steps[0][1]
-        funcs = [t.func for _, branch in union.transformer_list for _, t in
-                 (branch.steps if hasattr(branch, "steps") else [("f", branch)])
-                 if hasattr(t, "func")]
+        funcs = [
+            t.func
+            for _, branch in union.transformer_list
+            for _, t in (branch.steps if hasattr(branch, "steps") else [("f", branch)])
+            if hasattr(t, "func")
+        ]
         assert funcs and all(f.__module__ == "ml.writing_features" for f in funcs)

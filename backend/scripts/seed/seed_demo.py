@@ -8,6 +8,7 @@ nothing). It refuses to run when APP_ENV=production or when DATABASE_URL points
 to a non-local host, unless you pass --force-i-know. For real content use
 `python -m content_tools.importer` instead.
 """
+
 import argparse
 import sys
 from urllib.parse import urlparse
@@ -211,21 +212,19 @@ def run():
             speak_seconds=90,
         )
 
-        db.add_all([
-            reading,
-            listening,
-            writing_t1,
-            writing_t2,
-            speaking_p1,
-            speaking_p2,
-            speaking_p3,
-        ])
-        db.commit()
-        print(
-            f"Seeded: {reading.title}, {listening.title}, "
-            f"{writing_t1.title}, {writing_t2.title}, "
-            "Speaking Parts 1-3"
+        db.add_all(
+            [
+                reading,
+                listening,
+                writing_t1,
+                writing_t2,
+                speaking_p1,
+                speaking_p2,
+                speaking_p3,
+            ]
         )
+        db.commit()
+        print(f"Seeded: {reading.title}, {listening.title}, {writing_t1.title}, {writing_t2.title}, Speaking Parts 1-3")
     except BaseException:
         db.rollback()
         raise

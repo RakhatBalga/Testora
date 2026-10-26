@@ -1,4 +1,5 @@
 """Versioned, pseudonymous research records. Raw data stays outside Git."""
+
 import json
 from datetime import datetime
 from pathlib import Path

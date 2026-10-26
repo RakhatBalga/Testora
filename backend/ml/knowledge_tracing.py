@@ -1,4 +1,5 @@
 """No-forgetting Bayesian Knowledge Tracing, separately per question type."""
+
 import math
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -40,8 +41,9 @@ class BKTModel:
         params = self.parameters.get(record.skill_key, BKTParameters())
         prior = self.knowledge(record.learner_id, record.skill_key)
         probability = self.probability(record.learner_id, record.skill_key)
-        posterior = (prior * (1 - params.slip) / probability if record.correct
-                     else prior * params.slip / (1 - probability))
+        posterior = (
+            prior * (1 - params.slip) / probability if record.correct else prior * params.slip / (1 - probability)
+        )
         self.mastery[(record.learner_id, record.skill_key)] = posterior + (1 - posterior) * params.learn
 
 
@@ -58,7 +60,9 @@ def fit_bkt(records: list[ResponseRecord], *, min_responses=10) -> BKTModel:
     for row in ordered:
         groups[row.skill_key].append(row)
     model = BKTModel()
-    candidates = [BKTParameters(*values) for values in product((0.2, 0.5, 0.8), (0.05, 0.15), (0.1, 0.25), (0.05, 0.15))]
+    candidates = [
+        BKTParameters(*values) for values in product((0.2, 0.5, 0.8), (0.05, 0.15), (0.1, 0.25), (0.05, 0.15))
+    ]
     for skill, rows in groups.items():
         if len(rows) < min_responses or len({r.learner_id for r in rows}) < 2:
             model.parameters[skill] = BKTParameters()

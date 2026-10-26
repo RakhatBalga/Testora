@@ -67,6 +67,7 @@ JSON shape (any of the three arrays may be present per file):
       ]
     }
 """
+
 import json
 import sys
 from pathlib import Path
@@ -111,9 +112,7 @@ def build_test(data: dict) -> Test:
     title = _require(data, "title", "test")
     test_type = _require(data, "test_type", f"test '{title}'")
     if test_type not in ("reading", "listening"):
-        raise ContentImportError(
-            f"test '{title}': test_type must be 'reading' or 'listening', got '{test_type}'"
-        )
+        raise ContentImportError(f"test '{title}': test_type must be 'reading' or 'listening', got '{test_type}'")
 
     test = Test(
         title=title,
@@ -141,9 +140,7 @@ def build_section(data: dict, test_title: str, default_order: int) -> Section:
         section_metadata=data.get("metadata"),
     )
     questions = _require(data, "questions", where)
-    section.questions = [
-        build_question(q, where, i) for i, q in enumerate(questions, 1)
-    ]
+    section.questions = [build_question(q, where, i) for i, q in enumerate(questions, 1)]
     return section
 
 
@@ -156,9 +153,7 @@ def build_question(data: dict, where: str, default_order: int) -> Question:
         )
     correct = _require(data, "correct_answer", f"{where}, question {default_order}")
     if not isinstance(correct, list):
-        raise ContentImportError(
-            f"{where}, question {default_order}: correct_answer must be a list"
-        )
+        raise ContentImportError(f"{where}, question {default_order}: correct_answer must be a list")
     return Question(
         order=int(data.get("order", default_order)),
         text=_require(data, "text", f"{where}, question {default_order}"),
@@ -182,9 +177,7 @@ def _normalize_evidence(raw):
         quote = e.get("quote", e.get("text"))
         if e.get("paragraph") is None or not quote:
             continue
-        out.append(
-            {"paragraph": e["paragraph"], "sentence": e.get("sentence"), "text": quote}
-        )
+        out.append({"paragraph": e["paragraph"], "sentence": e.get("sentence"), "text": quote})
     return out or None
 
 
@@ -248,11 +241,7 @@ def _import_file(db, path: Path, replace: bool, stats: dict):
                 stats["skipped"] += 1
                 print(f"  skip  writing '{task.title}' (already exists)")
                 continue
-            if (
-                db.query(WritingSubmission)
-                .filter(WritingSubmission.task_id == existing.id)
-                .first()
-            ):
+            if db.query(WritingSubmission).filter(WritingSubmission.task_id == existing.id).first():
                 stats["blocked"] += 1
                 print(f"  KEEP  writing '{task.title}' (has submissions, not replaced)")
                 continue
@@ -265,22 +254,14 @@ def _import_file(db, path: Path, replace: bool, stats: dict):
     for data in raw.get("speaking_tasks", []):
         task = build_speaking(data)
         first_q = task.questions[0]
-        existing = (
-            db.query(SpeakingTask)
-            .filter(SpeakingTask.part == task.part)
-            .all()
-        )
+        existing = db.query(SpeakingTask).filter(SpeakingTask.part == task.part).all()
         match = next((t for t in existing if (t.questions or [None])[0] == first_q), None)
         if match:
             if not replace:
                 stats["skipped"] += 1
                 print(f"  skip  speak   Part {task.part} '{first_q[:40]}...' (exists)")
                 continue
-            if (
-                db.query(SpeakingSubmission)
-                .filter(SpeakingSubmission.task_id == match.id)
-                .first()
-            ):
+            if db.query(SpeakingSubmission).filter(SpeakingSubmission.task_id == match.id).first():
                 stats["blocked"] += 1
                 print(f"  KEEP  speak   Part {task.part} (has submissions, not replaced)")
                 continue
@@ -310,10 +291,7 @@ def run(paths: list[Path], replace: bool):
     finally:
         db.close()
 
-    print(
-        f"\nDone. added={stats['added']} skipped={stats['skipped']} "
-        f"blocked={stats['blocked']}"
-    )
+    print(f"\nDone. added={stats['added']} skipped={stats['skipped']} blocked={stats['blocked']}")
 
 
 def collect_paths(args: list[str]) -> list[Path]:
@@ -325,7 +303,8 @@ def collect_paths(args: list[str]) -> list[Path]:
     if not CONTENT_DIR.exists():
         return []
     return sorted(
-        p for p in CONTENT_DIR.rglob("*.json")
+        p
+        for p in CONTENT_DIR.rglob("*.json")
         if not any(part.startswith("_") for part in p.relative_to(CONTENT_DIR).parts)
     )
 

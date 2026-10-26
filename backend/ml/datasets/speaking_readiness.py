@@ -2,6 +2,7 @@
 
 Only aggregate diagnostics are exported. Pilot readiness is not statistical sufficiency.
 """
+
 import argparse
 from collections import Counter
 import hashlib
@@ -39,13 +40,18 @@ def assess(samples: list[SpeakingSample], audio_root: Path) -> dict:
         "schema_version": "speaking-readiness.v1",
         "status": "blocked" if blockers else "pilot_with_warnings",
         "can_run_pilot": not blockers,
-        "sample_count": len(samples), "speaker_count": speakers,
+        "sample_count": len(samples),
+        "speaker_count": speakers,
         "expert_band_distribution": dict(sorted(bands.items())),
-        "llm_scores_available": llm_count, "audio_preflight_passed": audio_checked,
-        "blockers": blockers, "warnings": warnings,
-        "limitations": ["Does not decode audio or verify recording quality.",
-                        "Consent is declared in the manifest; retain supporting consent records privately.",
-                        "Passing preflight does not establish model quality or IELTS validity."],
+        "llm_scores_available": llm_count,
+        "audio_preflight_passed": audio_checked,
+        "blockers": blockers,
+        "warnings": warnings,
+        "limitations": [
+            "Does not decode audio or verify recording quality.",
+            "Consent is declared in the manifest; retain supporting consent records privately.",
+            "Passing preflight does not establish model quality or IELTS validity.",
+        ],
     }
 
 

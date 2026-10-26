@@ -11,6 +11,7 @@ offline by building cloze recall questions from the sentence each word was saved
 from — no dictionary required. Gemini produces richer meaning/translation/synonym
 questions.
 """
+
 from __future__ import annotations
 
 import random
@@ -104,10 +105,7 @@ class QuizSchema(BaseModel):
 # ---------------------------------------------------------------------------
 class VocabularyCoach(ABC):
     @abstractmethod
-    def enrich_word(
-        self, *, word: str, context: str | None, native_language: str | None
-    ) -> WordInfo:
-        ...
+    def enrich_word(self, *, word: str, context: str | None, native_language: str | None) -> WordInfo: ...
 
     @abstractmethod
     def generate_quiz(
@@ -143,9 +141,7 @@ def _sentence_around(context: str, word: str) -> str:
 
 
 class MockVocabularyCoach(VocabularyCoach):
-    def enrich_word(
-        self, *, word: str, context: str | None, native_language: str | None
-    ) -> WordInfo:
+    def enrich_word(self, *, word: str, context: str | None, native_language: str | None) -> WordInfo:
         # No dictionary/thesaurus/translation offline — return an honest,
         # non-crashing placeholder. Real data comes from Gemini in production.
         return WordInfo(
@@ -184,9 +180,7 @@ class MockVocabularyCoach(VocabularyCoach):
             sentence = _sentence_around(w.get("context") or "", word)
             if not sentence or word.lower() not in sentence.lower():
                 continue
-            blanked = re.sub(
-                re.escape(word), "_____", sentence, count=1, flags=re.IGNORECASE
-            )
+            blanked = re.sub(re.escape(word), "_____", sentence, count=1, flags=re.IGNORECASE)
             distractors = [v for v in vocab if v.lower() != word.lower()]
             rng.shuffle(distractors)
             options = [word] + distractors[:3]
@@ -236,7 +230,7 @@ def enrich_user_prompt(*, word: str, context: str | None, native_language: str |
         f'WORD: "{word}"\n'
         f'CONTEXT: "{context or "(no context provided)"}"\n\n'
         "Return: a short plain-English meaning; the part of speech; up to 5 common "
-        "synonyms; up to 3 \"better alternatives\" (stronger, more precise or "
+        'synonyms; up to 3 "better alternatives" (stronger, more precise or '
         f"higher-band words the student could use instead); {translation_line}; and "
         "one natural example sentence that uses the word."
     )
@@ -246,13 +240,13 @@ def quiz_user_prompt(*, words: list[dict], native_language: str | None, num_ques
     native = (native_language or "").strip()
     lines: list[str] = []
     for w in words:
-        parts = [f'word: {w.get("word", "")}']
+        parts = [f"word: {w.get('word', '')}"]
         if w.get("meaning"):
-            parts.append(f'meaning: {w["meaning"]}')
+            parts.append(f"meaning: {w['meaning']}")
         if w.get("translation"):
-            parts.append(f'{native or "native"} translation: {w["translation"]}')
+            parts.append(f"{native or 'native'} translation: {w['translation']}")
         if w.get("synonyms"):
-            parts.append(f'synonyms: {", ".join(w["synonyms"])}')
+            parts.append(f"synonyms: {', '.join(w['synonyms'])}")
         lines.append("- " + "; ".join(parts))
     listing = "\n".join(lines)
     kinds = '"meaning" (choose the correct meaning), "synonym" (choose the best synonym or stronger alternative)'

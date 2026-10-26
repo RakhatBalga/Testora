@@ -51,6 +51,7 @@ def test_failed_quiz_is_not_cached_and_cannot_retry_forever(db, monkeypatch):
     class FailedCoach:
         def generate_quiz(self, **kwargs):
             return WordQuiz(questions=[], error=True)
+
     monkeypatch.setattr(vocabulary, "get_vocabulary_coach", FailedCoach)
     user = db.get(User, 1)
     for expected in [503, 429]:

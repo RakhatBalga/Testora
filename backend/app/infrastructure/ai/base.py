@@ -14,8 +14,7 @@ class WritingGrader(ABC):
         prompt: str,
         text: str,
         min_words: int,
-    ) -> Feedback:
-        ...
+    ) -> Feedback: ...
 
     def improve(self, *, task_type: int, prompt: str, text: str) -> str | None:
         """Rewrite the essay as a higher-band "Better Version" (plain text).
@@ -35,5 +34,4 @@ class SpeakingGrader(ABC):
         questions: list[str],
         audio_path: str,
         transcript: str | None = None,
-    ) -> Feedback:
-        ...
+    ) -> Feedback: ...

@@ -11,6 +11,7 @@ Speaking submission fails cleanly with "not supported on this provider yet".
 Planned path: faster-whisper ASR -> this transcript grader; later possibly a
 Qwen-Omni audio model behind the same interface.
 """
+
 from __future__ import annotations
 
 from app.domain.grading import Feedback
@@ -48,23 +49,27 @@ class QwenTransport:
         return self.client.model
 
     def generate_json(self, *, role, system, user, schema, temperature, max_tokens) -> str:
-        return run_sync(lambda: self.client.chat_json(
-            system=system,
-            user=user,
-            schema=schema,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            seed=GRADING_SEED,
-        ))
+        return run_sync(
+            lambda: self.client.chat_json(
+                system=system,
+                user=user,
+                schema=schema,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                seed=GRADING_SEED,
+            )
+        )
 
     def generate_text(self, *, role, system, user, temperature, max_tokens) -> str:
-        return run_sync(lambda: self.client.chat_text(
-            system=system,
-            user=user,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            seed=GRADING_SEED,
-        ))
+        return run_sync(
+            lambda: self.client.chat_text(
+                system=system,
+                user=user,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                seed=GRADING_SEED,
+            )
+        )
 
 
 class QwenWritingGrader(WritingGrader):
@@ -92,9 +97,7 @@ class QwenSpeakingGrader(SpeakingGrader):
     ) -> Feedback:
         if not (transcript or "").strip():
             return speaking_unsupported_feedback(self.transport)
-        return grade_speaking_transcript(
-            self.transport, part=part, questions=questions, transcript=transcript
-        )
+        return grade_speaking_transcript(self.transport, part=part, questions=questions, transcript=transcript)
 
 
 class QwenVocabularyCoach(TransportVocabularyCoach):

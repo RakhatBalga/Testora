@@ -5,6 +5,7 @@ linker and paragraph counts) — a rule-based baseline, not a model. Its raw
 bands go through the same normalisation as every LLM provider
 (`app.domain.grading.normalize_writing`).
 """
+
 import re
 from collections import Counter
 
@@ -23,30 +24,119 @@ MOCK_METHOD_VERSION = "mock-rules-v2"
 
 # Small stopword set so vocabulary detectors focus on content words.
 _STOPWORDS = {
-    "the", "a", "an", "and", "or", "but", "of", "to", "in", "on", "for", "with",
-    "is", "are", "was", "were", "be", "been", "it", "this", "that", "these",
-    "those", "as", "at", "by", "from", "we", "i", "you", "they", "he", "she",
-    "their", "our", "my", "your", "its", "not", "can", "will", "would", "have",
-    "has", "had", "do", "does", "did", "so", "if", "than", "then", "there",
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "but",
+    "of",
+    "to",
+    "in",
+    "on",
+    "for",
+    "with",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "it",
+    "this",
+    "that",
+    "these",
+    "those",
+    "as",
+    "at",
+    "by",
+    "from",
+    "we",
+    "i",
+    "you",
+    "they",
+    "he",
+    "she",
+    "their",
+    "our",
+    "my",
+    "your",
+    "its",
+    "not",
+    "can",
+    "will",
+    "would",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "so",
+    "if",
+    "than",
+    "then",
+    "there",
 }
 # Basic, non-academic words that cap Lexical Resource when overused.
 _BASIC_WORDS = {"good", "bad", "very", "thing", "things", "important", "big", "nice", "get", "lot"}
 
 # Cohesive devices that lift Coherence & Cohesion when used appropriately.
 _COHESIVE_WORDS = {
-    "however", "therefore", "furthermore", "moreover", "consequently", "nevertheless",
-    "nonetheless", "meanwhile", "additionally", "similarly", "conversely", "thus",
-    "hence", "firstly", "secondly", "finally", "subsequently", "accordingly", "instead",
+    "however",
+    "therefore",
+    "furthermore",
+    "moreover",
+    "consequently",
+    "nevertheless",
+    "nonetheless",
+    "meanwhile",
+    "additionally",
+    "similarly",
+    "conversely",
+    "thus",
+    "hence",
+    "firstly",
+    "secondly",
+    "finally",
+    "subsequently",
+    "accordingly",
+    "instead",
 }
 _COHESIVE_PHRASES = (
-    "in contrast", "on the other hand", "for instance", "for example", "as a result",
-    "in conclusion", "to conclude", "in addition", "in particular", "to begin with",
-    "by contrast", "on balance",
+    "in contrast",
+    "on the other hand",
+    "for instance",
+    "for example",
+    "as a result",
+    "in conclusion",
+    "to conclude",
+    "in addition",
+    "in particular",
+    "to begin with",
+    "by contrast",
+    "on balance",
 )
 # Subordinating words signalling complex sentence structures (Grammar range).
 _SUBORDINATORS = {
-    "because", "although", "though", "while", "whereas", "since", "unless", "despite",
-    "whether", "which", "that", "who", "whose", "if", "when", "once", "before", "after",
+    "because",
+    "although",
+    "though",
+    "while",
+    "whereas",
+    "since",
+    "unless",
+    "despite",
+    "whether",
+    "which",
+    "that",
+    "who",
+    "whose",
+    "if",
+    "when",
+    "once",
+    "before",
+    "after",
 }
 
 
@@ -68,11 +158,7 @@ class MockWritingGrader(WritingGrader):
         sentences = [s for s in re.split(r"[.!?]+", text) if s.strip()]
         sentence_count = max(1, len(sentences))
         avg_sentence_len = words / sentence_count
-        unique_ratio = (
-            len({w.lower() for w in re.findall(r"\b[\w'-]+\b", text)}) / words
-            if words
-            else 0
-        )
+        unique_ratio = len({w.lower() for w in re.findall(r"\b[\w'-]+\b", text)}) / words if words else 0
 
         suggestions: list[str] = []
         tokens = [w.lower() for w in re.findall(r"\b[\w'-]+\b", text)]

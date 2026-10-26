@@ -71,23 +71,27 @@ def dashboard_summary(db: Session, user: User) -> dict:
 
     recent = []
     if writing:
-        recent.append({
-            "id": f"writing-{writing.id}",
-            "skill": "writing",
-            "title": writing.task.title if writing.task else "Writing",
-            "band": writing.band,
-            "created_at": writing.created_at,
-            "href": f"/writing/result/{writing.id}",
-        })
+        recent.append(
+            {
+                "id": f"writing-{writing.id}",
+                "skill": "writing",
+                "title": writing.task.title if writing.task else "Writing",
+                "band": writing.band,
+                "created_at": writing.created_at,
+                "href": f"/writing/result/{writing.id}",
+            }
+        )
     if reading:
-        recent.append({
-            "id": f"reading-{reading.id}",
-            "skill": "reading",
-            "title": reading.test.title if reading.test else "Reading",
-            "band": reading.band,
-            "created_at": reading.created_at,
-            "href": f"/reading/{reading.test_id}?attempt={reading.id}",
-        })
+        recent.append(
+            {
+                "id": f"reading-{reading.id}",
+                "skill": "reading",
+                "title": reading.test.title if reading.test else "Reading",
+                "band": reading.band,
+                "created_at": reading.created_at,
+                "href": f"/reading/{reading.test_id}?attempt={reading.id}",
+            }
+        )
     recent.sort(key=lambda row: row["created_at"], reverse=True)
 
     return {

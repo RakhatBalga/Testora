@@ -3,6 +3,7 @@
 Pure ASGI (not BaseHTTPMiddleware) so the body limit applies before FastAPI
 parses anything and streaming responses are not buffered.
 """
+
 import json
 import logging
 import time
@@ -71,10 +72,17 @@ class BodySizeLimitMiddleware:
     @staticmethod
     async def _reject(send, limit: int):
         body = json.dumps({"detail": f"Request body exceeds the {limit // 1024} KB limit."}).encode()
-        await send({"type": "http.response.start", "status": 413,
-                    "headers": [(b"content-type", b"application/json"),
-                                (b"content-length", str(len(body)).encode()),
-                                (b"connection", b"close")]})
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 413,
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(body)).encode()),
+                    (b"connection", b"close"),
+                ],
+            }
+        )
         await send({"type": "http.response.body", "body": body})
 
 
@@ -111,7 +119,9 @@ class RequestContextMiddleware:
             if scope["path"] not in ("/health", "/health/live"):
                 logger.info(
                     "%s %s -> %s in %dms",
-                    scope["method"], scope["path"], status_code,
+                    scope["method"],
+                    scope["path"],
+                    status_code,
                     (time.perf_counter() - started_at) * 1000,
                 )
             request_ctx.reset(ctx_token)

@@ -6,6 +6,7 @@ the same temperature/seed, and the same deterministic normalisation
 (system, user, schema) into raw text. So switching Gemini -> Qwen changes the
 model, not the method, and "Gemini vs Qwen" comparisons compare models.
 """
+
 from __future__ import annotations
 
 import json
@@ -66,8 +67,7 @@ class Transport(Protocol):
 
     provider: str
 
-    def model_for(self, role: str) -> str:
-        ...
+    def model_for(self, role: str) -> str: ...
 
     def generate_json(
         self,
@@ -90,8 +90,7 @@ class Transport(Protocol):
         user: str,
         temperature: float,
         max_tokens: int,
-    ) -> str:
-        ...
+    ) -> str: ...
 
 
 _THINK_BLOCK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
@@ -106,7 +105,7 @@ def strip_think(text: str) -> str:
     text = _THINK_BLOCK_RE.sub("", text or "")
     lower = text.lower()
     if "</think>" in lower:
-        text = text[lower.rindex("</think>") + len("</think>"):]
+        text = text[lower.rindex("</think>") + len("</think>") :]
     elif "<think>" in lower:
         text = text[: lower.index("<think>")]
     return text.strip()
@@ -165,7 +164,11 @@ def ask_structured(
             last = exc
             logger.warning(
                 "%s %s output failed schema validation (attempt %d/%d): %s",
-                transport.provider, role, attempt, attempts, exc,
+                transport.provider,
+                role,
+                attempt,
+                attempts,
+                exc,
             )
     raise SchemaError(f"{role} output invalid after {attempts} attempts") from last
 
@@ -223,11 +226,7 @@ class WritingEngine:
             text=text,
             prompt=prompt,
         )
-        coaching = (
-            self._coach(task_type, prompt, text, examiner, normalized["overall"])
-            if self.coach_enabled
-            else None
-        )
+        coaching = self._coach(task_type, prompt, text, examiner, normalized["overall"]) if self.coach_enabled else None
         feedback = build_feedback(normalized, coaching, task_type=task_type, text=text)
         return self._provenance(feedback)
 

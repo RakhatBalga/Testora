@@ -1,8 +1,19 @@
 import re
 import unicodedata
 
-_QUOTES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201a": "'", "\u201b": "'",
-                         "\u201c": '"', "\u201d": '"', "\u201e": '"', "\u2013": "-", "\u2014": "-"})
+_QUOTES = str.maketrans(
+    {
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201a": "'",
+        "\u201b": "'",
+        "\u201c": '"',
+        "\u201d": '"',
+        "\u201e": '"',
+        "\u2013": "-",
+        "\u2014": "-",
+    }
+)
 _EDGE_PUNCT = " .,;:!?\"'`()[]"
 _SPACES_RE = re.compile(r"\s+")
 _WORD_RE = re.compile(r"[\w]+(?:[-'][\w]+)*", re.UNICODE)

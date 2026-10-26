@@ -5,6 +5,7 @@ Single place that configures the root logger so every module can simply call
 output. Honours the LOG_LEVEL env var (default INFO). Every record carries the
 current request id and user id (set by the API middleware / auth dependency).
 """
+
 import logging
 import os
 from contextvars import ContextVar
@@ -20,6 +21,7 @@ def set_user_id(user_id: int) -> None:
     ctx = request_ctx.get()
     if "rid" in ctx:  # only inside a request, never the shared default
         ctx["uid"] = str(user_id)
+
 
 _CONFIGURED = False
 

@@ -1,12 +1,13 @@
 """Retry policy shared by every AI transport.
 
-  * transient (timeouts, connection errors, HTTP 408/5xx, 429) -> retry with
-    exponential backoff; a 429/503 Retry-After is respected up to a ceiling;
-  * permanent (other 4xx: bad request, bad key, forbidden, not found) -> never
-    retried, it would only waste the user's time and a grading slot;
-  * schema / JSON validation failure after a successful call -> re-asked once
-    by the engine (`engine.py`), not here.
+* transient (timeouts, connection errors, HTTP 408/5xx, 429) -> retry with
+  exponential backoff; a 429/503 Retry-After is respected up to a ceiling;
+* permanent (other 4xx: bad request, bad key, forbidden, not found) -> never
+  retried, it would only waste the user's time and a grading slot;
+* schema / JSON validation failure after a successful call -> re-asked once
+  by the engine (`engine.py`), not here.
 """
+
 from __future__ import annotations
 
 import email.utils

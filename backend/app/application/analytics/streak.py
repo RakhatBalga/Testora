@@ -3,6 +3,7 @@
 Derived from real submission/attempt dates (Writing, Speaking, Reading,
 Listening). No mock, no AI. A day counts if any skill was practised on it.
 """
+
 from datetime import timedelta
 
 from sqlalchemy.orm import Session
@@ -22,15 +23,13 @@ def _activity_dates(db: Session, user_id: int) -> set:
     """
     dates: set = set()
     # Failed, pending and Band-0 rejected submissions are not graded activity.
-    for model, query in ((WritingSubmission, graded_writing(db, user_id)),
-                         (SpeakingSubmission, graded_speaking(db, user_id))):
+    for model, query in (
+        (WritingSubmission, graded_writing(db, user_id)),
+        (SpeakingSubmission, graded_speaking(db, user_id)),
+    ):
         rows = query.with_entities(model.created_at).all()
         dates.update(to_local_date(r[0]) for r in rows if r[0] is not None)
-    rows = (
-        db.query(Attempt.created_at)
-        .filter(Attempt.user_id == user_id, Attempt.created_at.isnot(None))
-        .all()
-    )
+    rows = db.query(Attempt.created_at).filter(Attempt.user_id == user_id, Attempt.created_at.isnot(None)).all()
     dates.update(to_local_date(r[0]) for r in rows)
     return dates
 

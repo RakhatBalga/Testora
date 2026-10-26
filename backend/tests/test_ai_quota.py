@@ -50,6 +50,7 @@ def quota_engine(request, tmp_path, monkeypatch):
 @pytest.mark.parametrize("model,kind", [(WritingSubmission, "writing"), (SpeakingSubmission, "speaking")])
 def test_parallel_requests_cannot_exceed_lifetime_budget(quota_engine, model, kind):
     barrier = threading.Barrier(8)
+
     def request(_):
         with Session(quota_engine) as db:
             user = db.get(User, 1)
@@ -60,6 +61,7 @@ def test_parallel_requests_cannot_exceed_lifetime_budget(quota_engine, model, ki
                 return 200
             except HTTPException as error:
                 return error.status_code
+
     with ThreadPoolExecutor(max_workers=8) as pool:
         outcomes = list(pool.map(request, range(8)))
     assert outcomes.count(200) == 2

@@ -1,4 +1,5 @@
 """Reading/Listening attempts: grading persistence shared by both skills."""
+
 import threading
 from datetime import timedelta
 from typing import Callable
@@ -36,8 +37,9 @@ def find_attempt_by_key(db: Session, user_id: int, test_id: int, key: str | None
 def _find_recent_duplicate(db: Session, user_id: int, test_id: int, answers: dict[int, str | None]):
     recent = (
         db.query(Attempt)
-        .filter(Attempt.user_id == user_id, Attempt.test_id == test_id,
-                Attempt.created_at > utcnow() - _DUPLICATE_WINDOW)
+        .filter(
+            Attempt.user_id == user_id, Attempt.test_id == test_id, Attempt.created_at > utcnow() - _DUPLICATE_WINDOW
+        )
         .order_by(Attempt.id.desc())
         .all()
     )
@@ -93,13 +95,15 @@ def save_graded_attempt(
             db.add(attempt)
             db.flush()  # assigns attempt.id before we create answer records
             for item in graded:
-                db.add(AnswerRecord(
-                    attempt_id=attempt.id,
-                    question_id=item["question_id"],
-                    user_answer=item["user_answer"],
-                    is_correct=item["is_correct"],
-                    marked_for_review=bool(review_map.get(item["question_id"], False)),
-                ))
+                db.add(
+                    AnswerRecord(
+                        attempt_id=attempt.id,
+                        question_id=item["question_id"],
+                        user_answer=item["user_answer"],
+                        is_correct=item["is_correct"],
+                        marked_for_review=bool(review_map.get(item["question_id"], False)),
+                    )
+                )
             if before_commit is not None:
                 before_commit()
             db.commit()
@@ -124,20 +128,23 @@ def submit_reading(db: Session, user: User, payload) -> dict:
             detail="Use the versioned Listening submission endpoint for this test",
         )
     questions = (
-        db.query(Question)
-        .join(Section, Question.section_id == Section.id)
-        .filter(Section.test_id == test.id)
-        .all()
+        db.query(Question).join(Section, Question.section_id == Section.id).filter(Section.test_id == test.id).all()
     )
     answers_map = {a.question_id: a.answer for a in payload.answers}
     review_map = {a.question_id: a.marked_for_review for a in payload.answers}
 
     graded, score = grade_attempt(questions, answers_map)
     attempt, created = save_graded_attempt(
-        db, user, test,
-        graded=graded, score=score, total=len(questions),
-        breakdown=build_breakdown(graded), review_map=review_map,
-        duration_seconds=payload.duration_seconds, submission_key=payload.submission_key,
+        db,
+        user,
+        test,
+        graded=graded,
+        score=score,
+        total=len(questions),
+        breakdown=build_breakdown(graded),
+        review_map=review_map,
+        duration_seconds=payload.duration_seconds,
+        submission_key=payload.submission_key,
     )
     if not created:
         return attempt_result(attempt)
@@ -188,16 +195,17 @@ def attempt_result(attempt: Attempt) -> dict:
 
 
 def list_attempts(db: Session, user: User) -> list[dict]:
-    attempts = (
-        db.query(Attempt)
-        .filter(Attempt.user_id == user.id)
-        .order_by(Attempt.created_at.desc())
-        .all()
-    )
+    attempts = db.query(Attempt).filter(Attempt.user_id == user.id).order_by(Attempt.created_at.desc()).all()
     return [
         {
-            "id": a.id, "test_id": a.test_id, "test_title": a.test.title, "test_type": a.test.test_type,
-            "score": a.score, "total": a.total, "band": a.band, "created_at": a.created_at,
+            "id": a.id,
+            "test_id": a.test_id,
+            "test_title": a.test.title,
+            "test_type": a.test.test_type,
+            "score": a.score,
+            "total": a.total,
+            "band": a.band,
+            "created_at": a.created_at,
         }
         for a in attempts
     ]

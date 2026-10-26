@@ -4,6 +4,7 @@ Same scoring method as Gemini: shared prompts, schema, normalisation. These
 tests check the Qwen path keeps every safety property (clamping, recomputed
 overall, verbatim mistakes, injection bounds, sanitized errors).
 """
+
 import asyncio
 import json
 
@@ -42,10 +43,20 @@ def _examiner(tr=6.5, cc=6.5, lr=7.0, gra=6.5, **extra):
         "position_clear": True,
         "off_topic": False,
         "errors": [
-            {"category": "grammar", "subskill": "articles", "severity": 2,
-             "snippet": "where trains do not run", "correction": "where no trains run"},
-            {"category": "vocabulary", "subskill": "word_choice", "severity": 1,
-             "snippet": "an invented sentence", "correction": "x"},
+            {
+                "category": "grammar",
+                "subskill": "articles",
+                "severity": 2,
+                "snippet": "where trains do not run",
+                "correction": "where no trains run",
+            },
+            {
+                "category": "vocabulary",
+                "subskill": "word_choice",
+                "severity": 1,
+                "snippet": "an invented sentence",
+                "correction": "x",
+            },
         ],
     }
     data.update(extra)
@@ -112,8 +123,10 @@ def test_qwen_invalid_bands_are_clamped_and_model_overall_ignored():
     server = _Server(_reply(_examiner(tr=11, cc=-2, lr=6.7, gra=6.2, overall=9.0)))
     fb = _grade(server)
     assert fb.criteria == {
-        "Task Response": 9.0, "Coherence & Cohesion": 0.0,
-        "Lexical Resource": 6.5, "Grammatical Range & Accuracy": 6.0,
+        "Task Response": 9.0,
+        "Coherence & Cohesion": 0.0,
+        "Lexical Resource": 6.5,
+        "Grammatical Range & Accuracy": 6.0,
     }
     assert fb.band == 5.5  # mean 5.375 -> 5.5
 
@@ -198,7 +211,9 @@ def test_qwen_speaking_from_transcript():
     }
     server = _Server(_reply(reply))
     fb = QwenSpeakingGrader(_transport(server)).grade(
-        part=1, questions=["Where do you live?"], audio_path="/x.webm",
+        part=1,
+        questions=["Where do you live?"],
+        audio_path="/x.webm",
         transcript="Um, I goed to Almaty last year and I live there now.",
     )
     assert fb.error is False
@@ -211,11 +226,20 @@ def test_qwen_speaking_from_transcript():
 def test_qwen_vocabulary_coach():
     server = _Server(
         _reply({"meaning": "to make smaller", "part_of_speech": "verb", "synonyms": ["cut"] * 9}),
-        _reply({"questions": [
-            {"word": "mitigate", "prompt": "Meaning?", "kind": "meaning",
-             "options": ["a", "b", "c", "d"], "answer_index": 1},
-            {"word": "bad", "prompt": "?", "kind": "meaning", "options": ["a"], "answer_index": 3},
-        ]}),
+        _reply(
+            {
+                "questions": [
+                    {
+                        "word": "mitigate",
+                        "prompt": "Meaning?",
+                        "kind": "meaning",
+                        "options": ["a", "b", "c", "d"],
+                        "answer_index": 1,
+                    },
+                    {"word": "bad", "prompt": "?", "kind": "meaning", "options": ["a"], "answer_index": 3},
+                ]
+            }
+        ),
     )
     coach = QwenVocabularyCoach(_transport(server))
     info = coach.enrich_word(word="mitigate", context="We must mitigate risk.", native_language="Russian")
@@ -232,16 +256,21 @@ def test_ping_qwen_reports_model_availability():
         assert request.url.path == "/v1/models"
         return httpx.Response(200, json={"data": [{"id": "qwen3:14b"}]})
 
-    client = OpenAICompatClient(base_url="http://qwen.test/v1", model="qwen3:14b",
-                                transport=httpx.MockTransport(handler), sleep=no_sleep)
+    client = OpenAICompatClient(
+        base_url="http://qwen.test/v1", model="qwen3:14b", transport=httpx.MockTransport(handler), sleep=no_sleep
+    )
     assert asyncio.run(ping_qwen(client)) == {
-        "ok": True, "model": "qwen3:14b", "model_available": True, "error": None,
+        "ok": True,
+        "model": "qwen3:14b",
+        "model_available": True,
+        "error": None,
     }
 
     def down(request):
         raise httpx.ConnectError("refused")
 
-    client = OpenAICompatClient(base_url="http://qwen.test/v1", model="qwen3:14b",
-                                transport=httpx.MockTransport(down), sleep=no_sleep)
+    client = OpenAICompatClient(
+        base_url="http://qwen.test/v1", model="qwen3:14b", transport=httpx.MockTransport(down), sleep=no_sleep
+    )
     result = asyncio.run(ping_qwen(client))
     assert result["ok"] is False and result["error"] == "ConnectError"

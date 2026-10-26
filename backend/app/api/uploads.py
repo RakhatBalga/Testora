@@ -1,4 +1,5 @@
 """Shared helper for size-capped multipart uploads."""
+
 from fastapi import HTTPException, UploadFile, status
 
 _CHUNK = 512 * 1024

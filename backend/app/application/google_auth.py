@@ -1,4 +1,5 @@
 """Google sign-in: exchange the authorization code and find or create the user."""
+
 import secrets
 
 import bcrypt
@@ -50,20 +51,23 @@ def start(db: Session, state: str, redirect_uri: str) -> dict:
 def sign_in(db: Session, payload) -> dict:
     _require_configured()
     verifier = consume_flow(db, payload.state, payload.redirect_uri)
-    google_tokens = _google_request("POST", GOOGLE_TOKEN_URL, data={
-        "code": payload.code,
-        "client_id": settings.GOOGLE_CLIENT_ID,
-        "client_secret": settings.GOOGLE_CLIENT_SECRET,
-        "redirect_uri": payload.redirect_uri,
-        "grant_type": "authorization_code",
-        "code_verifier": verifier,
-    })
+    google_tokens = _google_request(
+        "POST",
+        GOOGLE_TOKEN_URL,
+        data={
+            "code": payload.code,
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "redirect_uri": payload.redirect_uri,
+            "grant_type": "authorization_code",
+            "code_verifier": verifier,
+        },
+    )
     access_token = google_tokens.get("access_token")
     if not access_token:
         raise HTTPException(status_code=401, detail="No access token from Google")
 
-    google_user = _google_request("GET", GOOGLE_USERINFO_URL,
-                                  headers={"Authorization": f"Bearer {access_token}"})
+    google_user = _google_request("GET", GOOGLE_USERINFO_URL, headers={"Authorization": f"Bearer {access_token}"})
     google_id = google_user.get("id")
     email = google_user.get("email")
     if not google_id or not email or google_user.get("verified_email") is not True:

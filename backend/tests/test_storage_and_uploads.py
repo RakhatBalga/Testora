@@ -1,4 +1,5 @@
 """Blob storage, avatars, Speaking submit API and its server-side gate, auth hardening."""
+
 import io
 import os
 
@@ -25,8 +26,12 @@ class _SpeakingGrader:
     def grade(self, *, part, questions, audio_path, transcript=None):
         type(self).seen_path = audio_path
         assert os.path.exists(audio_path)  # the grader gets a real file...
-        return Feedback(band=6.5, criteria={"Fluency & Coherence": 6.5}, summary="ok",
-                        mistakes=[MistakeItem(category="fluency", subskill="pauses", severity=2)])
+        return Feedback(
+            band=6.5,
+            criteria={"Fluency & Coherence": 6.5},
+            summary="ok",
+            mistakes=[MistakeItem(category="fluency", subskill="pauses", severity=2)],
+        )
 
 
 @pytest.fixture()
@@ -41,8 +46,12 @@ def speaking_api(api, monkeypatch):
 
 
 def _submit(api, data=WEBM, name="a.webm"):
-    return api.client.post("/speaking/submit", headers=api.headers, data={"task_id": "1"},
-                           files={"audio": (name, io.BytesIO(data), "audio/webm")})
+    return api.client.post(
+        "/speaking/submit",
+        headers=api.headers,
+        data={"task_id": "1"},
+        files={"audio": (name, io.BytesIO(data), "audio/webm")},
+    )
 
 
 def test_sniffers_use_magic_bytes_not_names():
@@ -78,6 +87,7 @@ def test_audio_is_private_to_its_owner(speaking_api):
         db.add(other)
         db.commit()
         from app.infrastructure.security import create_access_token
+
         headers = {"Authorization": f"Bearer {create_access_token(other.id)}"}
     assert speaking_api.client.get(body["audio_url"], headers=headers).status_code == 404
     assert speaking_api.client.get(body["audio_url"]).status_code == 401
@@ -113,11 +123,17 @@ def test_failed_speaking_grading_keeps_audio_but_no_band_and_hides_provider_text
 
 
 def test_avatar_is_validated_by_magic_bytes_and_served_with_nosniff(api):
-    bad = api.client.post("/auth/me/avatar", headers=api.headers,
-                          files={"image": ("me.png", io.BytesIO(b"<svg onload=alert(1)>"), "image/png")})
+    bad = api.client.post(
+        "/auth/me/avatar",
+        headers=api.headers,
+        files={"image": ("me.png", io.BytesIO(b"<svg onload=alert(1)>"), "image/png")},
+    )
     assert bad.status_code == 400
-    ok = api.client.post("/auth/me/avatar", headers=api.headers,
-                         files={"image": ("anything.bin", io.BytesIO(PNG), "application/octet-stream")})
+    ok = api.client.post(
+        "/auth/me/avatar",
+        headers=api.headers,
+        files={"image": ("anything.bin", io.BytesIO(PNG), "application/octet-stream")},
+    )
     assert ok.status_code == 200
     url = ok.json()["avatar"]
     assert url.startswith("/auth/avatars/")
@@ -135,8 +151,9 @@ def test_avatar_is_validated_by_magic_bytes_and_served_with_nosniff(api):
 
 def test_avatar_over_the_cap_is_rejected(api, monkeypatch):
     monkeypatch.setattr(settings, "MAX_AVATAR_UPLOAD_MB", 0)
-    response = api.client.post("/auth/me/avatar", headers=api.headers,
-                               files={"image": ("a.png", io.BytesIO(PNG), "image/png")})
+    response = api.client.post(
+        "/auth/me/avatar", headers=api.headers, files={"image": ("a.png", io.BytesIO(PNG), "image/png")}
+    )
     assert response.status_code == 413
 
 
@@ -155,6 +172,7 @@ def test_local_storage_backend_round_trip(tmp_path, monkeypatch):
 
 
 # ---- auth hardening ---------------------------------------------------------
+
 
 def test_password_limit_is_measured_in_bytes(api):
     cyrillic = "п" * 40  # 40 characters but 80 bytes: bcrypt would silently truncate it
@@ -180,6 +198,7 @@ def test_unhandled_errors_return_a_generic_message_with_request_id(api, monkeypa
 
     monkeypatch.setattr(accounts, "update_profile", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("secret dsn")))
     response = TestClient(app, raise_server_exceptions=False).patch(
-        "/auth/me", headers=api.headers, json={"native_language": "Russian"})
+        "/auth/me", headers=api.headers, json={"native_language": "Russian"}
+    )
     assert response.status_code == 500
     assert "secret dsn" not in response.text and response.json()["request_id"]

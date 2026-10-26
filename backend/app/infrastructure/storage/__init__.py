@@ -5,6 +5,7 @@ with an ephemeral disk (Render). `local` writes to disk for development. A key
 returned by `save` is self-describing ("db:<id>" or a bare filename), so reads
 keep working for whichever backend wrote the blob.
 """
+
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,8 +22,15 @@ AVATAR_DIR = BACKEND_ROOT / "static" / "avatars"
 DB_PREFIX = "db:"
 
 _AVATAR_EXT = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
-_AUDIO_EXT = {"audio/webm": ".webm", "audio/ogg": ".ogg", "audio/mpeg": ".mp3", "audio/wav": ".wav",
-              "audio/mp4": ".m4a", "audio/aac": ".aac", "audio/flac": ".flac"}
+_AUDIO_EXT = {
+    "audio/webm": ".webm",
+    "audio/ogg": ".ogg",
+    "audio/mpeg": ".mp3",
+    "audio/wav": ".wav",
+    "audio/mp4": ".m4a",
+    "audio/aac": ".aac",
+    "audio/flac": ".flac",
+}
 
 
 @dataclass
@@ -40,20 +48,21 @@ class BlobStorage(Protocol):
 class DatabaseStorage:
     def save(self, db, *, kind, owner_id, data, content_type):
         blob_id = uuid.uuid4().hex
-        db.add(StoredFile(id=blob_id, owner_id=owner_id, kind=kind, content_type=content_type,
-                          size=len(data), data=data))
+        db.add(
+            StoredFile(id=blob_id, owner_id=owner_id, kind=kind, content_type=content_type, size=len(data), data=data)
+        )
         db.flush()
         return DB_PREFIX + blob_id
 
     def load(self, db, key):
         if not key.startswith(DB_PREFIX):
             return None
-        row = db.get(StoredFile, key[len(DB_PREFIX):])
+        row = db.get(StoredFile, key[len(DB_PREFIX) :])
         return Blob(bytes(row.data), row.content_type) if row else None
 
     def delete(self, db, key):
         if key.startswith(DB_PREFIX):
-            row = db.get(StoredFile, key[len(DB_PREFIX):])
+            row = db.get(StoredFile, key[len(DB_PREFIX) :])
             if row is not None:
                 db.delete(row)
 

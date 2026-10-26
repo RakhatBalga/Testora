@@ -20,6 +20,7 @@ What stays model-judged: the four criterion bands themselves, and the Task 1
 The Writing pre-check (empty, non-English, too short, gibberish) also lives
 here so graders can run it without importing the application layer.
 """
+
 from __future__ import annotations
 
 import math
@@ -39,9 +40,9 @@ class MistakeItem:
     """An atomic mistake extracted during grading. Persisted to the `mistakes`
     table so analytics can aggregate weaknesses across attempts (no AI at read time)."""
 
-    category: str          # e.g. grammar | vocabulary | coherence | task_response | fluency ...
-    subskill: str | None   # e.g. articles | word_repetition | paragraphing | answer_length
-    severity: int = 1      # 1 (minor) .. 3 (band-limiting)
+    category: str  # e.g. grammar | vocabulary | coherence | task_response | fluency ...
+    subskill: str | None  # e.g. articles | word_repetition | paragraphing | answer_length
+    severity: int = 1  # 1 (minor) .. 3 (band-limiting)
     snippet: str | None = None
     correction: str | None = None
     explanation: str | None = None
@@ -244,19 +245,102 @@ def injection_suspected(text: str) -> bool:
 
 
 _TOPIC_STOPWORDS = {
-    "about", "above", "after", "agree", "against", "although", "answer", "argue",
-    "argued", "because", "before", "being", "believe", "below", "between", "both",
-    "cause", "causes", "could", "describe", "disadvantages", "advantages", "discuss",
-    "disagree", "effect", "effects", "either", "example", "examples", "experience",
-    "extent", "factors", "following", "given", "important", "include", "issue",
-    "knowledge", "least", "measures", "might", "opinion", "other", "others",
-    "outweigh", "people", "positive", "negative", "problem", "problems", "provide",
-    "reasons", "relevant", "should", "solutions", "solve", "solved", "some", "summarise",
-    "summarize", "their", "there", "these", "thing", "things", "think", "those",
-    "today", "views", "where", "whether", "which", "while", "would", "write",
-    "words", "information", "making", "comparisons", "selecting", "reporting",
-    "features", "main", "development", "developments", "nowadays", "society",
-    "world", "many", "much", "more", "most", "what", "when", "your", "own",
+    "about",
+    "above",
+    "after",
+    "agree",
+    "against",
+    "although",
+    "answer",
+    "argue",
+    "argued",
+    "because",
+    "before",
+    "being",
+    "believe",
+    "below",
+    "between",
+    "both",
+    "cause",
+    "causes",
+    "could",
+    "describe",
+    "disadvantages",
+    "advantages",
+    "discuss",
+    "disagree",
+    "effect",
+    "effects",
+    "either",
+    "example",
+    "examples",
+    "experience",
+    "extent",
+    "factors",
+    "following",
+    "given",
+    "important",
+    "include",
+    "issue",
+    "knowledge",
+    "least",
+    "measures",
+    "might",
+    "opinion",
+    "other",
+    "others",
+    "outweigh",
+    "people",
+    "positive",
+    "negative",
+    "problem",
+    "problems",
+    "provide",
+    "reasons",
+    "relevant",
+    "should",
+    "solutions",
+    "solve",
+    "solved",
+    "some",
+    "summarise",
+    "summarize",
+    "their",
+    "there",
+    "these",
+    "thing",
+    "things",
+    "think",
+    "those",
+    "today",
+    "views",
+    "where",
+    "whether",
+    "which",
+    "while",
+    "would",
+    "write",
+    "words",
+    "information",
+    "making",
+    "comparisons",
+    "selecting",
+    "reporting",
+    "features",
+    "main",
+    "development",
+    "developments",
+    "nowadays",
+    "society",
+    "world",
+    "many",
+    "much",
+    "more",
+    "most",
+    "what",
+    "when",
+    "your",
+    "own",
 }
 
 
@@ -288,7 +372,7 @@ class WritingVerdict:
     """A provider's raw Writing verdict, before any rule is applied."""
 
     task_type: int
-    bands: dict[str, float]           # criterion display name -> raw model band
+    bands: dict[str, float]  # criterion display name -> raw model band
     notes: dict[str, str] = field(default_factory=dict)
     # Model-reported findings. Task 1: overview_present, key_comparisons_present,
     # data_accuracy_issue, fabricated_data. Task 2: all_parts_addressed,
@@ -380,7 +464,9 @@ def normalize_writing(
 # --------------------------------------------------------------------------- #
 
 
-def normalize_speaking(bands: dict[str, float], *, transcript: str | None = None) -> tuple[dict[str, float], float, dict[str, bool]]:
+def normalize_speaking(
+    bands: dict[str, float], *, transcript: str | None = None
+) -> tuple[dict[str, float], float, dict[str, bool]]:
     """Snap/clamp the four Speaking criteria and recompute the overall.
 
     Returns (criteria, overall, flags). Missing criteria raise KeyError so a
@@ -399,11 +485,20 @@ def normalize_speaking(bands: dict[str, float], *, transcript: str | None = None
 # Snippet verification (FR-6)
 # --------------------------------------------------------------------------- #
 
-_QUOTE_CHARS = str.maketrans({
-    "‘": "'", "’": "'", "‛": "'", "′": "'",
-    "“": '"', "”": '"', "‟": '"',
-    "–": "-", "—": "-", " ": " ",
-})
+_QUOTE_CHARS = str.maketrans(
+    {
+        "‘": "'",
+        "’": "'",
+        "‛": "'",
+        "′": "'",
+        "“": '"',
+        "”": '"',
+        "‟": '"',
+        "–": "-",
+        "—": "-",
+        " ": " ",
+    }
+)
 _ELLIPSIS_RE = re.compile(r"\s*(?:\.\.\.|…)\s*")
 
 
@@ -421,10 +516,7 @@ def snippet_in_text(snippet: str | None, text: str) -> bool:
     if not snippet or not snippet.strip():
         return False
     haystack = normalize_for_match(text)
-    parts = [
-        normalize_for_match(p).strip(" \"'`")
-        for p in _ELLIPSIS_RE.split(snippet.translate(_QUOTE_CHARS))
-    ]
+    parts = [normalize_for_match(p).strip(" \"'`") for p in _ELLIPSIS_RE.split(snippet.translate(_QUOTE_CHARS))]
     parts = [p for p in parts if p]
     if not parts:
         return False
@@ -455,10 +547,16 @@ def verify_mistakes(mistakes: Iterable[MistakeItem], text: str | None) -> tuple[
         if not (m.snippet or "").strip():
             kept.append(m)
         elif text is None:
-            kept.append(MistakeItem(
-                category=m.category, subskill=m.subskill, severity=m.severity,
-                snippet=None, correction=m.correction, explanation=m.explanation,
-            ))
+            kept.append(
+                MistakeItem(
+                    category=m.category,
+                    subskill=m.subskill,
+                    severity=m.severity,
+                    snippet=None,
+                    correction=m.correction,
+                    explanation=m.explanation,
+                )
+            )
         elif snippet_in_text(m.snippet, text):
             kept.append(m)
         else:
@@ -471,8 +569,7 @@ def verify_mistakes(mistakes: Iterable[MistakeItem], text: str | None) -> tuple[
 # --------------------------------------------------------------------------- #
 
 GRADING_FAILED_MESSAGE = (
-    "Automatic grading could not be completed. Your answer was saved; "
-    "please try again in a few minutes."
+    "Automatic grading could not be completed. Your answer was saved; please try again in a few minutes."
 )
 
 
@@ -509,11 +606,52 @@ ALPHA_TOKEN_RE = re.compile(r"[^\W\d_]+(?:[-'][^\W\d_]+)?", re.UNICODE)
 WORD_CHAR_RE = re.compile(r"[A-Za-z0-9]")
 
 COMMON_ENGLISH_WORDS = {
-    "a", "about", "after", "all", "also", "an", "and", "are", "as", "at", "be",
-    "because", "been", "but", "by", "can", "children", "could", "do", "for",
-    "from", "has", "have", "if", "in", "is", "it", "more", "not", "of", "on",
-    "or", "people", "should", "society", "some", "that", "the", "their", "there",
-    "these", "they", "this", "to", "with", "would",
+    "a",
+    "about",
+    "after",
+    "all",
+    "also",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "because",
+    "been",
+    "but",
+    "by",
+    "can",
+    "children",
+    "could",
+    "do",
+    "for",
+    "from",
+    "has",
+    "have",
+    "if",
+    "in",
+    "is",
+    "it",
+    "more",
+    "not",
+    "of",
+    "on",
+    "or",
+    "people",
+    "should",
+    "society",
+    "some",
+    "that",
+    "the",
+    "their",
+    "there",
+    "these",
+    "they",
+    "this",
+    "to",
+    "with",
+    "would",
 }
 
 
@@ -601,26 +739,22 @@ def validate_writing_submission(*, task_type: int, text: str, min_words: int) ->
     if _looks_non_english(stripped, _english_word_count(stripped)):
         return invalid(
             "not_english",
-            "This submission cannot be assessed as IELTS Writing because it "
-            "is not written primarily in English.",
+            "This submission cannot be assessed as IELTS Writing because it is not written primarily in English.",
         )
     if word_count < _min_attempt_words(task_type, min_words):
         return invalid(
             "too_short",
-            "This submission is too short to be assessed as a genuine IELTS "
-            "Writing response.",
+            "This submission is too short to be assessed as a genuine IELTS Writing response.",
         )
     if sentence_count < _min_attempt_sentences(task_type):
         return invalid(
             "too_few_sentences",
-            "This submission needs full sentences and paragraph-level "
-            "development before it can be assessed.",
+            "This submission needs full sentences and paragraph-level development before it can be assessed.",
         )
     if _looks_like_gibberish(_words(stripped)):
         return invalid(
             "not_meaningful",
-            "This submission does not contain enough meaningful English "
-            "language to be assessed as IELTS Writing.",
+            "This submission does not contain enough meaningful English language to be assessed as IELTS Writing.",
         )
     return WritingPrecheck(True, None, None, word_count, sentence_count)
 
