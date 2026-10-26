@@ -295,7 +295,7 @@ class GeminiSpeakingGrader(SpeakingGrader):
             feedback = grading_error_feedback()
         feedback.provider = "gemini"
         feedback.model = model
-        feedback.prompt_version = prompts.PROMPT_VERSION
+        feedback.prompt_version = prompts.prompt_version()
         return feedback
 
 

@@ -11,7 +11,7 @@ import pytest
 from pydantic import BaseModel
 
 from app.infrastructure.ai.engine import extract_json_text, strip_think
-from app.infrastructure.ai.openai_compat import OpenAICompatClient, run_sync
+from app.infrastructure.ai.openai_compat import OpenAICompatClient, reset_json_schema_cache, run_sync
 from app.infrastructure.ai.retry import (
     PermanentError,
     RetryPolicy,
@@ -19,6 +19,13 @@ from app.infrastructure.ai.retry import (
     TruncatedResponse,
     parse_retry_after,
 )
+
+
+@pytest.fixture(autouse=True)
+def _fresh_capability_cache():
+    reset_json_schema_cache()
+    yield
+    reset_json_schema_cache()
 
 
 class _Answer(BaseModel):
@@ -110,8 +117,9 @@ def test_falls_back_to_json_object_when_json_schema_rejected():
     assert fallback["response_format"] == {"type": "json_object"}
     assert '"band"' in fallback["messages"][0]["content"]  # schema in the system prompt
     assert sleeps == []  # a fallback is not a retry
-    # Remembered: the next call goes straight to json_object.
-    _chat_json(c)
+    # Remembered per (base_url, model): a NEW client goes straight to json_object.
+    c2, _ = _client(server)
+    _chat_json(c2)
     assert server.body(2)["response_format"] == {"type": "json_object"}
 
 
@@ -222,3 +230,32 @@ def test_run_sync_works_inside_a_running_loop():
 
     assert run_sync(value) == 42
     assert asyncio.run(outer()) == 42
+
+
+def test_capability_cache_is_per_server_and_model():
+    server = _Server(httpx.Response(422, json={"detail": "json_schema unsupported"}), _reply('{"band": 1}'))
+    c, _ = _client(server)
+    _chat_json(c)
+    other = OpenAICompatClient(base_url="http://other.test/v1", model="qwen3:14b")
+    assert c.json_schema_supported is False and other.json_schema_supported is True
+
+
+@pytest.mark.parametrize("base_url", ["localhost:11434/v1", "ftp://qwen.test/v1"])
+def test_misconfigured_url_fails_fast_without_retries(base_url):
+    sleeps = []
+
+    async def fake_sleep(s):
+        sleeps.append(s)
+
+    c = OpenAICompatClient(base_url=base_url, model="m", sleep=fake_sleep)
+    with pytest.raises(PermanentError, match="QWEN_BASE_URL"):
+        _chat_json(c)
+    assert sleeps == []
+
+
+def test_local_protocol_error_is_permanent():
+    server = _Server(httpx.LocalProtocolError("bad header"))
+    c, sleeps = _client(server)
+    with pytest.raises(PermanentError):
+        _chat_json(c)
+    assert len(server.requests) == 1 and sleeps == []

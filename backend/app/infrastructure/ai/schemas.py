@@ -206,7 +206,7 @@ def normalize_examiner(
 ) -> dict:
     """Apply the shared IELTS scoring rules to an examiner result.
 
-    Pass `text` (and `prompt` for Task 2) to enable the code-side checks; see
+    Pass `text` (and `prompt` for Task 2) to record the diagnostic flags; see
     `app.domain.grading.normalize_writing`.
 
     Returns: {criteria: {display_name: band}, notes: {display_name: justification},
@@ -265,7 +265,7 @@ def speaking_feedback(result: SpeakingExaminer, *, transcript: str | None) -> Fe
         mistakes=mistakes,
         criteria_notes=notes,
         flags=flags,
-        caps_applied=["injection_suspected"] if flags.get("injection_suspected") else [],
+        caps_applied=[],
         unverified_snippets=dropped,
     )
 

@@ -105,6 +105,15 @@ class QwenVocabularyCoach(TransportVocabularyCoach):
         super().__init__(transport or QwenTransport())
 
 
+def _tagless(name: str) -> str:
+    return name[: -len(":latest")] if name.endswith(":latest") else name
+
+
+def model_listed(model: str, models: list[str]) -> bool:
+    """Exact match, or Ollama's implicit tag: "qwen3" == "qwen3:latest"."""
+    return model in models or _tagless(model) in {_tagless(m) for m in models}
+
+
 async def ping_qwen(client: OpenAICompatClient | None = None) -> dict:
     """Readiness probe for the Qwen server: GET {QWEN_BASE_URL}/models.
 
@@ -119,7 +128,6 @@ async def ping_qwen(client: OpenAICompatClient | None = None) -> dict:
     return {
         "ok": True,
         "model": client.model,
-        # Ollama lists "qwen3:14b", vLLM the --served-model-name; compare exactly.
-        "model_available": client.model in models,
+        "model_available": model_listed(client.model, models),
         "error": None,
     }

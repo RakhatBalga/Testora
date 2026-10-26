@@ -180,19 +180,21 @@ class WritingEngine:
         self.transport = transport
         self.coach_enabled = coach_enabled
 
-    def _provenance(self, feedback: Feedback) -> Feedback:
+    def _provenance(self, feedback: Feedback, version: str) -> Feedback:
         feedback.provider = self.transport.provider
         feedback.model = self.transport.model_for(ROLE_EXAMINER)
-        feedback.prompt_version = prompts.PROMPT_VERSION
+        feedback.prompt_version = prompts.prompt_version(version)
         return feedback
 
     def grade(self, *, task_type: int, prompt: str, text: str, min_words: int) -> Feedback:
+        # Resolve once so the recorded version is the one that actually ran.
+        version = prompts.active_examiner_version()
         precheck = validate_writing_submission(task_type=task_type, text=text, min_words=min_words)
         if not precheck.valid:
-            return self._provenance(zero_band_feedback(task_type, precheck))
+            return self._provenance(zero_band_feedback(task_type, precheck), version)
         word_count = precheck.word_count
 
-        system = prompts.TASK1_EXAMINER_SYSTEM if task_type == 1 else prompts.TASK2_EXAMINER_SYSTEM
+        system = prompts.examiner_system(task_type, version)
         user = prompts.examiner_user_prompt(
             task_type=task_type,
             prompt=prompt,
@@ -215,7 +217,7 @@ class WritingEngine:
             return grading_error_feedback(
                 provider=self.transport.provider,
                 model=self.transport.model_for(ROLE_EXAMINER),
-                prompt_version=prompts.PROMPT_VERSION,
+                prompt_version=prompts.prompt_version(version),
             )
 
         normalized = normalize_examiner(
@@ -228,7 +230,7 @@ class WritingEngine:
         )
         coaching = self._coach(task_type, prompt, text, examiner, normalized["overall"]) if self.coach_enabled else None
         feedback = build_feedback(normalized, coaching, task_type=task_type, text=text)
-        return self._provenance(feedback)
+        return self._provenance(feedback, version)
 
     def _coach(self, task_type, prompt, text, examiner, current_overall) -> CoachResult | None:
         """Best-effort coaching; a failure here must not fail the grade."""
@@ -299,7 +301,7 @@ def grade_speaking_transcript(
         feedback = grading_error_feedback()
     feedback.provider = transport.provider
     feedback.model = transport.model_for(ROLE_EXAMINER)
-    feedback.prompt_version = prompts.PROMPT_VERSION
+    feedback.prompt_version = prompts.prompt_version()
     return feedback
 
 
@@ -313,7 +315,7 @@ def speaking_unsupported_feedback(transport: Transport) -> Feedback:
     return grading_error_feedback(
         provider=transport.provider,
         model=transport.model_for(ROLE_EXAMINER),
-        prompt_version=prompts.PROMPT_VERSION,
+        prompt_version=prompts.prompt_version(),
         message=SPEAKING_UNSUPPORTED_MESSAGE,
     )
 
