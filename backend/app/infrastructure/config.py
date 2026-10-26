@@ -85,5 +85,17 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env")
 
+    # --- Qwen (self-hosted, OpenAI-compatible API; AI_PROVIDER=qwen) ---------
+    # Base URL including /v1, e.g. http://localhost:11434/v1 (Ollama) or
+    # https://<gpu-host>/v1 (vLLM). Both URL and model are required for qwen.
+    QWEN_BASE_URL: str = ""
+    QWEN_MODEL: str = ""
+    # Optional bearer token (vLLM --api-key, a reverse proxy). Empty = none.
+    QWEN_API_KEY: str = ""
+    # Local inference is slow (tens of seconds per essay on a laptop).
+    QWEN_TIMEOUT_SECONDS: float = Field(default=180.0, gt=0)
+    # Grading runs with Qwen3 "thinking" off: faster and stable JSON.
+    QWEN_DISABLE_THINKING: bool = True
+
 
 settings = Settings()

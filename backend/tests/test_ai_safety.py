@@ -74,3 +74,58 @@ def test_development_weak_secret_key_is_allowed(monkeypatch):
     from app import main
 
     main._validate_security_configuration()  # must not raise
+
+
+# ------------------------------ qwen + overrides ----------------------------
+
+def test_effective_provider_qwen_requires_url_and_model(monkeypatch):
+    monkeypatch.setattr(settings, "AI_PROVIDER", "qwen")
+    monkeypatch.setattr(settings, "QWEN_BASE_URL", "http://localhost:11434/v1")
+    monkeypatch.setattr(settings, "QWEN_MODEL", "")
+    assert _reload_factory().effective_provider() == "mock"
+    monkeypatch.setattr(settings, "QWEN_MODEL", "qwen3:14b")
+    assert _reload_factory().effective_provider() == "qwen"
+
+
+def test_factory_returns_qwen_graders(monkeypatch):
+    monkeypatch.setattr(settings, "AI_PROVIDER", "qwen")
+    monkeypatch.setattr(settings, "QWEN_BASE_URL", "http://localhost:11434/v1")
+    monkeypatch.setattr(settings, "QWEN_MODEL", "qwen3:14b")
+    f = _reload_factory()
+    from app.infrastructure.ai import qwen
+
+    assert isinstance(f.get_writing_grader(), qwen.QwenWritingGrader)
+    assert isinstance(f.get_speaking_grader(), qwen.QwenSpeakingGrader)
+    assert isinstance(f.get_vocabulary_coach(), qwen.QwenVocabularyCoach)
+
+
+def test_explicit_provider_overrides_settings(monkeypatch):
+    monkeypatch.setattr(settings, "AI_PROVIDER", "mock")
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "key-present")
+    f = _reload_factory()
+    from app.infrastructure.ai import gemini, mock
+
+    assert isinstance(f.get_writing_grader(provider="gemini"), gemini.GeminiWritingGrader)
+    assert isinstance(f.get_writing_grader(provider="mock"), mock.MockWritingGrader)
+    assert isinstance(f.get_writing_grader(), mock.MockWritingGrader)
+
+
+@pytest.mark.parametrize("provider", ["qwen", "claude", "openai"])
+def test_explicit_unconfigured_or_unknown_provider_never_falls_back_to_mock(monkeypatch, provider):
+    monkeypatch.setattr(settings, "QWEN_BASE_URL", "")
+    monkeypatch.setattr(settings, "ANTHROPIC_API_KEY", "")
+    f = _reload_factory()
+    with pytest.raises(f.ProviderNotConfigured):
+        f.get_writing_grader(provider=provider)
+
+
+def test_production_qwen_is_accepted(monkeypatch):
+    monkeypatch.setattr(settings, "APP_ENV", "production")
+    monkeypatch.setattr(settings, "AI_PROVIDER", "qwen")
+    monkeypatch.setattr(settings, "QWEN_BASE_URL", "https://qwen.example/v1")
+    monkeypatch.setattr(settings, "QWEN_MODEL", "qwen3-14b")
+    _reload_factory()
+    from app import main
+
+    monkeypatch.setattr(main, "effective_provider", factory.effective_provider)
+    main._validate_ai_configuration()  # must not raise
