@@ -1,36 +1,69 @@
-"""Structured schemas + validation for the Writing assessment engine.
+"""Structured schemas for the Writing and Speaking assessment engine.
 
-These Pydantic models are both (a) the response schema handed to Gemini's JSON
-mode and (b) the validation boundary for what comes back. The normalization
-functions then enforce IELTS scoring rules deterministically — independent of
-whatever the model returned — so grading can't be inflated by a chatty model:
+These Pydantic models are both (a) the response schema handed to the model's
+JSON mode and (b) the validation boundary for what comes back. Bands are
+clamped to 0-9 and NaN/inf rejected at this boundary, so one out-of-range
+number from the model does not fail the whole grade.
 
-  * each criterion snapped to a 0.5 step, clamped 0-9;
-  * hard caps applied for the failures IELTS punishes (no overview, fabricated
-    data, missing comparisons / off-topic, unclear position, partial answer,
-    under-length);
-  * overall band recomputed as the mean of the four criteria (half-up), never
-    taken from the model.
+The scoring rules themselves (snap to 0.5, hard caps, overall recomputed in
+code, verbatim snippet check) live in `app.domain.grading` and are shared by
+every provider; this module only adapts the wire format to them.
 """
 from __future__ import annotations
 
+import math
 import re
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from app.infrastructure.ai.base import Feedback, MistakeItem
-from app.domain.band import round_ielts
+from app.domain.grading import (  # noqa: F401 - names re-exported for callers
+    COHERENCE,
+    FLUENCY,
+    GRAMMAR,
+    LEXICAL,
+    PRONUNCIATION,
+    SPEAKING_CRITERIA,
+    TASK1_FIRST,
+    TASK2_FIRST,
+    Feedback,
+    MistakeItem,
+    WritingVerdict,
+    normalize_speaking,
+    normalize_writing,
+    snap_band,
+    snippet_in_text,
+    underlength_cap,
+    verify_mistakes,
+)
 
-# Error categories must match the analytics mistake taxonomy (Writing only).
+# Error categories must match the analytics mistake taxonomy.
 ErrorCategory = Literal["grammar", "vocabulary", "coherence", "task_response"]
+SpeakingErrorCategory = Literal["fluency", "grammar", "vocabulary", "pronunciation"]
 
-# Canonical display names — keep the "&" forms the analytics/criterion maps use.
-COHERENCE = "Coherence & Cohesion"
-LEXICAL = "Lexical Resource"
-GRAMMAR = "Grammatical Range & Accuracy"
-TASK1_FIRST = "Task Achievement"
-TASK2_FIRST = "Task Response"
+# Long, weak essays can list dozens of errors and truncate the JSON; the prompt
+# asks for at most this many and the code enforces it.
+MAX_ERRORS = 15
+
+
+def _clamp_band(value):
+    """Clamp a model band into 0-9 before range validation; reject NaN/inf."""
+    if isinstance(value, bool):
+        raise ValueError("band must be a number")
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("band must be a number") from exc
+    if not math.isfinite(number):
+        raise ValueError("band must be finite")
+    return max(0.0, min(9.0, number))
+
+
+def _clamp_severity(value):
+    try:
+        return max(1, min(3, int(value)))
+    except (TypeError, ValueError):
+        return 1
 
 
 class WritingError(BaseModel):
@@ -40,14 +73,18 @@ class WritingError(BaseModel):
         "word_choice, repetition, paragraphing, progression, development, support"
     )
     severity: int = Field(1, ge=1, le=3, description="1 minor, 2 recurring, 3 band-limiting")
-    snippet: str | None = Field(None, description="the offending text, quoted")
+    snippet: str | None = Field(None, description="the offending text, quoted exactly from the response")
     correction: str | None = Field(None, description="a corrected/improved form")
     explanation: str | None = Field(None, description="why it is an issue, briefly")
+
+    _clamp = field_validator("severity", mode="before")(_clamp_severity)
 
 
 class Criterion(BaseModel):
     band: float = Field(..., ge=0, le=9)
     justification: str = ""
+
+    _clamp = field_validator("band", mode="before")(_clamp_band)
 
 
 class _ExaminerBase(BaseModel):
@@ -72,9 +109,34 @@ class Task2Examiner(_ExaminerBase):
     off_topic: bool = False
 
 
+class SpeakingError(BaseModel):
+    category: SpeakingErrorCategory
+    subskill: str | None = None
+    severity: int = Field(1, ge=1, le=3)
+    snippet: str | None = Field(None, description="the candidate's words, quoted exactly")
+    correction: str | None = None
+    explanation: str | None = None
+
+    _clamp = field_validator("severity", mode="before")(_clamp_severity)
+
+
+class SpeakingExaminer(BaseModel):
+    """Speaking examiner verdict. No overall band: the code computes it."""
+
+    fluency_coherence: Criterion
+    lexical_resource: Criterion
+    grammatical_range_accuracy: Criterion
+    pronunciation: Criterion
+    summary: str = ""
+    suggestions: list[str] = Field(default_factory=list)
+    errors: list[SpeakingError] = Field(default_factory=list)
+
+
 class CoachStep(BaseModel):
     target_band: float = Field(..., ge=0, le=9)
     actions: list[str] = Field(default_factory=list)
+
+    _clamp = field_validator("target_band", mode="before")(_clamp_band)
 
 
 class CoachResult(BaseModel):
@@ -94,93 +156,115 @@ def examiner_model(task_type: int) -> type[BaseModel]:
 
 def _snap(band: float) -> float:
     """Snap to nearest 0.5 (IELTS half-up) and clamp to 0-9."""
-    return round_ielts(band)
+    return snap_band(band)
 
 
-def _underlength_cap(word_count: int, min_words: int) -> float | None:
-    """The most generous band the task criterion may receive at this length."""
-    if min_words <= 0 or word_count >= min_words:
-        return None
-    ratio = word_count / min_words
-    if ratio < 0.5:
-        return 4.0
-    if ratio < 0.75:
-        return 5.0
-    if ratio < 0.9:
-        return 6.0
-    return None  # 90-100% of minimum: no automatic cap, examiner decides
+_underlength_cap = underlength_cap  # backward-compatible private alias
 
 
-def normalize_examiner(result: BaseModel, *, task_type: int, word_count: int, min_words: int) -> dict:
-    """Apply IELTS scoring rules deterministically; return a normalized dict.
-
-    Returns: {criteria: {display_name: band}, notes: {display_name: justification},
-              overall: float, errors: [WritingError], flags: {...}}.
-    """
-    coherence = _snap(result.coherence_cohesion.band)
-    lexical = _snap(result.lexical_resource.band)
-    grammar = _snap(result.grammatical_range_accuracy.band)
-
-    notes: dict[str, str] = {
-        COHERENCE: result.coherence_cohesion.justification,
-        LEXICAL: result.lexical_resource.justification,
-        GRAMMAR: result.grammatical_range_accuracy.justification,
-    }
-    flags: dict[str, bool] = {}
-    caps: list[float] = []
-    ul = _underlength_cap(word_count, min_words)
-    if ul is not None:
-        caps.append(ul)
-
+def _verdict(result: BaseModel, task_type: int) -> WritingVerdict:
+    first = TASK1_FIRST if task_type == 1 else TASK2_FIRST
+    first_criterion = result.task_achievement if task_type == 1 else result.task_response
     if task_type == 1:
-        task = _snap(result.task_achievement.band)
-        first_name = TASK1_FIRST
-        notes[first_name] = result.task_achievement.justification
         flags = {
             "overview_present": result.overview_present,
             "key_comparisons_present": result.key_comparisons_present,
             "data_accuracy_issue": result.data_accuracy_issue,
             "fabricated_data": result.fabricated_data,
         }
-        if not result.overview_present:
-            caps.append(5.0)
-        if not result.key_comparisons_present:
-            caps.append(5.0)
-        if result.fabricated_data:
-            caps.append(4.0)  # fabrication is a severe Task Achievement failure
     else:
-        task = _snap(result.task_response.band)
-        first_name = TASK2_FIRST
-        notes[first_name] = result.task_response.justification
         flags = {
             "all_parts_addressed": result.all_parts_addressed,
             "position_clear": result.position_clear,
             "off_topic": result.off_topic,
         }
-        if result.off_topic:
-            caps.append(3.0)  # off-topic / memorised content
-        if not result.position_clear:
-            caps.append(5.0)
-        if not result.all_parts_addressed:
-            caps.append(5.0)
-
-    if caps:
-        task = min(task, min(caps))
-
-    criteria = {
-        first_name: task,
-        COHERENCE: coherence,
-        LEXICAL: lexical,
-        GRAMMAR: grammar,
+    crits = {
+        first: first_criterion,
+        COHERENCE: result.coherence_cohesion,
+        LEXICAL: result.lexical_resource,
+        GRAMMAR: result.grammatical_range_accuracy,
     }
-    overall = round_ielts(sum(criteria.values()) / 4)
+    return WritingVerdict(
+        task_type=task_type,
+        bands={k: c.band for k, c in crits.items()},
+        notes={k: c.justification for k, c in crits.items()},
+        flags=flags,
+    )
+
+
+def normalize_examiner(
+    result: BaseModel,
+    *,
+    task_type: int,
+    word_count: int,
+    min_words: int,
+    text: str | None = None,
+    prompt: str | None = None,
+) -> dict:
+    """Apply the shared IELTS scoring rules to an examiner result.
+
+    Pass `text` (and `prompt` for Task 2) to enable the code-side checks; see
+    `app.domain.grading.normalize_writing`.
+
+    Returns: {criteria: {display_name: band}, notes: {display_name: justification},
+              overall: float, errors: [WritingError], flags: {...}, caps_applied: [...]}.
+    """
+    n = normalize_writing(
+        _verdict(result, task_type),
+        word_count=word_count,
+        min_words=min_words,
+        text=text,
+        prompt=prompt,
+    )
     return {
-        "criteria": criteria,
-        "notes": notes,
-        "overall": overall,
-        "errors": list(result.errors),
-        "flags": flags,
+        "criteria": n.criteria,
+        "notes": n.notes,
+        "overall": n.overall,
+        "errors": list(result.errors)[:MAX_ERRORS],
+        "flags": n.flags,
+        "caps_applied": n.caps_applied,
     }
+
+
+def speaking_feedback(result: SpeakingExaminer, *, transcript: str | None) -> Feedback:
+    """Speaking examiner result -> Feedback via the shared normalisation."""
+    bands = {
+        FLUENCY: result.fluency_coherence.band,
+        LEXICAL: result.lexical_resource.band,
+        GRAMMAR: result.grammatical_range_accuracy.band,
+        PRONUNCIATION: result.pronunciation.band,
+    }
+    notes = {
+        FLUENCY: result.fluency_coherence.justification,
+        LEXICAL: result.lexical_resource.justification,
+        GRAMMAR: result.grammatical_range_accuracy.justification,
+        PRONUNCIATION: result.pronunciation.justification,
+    }
+    criteria, overall, flags = normalize_speaking(bands, transcript=transcript)
+    raw = [
+        MistakeItem(
+            category=e.category,
+            subskill=e.subskill,
+            severity=e.severity,
+            snippet=e.snippet,
+            correction=e.correction,
+            explanation=e.explanation,
+        )
+        for e in result.errors[:MAX_ERRORS]
+    ]
+    mistakes, dropped = verify_mistakes(raw, transcript)
+    lowest = min(criteria, key=lambda k: criteria[k])
+    return Feedback(
+        band=overall,
+        criteria=criteria,
+        summary=result.summary.strip() or f"Estimated Band {overall}. Your lowest criterion is {lowest}.",
+        suggestions=[s for s in result.suggestions if s.strip()][:5],
+        mistakes=mistakes,
+        criteria_notes=notes,
+        flags=flags,
+        caps_applied=["injection_suspected"] if flags.get("injection_suspected") else [],
+        unverified_snippets=dropped,
+    )
 
 
 def _errors_to_mistakes(errors: list[WritingError]) -> list[MistakeItem]:
@@ -241,13 +325,26 @@ def _normalize_error_category(category: ErrorCategory, subskill: str | None) -> 
     return category
 
 
-def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type: int) -> Feedback:
-    """Combine normalized examiner output + optional coaching into a Feedback."""
+def build_feedback(
+    normalized: dict,
+    coaching: CoachResult | None,
+    *,
+    task_type: int,
+    text: str | None = None,
+) -> Feedback:
+    """Combine normalized examiner output + optional coaching into a Feedback.
+
+    With `text`, mistakes whose snippet is not in the essay are dropped (FR-6)
+    and counted in `unverified_snippets`.
+    """
     criteria = normalized["criteria"]
     overall = normalized["overall"]
     notes = normalized["notes"]
     errors = normalized["errors"]
     mistakes = _errors_to_mistakes(errors)
+    dropped = 0
+    if text is not None:
+        mistakes, dropped = verify_mistakes(mistakes, text)
 
     lowest = min(criteria, key=lambda k: criteria[k])
     if coaching is not None:
@@ -291,6 +388,9 @@ def build_feedback(normalized: dict, coaching: CoachResult | None, *, task_type:
         weaknesses=weaknesses,
         roadmap=roadmap,
         why_not_higher_band=why_not_higher,
+        flags=dict(normalized.get("flags", {})),
+        caps_applied=list(normalized.get("caps_applied", [])),
+        unverified_snippets=dropped,
     )
 
 
@@ -375,8 +475,13 @@ def sanitize_coach_evidence(
     essay: str,
     errors: list[WritingError],
 ) -> CoachResult:
-    """Drop coach items that quote phrases unsupported by the essay/errors."""
-    sources = [essay, *[(error.snippet or "") for error in errors]]
+    """Drop coach items that quote phrases unsupported by the essay/errors.
+
+    Only examiner snippets that are themselves verified in the essay count as
+    sources, so a hallucinated error snippet cannot be laundered via the coach.
+    """
+    verified = [e.snippet for e in errors if e.snippet and snippet_in_text(e.snippet, essay)]
+    sources = [essay, *verified]
 
     def supported(value: str) -> bool:
         quotes = [
