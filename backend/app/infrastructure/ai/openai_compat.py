@@ -43,6 +43,18 @@ _T = TypeVar("_T")
 
 NO_THINK_SUFFIX = "/no_think"
 
+# Whether a server accepts `response_format: json_schema`, learned once per
+# (base_url, model) for the life of the process instead of per request.
+_JSON_SCHEMA_SUPPORT: dict[tuple[str, str], bool] = {}
+
+# httpx errors that mean the URL/config is wrong; retrying cannot help.
+_MISCONFIGURATION_ERRORS = (httpx.UnsupportedProtocol, httpx.InvalidURL, httpx.LocalProtocolError)
+
+
+def reset_json_schema_cache() -> None:
+    """Forget learned server capabilities (tests, or after changing servers)."""
+    _JSON_SCHEMA_SUPPORT.clear()
+
 
 def _looks_like_unsupported_format(status: int, body: str) -> bool:
     """A 400/422 caused by `response_format: json_schema` itself."""
@@ -74,8 +86,14 @@ class OpenAICompatClient:
         self.disable_thinking = disable_thinking
         self._transport = transport
         self._sleep = sleep
-        # Flipped to False after the server rejects json_schema once.
-        self.json_schema_supported = True
+
+    @property
+    def json_schema_supported(self) -> bool:
+        return _JSON_SCHEMA_SUPPORT.get((self.base_url, self.model), True)
+
+    @json_schema_supported.setter
+    def json_schema_supported(self, value: bool) -> None:
+        _JSON_SCHEMA_SUPPORT[(self.base_url, self.model)] = value
 
     # ------------------------------------------------------------------ #
     def _headers(self) -> dict[str, str]:
@@ -113,6 +131,11 @@ class OpenAICompatClient:
                     status=resp.status_code,
                     retry_after=parse_retry_after(resp.headers.get("retry-after")),
                 )
+            except _MISCONFIGURATION_ERRORS as exc:
+                raise PermanentError(
+                    f"QWEN_BASE_URL {self.base_url!r} is invalid or uses an unsupported scheme "
+                    f"({type(exc).__name__}); expected e.g. http://localhost:11434/v1"
+                ) from exc
             except (httpx.TimeoutException, httpx.TransportError) as exc:
                 error = TransientError(f"{type(exc).__name__} calling {path}")
             delay = self.policy.delay(attempt, error.retry_after)

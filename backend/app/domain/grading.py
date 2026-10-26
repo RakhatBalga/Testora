@@ -7,15 +7,16 @@ verdict, and the functions below turn it into the grade the student sees:
   * each criterion snapped to a 0.5 step and clamped to 0-9; NaN/inf rejected;
   * the overall band recomputed as the mean of the criteria (IELTS half-up),
     never taken from the model;
-  * hard caps for the failures IELTS punishes. Where a cap can be checked in
-    code (word count, overview wording, topic overlap, instructions addressed
-    to the examiner) the code decides, so the model cannot switch the cap off
-    by reporting a flag;
+  * hard caps for the failures IELTS punishes. The under-length cap uses the
+    word count computed in code; the other caps come from the examiner's
+    findings (no overview, missing comparisons, fabrication, off-topic,
+    unclear position, partial answer) and can only lower a band;
   * mistake snippets kept only if they appear verbatim in the essay (FR-6).
 
-What stays model-judged: the four criterion bands themselves, and the Task 1
-"key comparisons / data accuracy / fabrication" and Task 2 "all parts addressed
-/ clear position" findings. Those can only lower a band, never raise it.
+Code-side heuristics (overview wording, topic overlap with the prompt,
+phrasing addressed to the grader) are recorded as diagnostic flags only. They
+proved too noisy on real essays to override the examiner, so they never change
+a band; they exist for review and for the E1 analysis.
 
 The Writing pre-check (empty, non-English, too short, gibberish) also lives
 here so graders can run it without importing the application layer.
@@ -187,60 +188,65 @@ def underlength_cap(word_count: int, min_words: int) -> float | None:
 
 
 # --------------------------------------------------------------------------- #
-# Deterministic checks (code decides; model flags cannot switch these off)
+# Diagnostic heuristics (recorded in flags; never change a band)
 # --------------------------------------------------------------------------- #
 
 _OVERVIEW_RE = re.compile(
-    r"\b(overall|in general|generally|in summary|to sum up|summari[sz]e|in short|"
-    r"in brief|broadly|at a glance|on the whole|"
-    r"it is (clear|evident|apparent|obvious|noticeable)|"
+    r"\b(overall|in general|generally|in summary|to sum up|summari[sz](e|es|ed|ing)|in short|"
+    r"in brief|broadly|at a glance|on the whole|as a whole|all in all|in conclusion|to conclude|"
+    r"it is (clear|evident|apparent|obvious|noticeable)( that)?|"
     r"(can|could) be (seen|observed|noticed)|clearly|evidently|"
-    r"(main|key|general|overall) (trends?|features?|patterns?|changes?|differences?)|"
-    r"most (striking|notable|noticeable|significant|obvious)|stands? out)\b",
+    r"(main|key|general|overall|biggest|largest) (trends?|features?|patterns?|changes?|differences?)|"
+    r"most (striking|notable|noticeable|significant|obvious|dramatic)( (change|trend|feature|difference)s?)?|"
+    r"what is (striking|noticeable|notable)|stands? out)\b",
     re.IGNORECASE,
 )
 
 
 def overview_detected(text: str) -> bool:
-    """Task 1: does the script contain any typical overview signal?
+    """Task 1: does the script contain a typical overview signal?
 
-    Deliberately broad so a real overview is almost never missed; it only
-    catches scripts that are pure detail with no summarising statement.
+    Diagnostic only (recorded in flags): it never overrides the examiner's
+    `overview_present` judgement, because an overview can be written without
+    any marker phrase.
     """
     return bool(_OVERVIEW_RE.search(text or ""))
 
 
-# Phrases addressed to the grader rather than to the task. Narrow on purpose:
-# a genuine IELTS essay never needs them.
+# Phrasing addressed to the grader rather than to the task. Diagnostic only:
+# a regex cannot tell an instruction from an essay that quotes or discusses
+# one, so a match never changes a band by itself. Kept narrow so ordinary
+# English ("athletes ignore the previous rules", "an assistant teacher")
+# does not match.
 _INJECTION_PATTERNS = [
     re.compile(
-        r"\b(ignore|disregard|forget|override)\s+(all\s+)?(the\s+|your\s+|any\s+|of\s+the\s+)?"
-        r"(previous|prior|above|earlier|preceding|original)\s+(instructions?|rules|prompts?|guidelines)\b",
+        r"\b(ignore|disregard|forget)\s+(all\s+)?(of\s+)?(the\s+|your\s+|any\s+)?"
+        r"(previous|above|prior|preceding|earlier)\s+(instructions|prompts?)\b",
         re.IGNORECASE,
     ),
     re.compile(
-        r"\b(ignore|disregard|forget|override)\s+(all\s+|any\s+)?(the\s+|your\s+)?(rubric|system prompt|"
-        r"band descriptors|examiner instructions|(marking|scoring|grading) (rules|criteria|scheme))\b",
+        r"\byou\s+are\s+(now\s+)?(an?\s+|the\s+)?(ielts\s+)?(grader|examiner|ai|language model|chatbot)"
+        r"(?=\s*[,.:;!]|\s+(and|now|so|that|who)\b)",
         re.IGNORECASE,
     ),
     re.compile(
-        r"\b(give|award|assign|grade|mark|rate)\s+(me|this|the|my)\b[^.\n]{0,40}\bband\s*\d",
+        r"\b(give|award|assign)\s+(this|my)\s+(essay|response|script|answer|text)\s+(a\s+)?band\b",
         re.IGNORECASE,
     ),
-    re.compile(r"\bband\s*9(\.0)?\s+(on|for|in)\s+(all|every|each)\b", re.IGNORECASE),
-    re.compile(r"^\s*(system|assistant|developer)\s*(note|message|prompt|override)?\s*:", re.IGNORECASE | re.MULTILINE),
+    re.compile(r"\bas\s+(the|an?)\s+(ai\s+|ielts\s+)?(examiner|grader)\s*,\s*(you|please)\b", re.IGNORECASE),
+    # JSON field names of the examiner schema and our boundary markers never
+    # occur in a genuine essay.
     re.compile(
         r"\b(off_topic|overview_present|position_clear|all_parts_addressed|"
         r"key_comparisons_present|fabricated_data|response_schema)\b",
         re.IGNORECASE,
     ),
-    re.compile(r"\byou are (now )?(an?|the) (ielts )?(examiner|grader|assistant|language model)\b", re.IGNORECASE),
-    re.compile(r"</?\s*candidate[_ ]response|<<<\s*end", re.IGNORECASE),
+    re.compile(r"</?\s*candidate[_ ]response\b|<<<\s*(begin|end)_", re.IGNORECASE),
 ]
 
 
 def injection_suspected(text: str) -> bool:
-    """True when the essay contains instructions aimed at the grader."""
+    """True when the essay seems to address the grader. Diagnostic flag only."""
     return any(p.search(text or "") for p in _INJECTION_PATTERNS)
 
 
@@ -353,6 +359,8 @@ def topic_overlap(prompt: str, text: str) -> int | None:
     """How many content-word stems of the task prompt the essay reuses.
 
     None when the prompt is too short to judge (fewer than 3 content words).
+    Diagnostic only: on-topic paraphrases (obese/obesity, crime/criminals)
+    can share no 5-letter stem, so this never caps a band by itself.
     """
     prompt_stems = _content_stems(prompt)
     if len(prompt_stems) < 3:
@@ -363,8 +371,6 @@ def topic_overlap(prompt: str, text: str) -> int | None:
 # --------------------------------------------------------------------------- #
 # Writing normalisation
 # --------------------------------------------------------------------------- #
-
-INJECTION_CAP = 5.0
 
 
 @dataclass
@@ -399,8 +405,9 @@ def normalize_writing(
 ) -> NormalizedWriting:
     """Apply IELTS scoring rules deterministically.
 
-    `text` / `prompt` enable the code-side checks (overview wording, topic
-    overlap, injection). Without them only model flags and length are used.
+    Caps come from code-checked length and from the examiner's own findings.
+    `text` / `prompt` add diagnostic flags only (overview wording, topic
+    overlap, injection phrasing); they never change a band.
     """
     names = writing_criteria(verdict.task_type)
     first = names[0]
@@ -415,7 +422,7 @@ def normalize_writing(
     if verdict.task_type == 1:
         if text is not None:
             flags["overview_detected"] = overview_detected(text)
-        if not flags.get("overview_present", True) or flags.get("overview_detected") is False:
+        if not flags.get("overview_present", True):
             caps.append(("no_overview", 5.0))
         if not flags.get("key_comparisons_present", True):
             caps.append(("no_key_comparisons", 5.0))
@@ -426,7 +433,7 @@ def normalize_writing(
             overlap = topic_overlap(prompt, text)
             if overlap is not None:
                 flags["topic_overlap_none"] = overlap == 0
-        if flags.get("off_topic", False) or flags.get("topic_overlap_none", False):
+        if flags.get("off_topic", False):
             caps.append(("off_topic", 3.0))  # off-topic / memorised content
         if not flags.get("position_clear", True):
             caps.append(("unclear_position", 5.0))
@@ -440,14 +447,8 @@ def normalize_writing(
     if caps:
         criteria[first] = min(criteria[first], min(cap for _, cap in caps))
 
-    # Instructions addressed to the grader: the model's scores are not
-    # trustworthy, so every criterion is bounded and the result is flagged.
     if text is not None:
         flags["injection_suspected"] = injection_suspected(text)
-        if flags["injection_suspected"]:
-            if any(v > INJECTION_CAP for v in criteria.values()):
-                fired.append("injection_suspected")
-            criteria = {k: min(v, INJECTION_CAP) for k, v in criteria.items()}
 
     notes = {name: verdict.notes.get(name, "") for name in names}
     return NormalizedWriting(
@@ -476,8 +477,6 @@ def normalize_speaking(
     flags: dict[str, bool] = {}
     if transcript is not None:
         flags["injection_suspected"] = injection_suspected(transcript)
-        if flags["injection_suspected"]:
-            criteria = {k: min(v, INJECTION_CAP) for k, v in criteria.items()}
     return criteria, overall_band(criteria), flags
 
 
