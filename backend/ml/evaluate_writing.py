@@ -23,7 +23,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ml import writing_stats as ws
-from ml.metrics import half_band
 from ml.writing_data import CRITERIA, Essay, file_sha256, read_essays, verify_manifest
 from ml.collect_writing import load_cache
 
@@ -310,7 +309,7 @@ def _ci(t, name, digits=3):
 
 
 def render_markdown(report: dict, meta: dict) -> str:
-    lines = [f"# E1 Writing accuracy report", "",
+    lines = ["# E1 Writing accuracy report", "",
              f"- split: `{meta['split']}`; essays: {report['n_essays']}; common to all systems: {report['n_common']}",
              f"- dataset sha256: `{meta.get('dataset_sha256')}`",
              f"- generated: {meta['generated_at']}; bootstrap: {report['bootstrap']['n_boot']} resamples, "

@@ -27,7 +27,7 @@ them. Each sample has this shape:
 Run from `backend/` with a Gemini key in `.env`:
 
 ```bash
-WRITING_COACH_ENABLED=false venv/bin/python scripts/run_writing_calibration.py \
+WRITING_COACH_ENABLED=false venv/bin/python scripts/dev/run_writing_calibration.py \
   calibration/writing_samples.local.jsonl \
   --model gemini-2.5-flash \
   --tolerance 0.5 \
@@ -39,7 +39,7 @@ range, and writes a JSON report when `--report` is provided.
 
 ## How to run E1 (Writing accuracy)
 
-The old single-purpose runner (`scripts/run_writing_calibration.py`) is now a thin
+The old single-purpose runner (`scripts/dev/run_writing_calibration.py`) is now a thin
 wrapper. E1 is a pipeline of four offline commands in `backend/ml/`; only step 3
 calls a paid or remote model. Run everything from `backend/` with
 `pip install -r requirements-dev.txt -r requirements-ml.txt`.
@@ -126,4 +126,4 @@ bootstrap differences and confusion matrices. Read QWK, SD ratio and mode share
 together: a flat 7.0 predictor has QWK 0 but a respectable MAE.
 
 Legacy shortcut for a quick dev-set check:
-`python scripts/run_writing_calibration.py tests/fixtures/writing_calibration_bank.jsonl --provider gemini`.
+`python scripts/dev/run_writing_calibration.py tests/fixtures/writing_calibration_bank.jsonl --provider gemini`.

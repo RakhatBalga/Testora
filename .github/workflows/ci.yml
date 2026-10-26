@@ -66,11 +66,7 @@ jobs:
           alembic downgrade h2c3d4e5f6a7
           alembic upgrade head
 
-      # Advisory until alembic/env.py imports every model (learning.py tables
-      # mistake_reviews, diagnostic_sessions, study_plan_items are missing from
-      # its metadata). Remove continue-on-error once `alembic check` is clean.
       - name: Alembic check (models match migrations)
-        continue-on-error: true
         run: alembic check
 
       - name: Install media validator (ffprobe)

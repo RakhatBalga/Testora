@@ -51,6 +51,13 @@ services:
         value: "2"
       - key: FREE_SPEAKING_SUBMISSIONS
         value: "2"
+      # Speaking stays closed server-side until it launches.
+      - key: SPEAKING_ENABLED
+        value: "false"
+      - key: STORAGE_BACKEND
+        value: database
+      - key: AI_GLOBAL_DAILY_ATTEMPTS
+        value: "400"
       - key: AI_DAILY_ATTEMPTS
         value: "20"
       # Google sign-in. Also set NEXT_PUBLIC_GOOGLE_CLIENT_ID in Vercel (same client id).

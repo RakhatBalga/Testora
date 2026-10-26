@@ -10,12 +10,10 @@ output is never overwritten (same pattern as ml.train_speaking).
 """
 import argparse
 import hashlib
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 
 from ml.data import write_report
-from ml.metrics import half_band
 from ml.writing_data import CRITERIA, Essay, read_essays, file_sha256
 # _dense/_texts live in writing_features so pickles never reference __main__.
 from ml.writing_features import FEATURE_VERSION, dense_matrix as _dense, texts_of as _texts
