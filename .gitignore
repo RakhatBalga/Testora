@@ -21,7 +21,35 @@ backend/static/avatars/
 # Claude Code — local, machine-specific settings
 .claude/settings.local.json
 
-# Local security notes / PoCs — must NOT be pushed
-security_prompt.md
-security_prompt*.md
-clickjacking-poc.html
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Python
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Node / Next.js
+node_modules/
+.next/
+frontend/coverage/
+*.tsbuildinfo
+
+# Environment files (examples stay tracked)
+.env
+.env.*
+!.env.example
+
+# Local AI model weights
+*.gguf
+*.safetensors
+ai/models/
+
+# Private audio uploads and local backups
+backend/private/

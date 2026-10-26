@@ -8,7 +8,7 @@ Reading Review UI can highlight the supporting sentence automatically.
 Also removes the legacy "Academic Reading Practice 1" demo from the library.
 
 Idempotent for this title. Run from backend/:
-    venv/bin/python seed_reading_gold.py
+    python -m scripts.seed.seed_reading_gold
 """
 from app.infrastructure.database import SessionLocal
 from app.domain.models.test import Test, Section, Question

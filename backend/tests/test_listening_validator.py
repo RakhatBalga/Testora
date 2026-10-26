@@ -3,7 +3,7 @@ import json
 import sys
 
 import pytest
-import validate_listening as validator
+from content_tools import validate_listening as validator
 
 
 @pytest.fixture

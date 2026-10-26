@@ -6,7 +6,14 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     dockerCommand: ./start-render.sh
-    healthCheckPath: /health/ready
+    # Liveness, not readiness: Render polls this path continuously. /health/ready
+    # queries the database, which would keep the Neon compute awake 24/7 and burn
+    # the free CU-hours. Startup already fails fast on bad config and migrations
+    # (alembic upgrade runs before uvicorn), so a live process is a usable one.
+    # Point external monitors at /health/ready only at a low frequency.
+    healthCheckPath: /health/live
+    # Deploy only after the GitHub checks for the commit pass.
+    autoDeployTrigger: checksPass
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -28,11 +35,34 @@ services:
         sync: false
       - key: GEMINI_MODEL
         value: gemini-2.5-flash
+      # Cheaper model for the prose-only calls (coach guidance, "Better Version").
+      # The examiner (band score) stays on GEMINI_MODEL.
       - key: GEMINI_FAST_MODEL
-        value: gemini-2.5-flash
+        value: gemini-2.5-flash-lite
+      # Planned local Qwen provider (OpenAI-compatible API). Uncomment together
+      # with AI_PROVIDER=qwen once the backend supports it.
+      # - key: QWEN_BASE_URL
+      #   sync: false
+      # - key: QWEN_MODEL
+      #   sync: false
+      # - key: QWEN_API_KEY
+      #   sync: false
       - key: FREE_WRITING_SUBMISSIONS
         value: "2"
       - key: FREE_SPEAKING_SUBMISSIONS
         value: "2"
+      - key: AI_DAILY_ATTEMPTS
+        value: "20"
+      # Google sign-in. Also set NEXT_PUBLIC_GOOGLE_CLIENT_ID in Vercel (same client id).
+      # GOOGLE_REDIRECT_URI must be the exact backend callback registered in Google Cloud,
+      # e.g. https://<api-host>/api/auth/google/callback.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
       - key: LOG_LEVEL
         value: INFO

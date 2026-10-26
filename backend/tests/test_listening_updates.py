@@ -13,7 +13,7 @@ from app.domain.models.attempt import Attempt, ListeningProgress
 from app.domain.models.test import Test as ContentTest
 from app.domain.models.user import User
 from app.infrastructure.database import Base
-from seed_listening import CONTENT_PATH, seed_package
+from scripts.seed.seed_listening import CONTENT_PATH, seed_package
 
 
 @pytest.fixture

@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 CONTENT_DIR = ROOT / "content/listening"
 FRONTEND_PUBLIC = ROOT.parent / "frontend/public"
 REPORT_PATH = CONTENT_DIR / "testora-studio-02-assembly-report.json"

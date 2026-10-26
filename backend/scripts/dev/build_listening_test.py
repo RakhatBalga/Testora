@@ -6,7 +6,7 @@ content JSON + an audio manifest.
 Every character gets a UNIQUE voice (no two speakers share one). Run on macOS
 with ffmpeg installed:
 
-    python scripts/build_listening_test.py
+    python -m scripts.dev.build_listening_test
 
 Outputs (relative to backend/):
     static/audio/listening/testora-studio-02.m4a
@@ -24,7 +24,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-BACKEND = Path(__file__).resolve().parents[1]
+BACKEND = Path(__file__).resolve().parents[2]
 SLUG = "testora-studio-listening-02"
 STEM = "testora-studio-02"
 AUDIO_REL = f"/static/audio/listening/{STEM}.m4a"

@@ -6,7 +6,7 @@ Maps each question (by its global 1-based order across the test) to one or more
 Not Given have NO evidence (None) — that absence is itself the lesson.
 
 Runs in place (does NOT delete attempts). Run from backend/:
-    venv/bin/python seed_reading_evidence.py
+    python -m scripts.seed.seed_reading_evidence
 """
 from app.infrastructure.database import SessionLocal
 from app.domain.models.test import Test, Section, Question
@@ -66,7 +66,7 @@ def run():
     try:
         test = db.query(Test).filter(Test.title == TITLE).first()
         if not test:
-            print(f"Test not found: {TITLE!r}. Run seed_reading.py first.")
+            print(f"Test not found: {TITLE!r}. Run scripts/seed/seed_reading.py first.")
             return
 
         questions = (
