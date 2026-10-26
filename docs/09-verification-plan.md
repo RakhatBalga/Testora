@@ -13,21 +13,21 @@ The project aim is to build an IELTS preparation system that (a) grades Writing 
 
 Counts were taken on 26 October 2026 from the integration branch: `def test_*` functions in the backend (`grep -c "def test_"`), `pytest --collect-only` for the number of cases after parametrisation, and `npx vitest run` for the frontend. Recount before every submission.
 
-**Backend – pytest: 50 test files, 358 test functions, 467 collected cases** (`backend/tests/`; a few PostgreSQL-only tests are skipped on SQLite)
+**Backend – pytest: 51 test files, 391 test functions, 541 collected cases** (`backend/tests/`; a few PostgreSQL-only tests are skipped on SQLite)
 
 | Area | Test files (number of test functions) |
 |------|---------------------------------------|
-| LLM Writing grading | `test_writing_examiner.py` (52), `test_gemini_grading.py` (21), `test_qwen_grading.py` (14), `test_qwen_client.py` (17), `test_writing_precheck.py` (4), `test_writing_retry.py` (4) |
+| LLM Writing grading | `test_writing_examiner.py` (59), `test_gemini_grading.py` (21), `test_qwen_grading.py` (16), `test_qwen_client.py` (20), `test_writing_precheck.py` (4), `test_writing_retry.py` (4) |
 | Coach loop / analytics | `test_analytics_core.py` (8), `test_personalized_learning.py` (6), `test_recommendations.py` (2), `test_weekly_analytics.py` (1), `test_target_band.py` (8), `test_band.py` (6), `test_response_models.py` (3) |
 | Reading / Listening / content | `test_reading_scoring.py` (4), `test_reading_catalog.py` (3), `test_listening_scoring.py` (6), `test_listening_updates.py` (4), `test_listening_validator.py` (4), `test_content_pipeline.py` (9), `test_seed_demo_guard.py` (3) |
 | Vocabulary | `test_vocabulary.py` (4), `test_vocabulary_quota.py` (3) |
-| Security & reliability | `test_auth_tokens.py` (3), `test_google_auth.py` (5), `test_ratelimit.py` (2), `test_request_limits.py` (10), `test_ai_safety.py` (12), `test_ai_quota.py` (6), `test_reliability.py` (17), `test_storage_and_uploads.py` (12), `test_deploy_paths.py` (3) |
+| Security & reliability | `test_auth_tokens.py` (3), `test_google_auth.py` (5), `test_ratelimit.py` (2), `test_request_limits.py` (10), `test_ai_safety.py` (12), `test_ai_quota.py` (6), `test_reliability.py` (24), `test_storage_and_uploads.py` (12), `test_deploy_paths.py` (3) |
 | ML research modules | `test_ml_asr.py` (1), `test_ml_benchmark_asr.py` (4), `test_ml_data.py` (3), `test_ml_speech_features.py` (3), `test_ml_train_speaking.py` (10), `test_ml_metrics.py` (6), `test_ml_irt.py` (2), `test_ml_knowledge_tracing.py` (3), `test_ml_recommendation.py` (2), `test_ml_evaluate_adaptive.py` (7), `test_ml_export_responses.py` (6) |
-| E1 Writing evaluation tooling (`tests/ml/`) | `test_writing_data.py` (8), `test_writing_stats.py` (11), `test_writing_collect.py` (6), `test_writing_train.py` (5), `test_writing_evaluate.py` (8); dataset readiness and record safety in `tests/ml/datasets/` (`test_readiness.py` 11, `test_speaking_readiness.py` 3, `test_record_safety.py` 3) |
+| E1 Writing evaluation tooling (`tests/ml/`) | `test_writing_data.py` (8), `test_writing_stats.py` (11), `test_writing_collect.py` (6), `test_writing_train.py` (5), `test_writing_evaluate.py` (8), `test_writing_integrity.py` (14); dataset readiness and record safety in `tests/ml/datasets/` (`test_readiness.py` 11, `test_speaking_readiness.py` 3, `test_record_safety.py` 3) |
 
-**Frontend – Vitest + Testing Library: 21 files, 102 tests** (`npx vitest run`)
+**Frontend – Vitest + Testing Library: 22 files, 108 tests** (`npx vitest run`)
 
-`app/listening/progress.test.tsx`, `app/login/page.test.tsx`, `entities/profile/model/stats.test.ts`, `entities/test/model/routes.test.ts`, `entities/test/model/storage.test.ts`, `features/auth/model/googleFlow.test.ts`, `features/auth/ui/GoogleSignInButton.test.tsx`, `features/feedback/ui/ReviewStatusNotice.test.tsx`, `features/listening-session/model/progress.test.ts`, `features/listening-session/ui/ListeningAudioPlayer.test.tsx`, `shared/api/login.test.ts`, `shared/api/quotaErrors.test.ts`, `shared/api/request.test.ts`, `shared/lib/band.test.ts`, `shared/lib/examTimer.test.ts`, `shared/lib/formatDisplayName.test.ts`, `shared/lib/greeting.test.ts`, `shared/lib/micError.test.ts`, `shared/lib/safeNext.test.ts`, `shared/lib/useExamTimer.test.tsx`, `shared/ui/Button.test.tsx`.
+`app/listening/progress.test.tsx`, `app/login/page.test.tsx`, `entities/profile/model/stats.test.ts`, `entities/test/model/routes.test.ts`, `entities/test/model/storage.test.ts`, `features/auth/model/googleFlow.test.ts`, `features/auth/ui/GoogleSignInButton.test.tsx`, `features/feedback/ui/ReviewStatusNotice.test.tsx`, `features/listening-session/model/progress.test.ts`, `features/listening-session/ui/ListeningAudioPlayer.test.tsx`, `shared/api/login.test.ts`, `shared/api/quotaErrors.test.ts`, `shared/api/request.test.ts`, `shared/lib/band.test.ts`, `shared/lib/examTimer.test.ts`, `shared/lib/formatDisplayName.test.ts`, `shared/lib/greeting.test.ts`, `shared/lib/micError.test.ts`, `shared/lib/safeNext.test.ts`, `shared/lib/useDeadlineCountdown.test.tsx`, `shared/lib/useExamTimer.test.tsx`, `shared/ui/Button.test.tsx`.
 
 **Content validators** (run as `python -m content_tools.validate_<name>` from `backend/`; in CI before the tests):
 
