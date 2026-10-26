@@ -64,7 +64,7 @@ export function ProgressImpact({ data }: { data: ProgressImpactData | null }) {
             <div className="grid gap-2 sm:grid-cols-2">
               {data.criteria.map((c) => {
                 const tone =
-                  c.direction === "up" ? "text-emerald-600" : c.direction === "down" ? "text-red-600" : "text-slate-400";
+                  c.direction === "up" ? "text-emerald-600" : c.direction === "down" ? "text-red-600" : "text-slate-500";
                 const Icon = c.direction === "up" ? TrendingUp : c.direction === "down" ? TrendingDown : Minus;
                 return (
                   <div
@@ -123,7 +123,7 @@ export function ProgressImpact({ data }: { data: ProgressImpactData | null }) {
             {data.blocker.changed ? (
               <p className="text-[var(--text-primary)]">
                 <span className="font-semibold">Main blocker changed:</span> {data.blocker.from}{" "}
-                <ArrowRight className="inline h-3.5 w-3.5 text-slate-400" /> {data.blocker.to}.{" "}
+                <ArrowRight className="inline h-3.5 w-3.5 text-slate-500" /> {data.blocker.to}.{" "}
                 <span className="text-[var(--text-secondary)]">{data.blocker.from} is no longer your primary limitation.</span>
               </p>
             ) : (
@@ -160,7 +160,7 @@ function BandPill({
           highlight
             ? "bg-[var(--brand)] text-white shadow-[0_12px_30px_-12px_rgba(37,99,235,0.6)]"
             : muted
-              ? "bg-slate-100 text-slate-400"
+              ? "bg-slate-100 text-slate-500"
               : "bg-slate-100 text-[var(--text-primary)]"
         }`}
       >

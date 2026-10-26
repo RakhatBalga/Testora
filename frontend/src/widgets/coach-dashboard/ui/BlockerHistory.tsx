@@ -53,7 +53,7 @@ export function BlockerHistory({ data, loading }: { data: BlockerHistoryData | n
         </>
       ) : (
         <div className="flex items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] p-6 text-sm text-[var(--text-secondary)]">
-          <History className="h-5 w-5 text-slate-400" />
+          <History className="h-5 w-5 text-slate-500" />
           Practice across a couple of weeks and I&apos;ll track how your main blocker shifts.
         </div>
       )}

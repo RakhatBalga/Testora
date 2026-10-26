@@ -17,7 +17,7 @@ export function ReadingTimer({ remaining, paused, onPause, onResume }: Props) {
       <div
         className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 font-mono text-lg font-semibold tabular-nums transition-colors ${
           paused
-            ? "bg-slate-100 text-slate-400"
+            ? "bg-slate-100 text-slate-500"
             : low
               ? "animate-pulse bg-red-100 text-red-700"
               : "bg-slate-100 text-slate-700"

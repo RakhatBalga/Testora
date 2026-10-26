@@ -629,7 +629,7 @@ export default function ProfilePage() {
                 <option value="">Not set</option>
                 {NATIVE_LANGUAGES.map((lang) => <option key={lang} value={lang}>{lang}</option>)}
               </select>
-              <span className="mt-1 block text-xs font-normal text-slate-400">Used to translate saved vocabulary.</span>
+              <span className="mt-1 block text-xs font-normal text-slate-500">Used to translate saved vocabulary.</span>
             </label>
           </div>
         </section>

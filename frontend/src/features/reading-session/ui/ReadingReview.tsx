@@ -25,14 +25,14 @@ export function ReadingReview({ result, groups, onRetake }: Props) {
       <Card className="overflow-hidden">
         <div className="grid gap-px bg-[var(--border)] sm:grid-cols-3">
           <div className="bg-white p-6 text-center">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Score</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Score</p>
             <p className="mt-1 text-4xl font-extrabold text-slate-900">
               {result.correct}
               <span className="text-2xl text-slate-300">/{result.total}</span>
             </p>
           </div>
           <div className="bg-white p-6 text-center">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
               Estimated band
             </p>
             <p className={`mt-1 text-4xl font-extrabold ${bandColor(result.band ?? 0)}`}>
@@ -40,7 +40,7 @@ export function ReadingReview({ result, groups, onRetake }: Props) {
             </p>
           </div>
           <div className="bg-white p-6 text-center">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Accuracy</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Accuracy</p>
             <p className="mt-1 text-4xl font-extrabold text-slate-900">{result.accuracy}%</p>
           </div>
         </div>
@@ -56,7 +56,7 @@ export function ReadingReview({ result, groups, onRetake }: Props) {
       {/* Per-question review grouped by passage */}
       {groups.map((g) => (
         <div key={g.section.id} className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             {rangeLabel(g.start, g.end)}
           </p>
           {g.questions.map((q) => {

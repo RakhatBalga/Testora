@@ -30,7 +30,7 @@ export function ListeningSectionNav({ sections, active, answers, onSelect }: Pro
             </span>
             <span
               className={`text-[11px] tabular-nums ${
-                done ? "font-semibold text-emerald-600" : "text-slate-400"
+                done ? "font-semibold text-emerald-600" : "text-slate-500"
               }`}
             >
               {answered}/{g.questions.length}

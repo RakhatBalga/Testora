@@ -13,7 +13,7 @@ export function ReadingProgress({ answered, total }: Props) {
         <span className="text-slate-600">
           Answered <strong className="text-slate-900">{answered}</strong> / {total}
         </span>
-        <span className="text-slate-400">
+        <span className="text-slate-500">
           {remaining} left · {pct}%
         </span>
       </div>

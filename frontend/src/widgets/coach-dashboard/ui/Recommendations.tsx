@@ -44,7 +44,7 @@ export function Recommendations({ recommendations }: Props) {
         </div>
       ) : recommendations.length === 0 ? (
         <div className="flex items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] p-6 text-sm text-[var(--text-secondary)]">
-          <Lightbulb className="h-5 w-5 text-slate-400" />
+          <Lightbulb className="h-5 w-5 text-slate-500" />
           Complete a practice task to get personalised recommendations.
         </div>
       ) : (

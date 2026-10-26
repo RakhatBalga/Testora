@@ -88,7 +88,7 @@ export function ReadingReviewSplit({ result, groups, onRetake }: Props) {
   if (!active || !activeGroup) return null;
 
   return (
-    <div className="relative left-1/2 flex h-[calc(100vh-8rem)] min-h-[480px] w-[95vw] max-w-[1600px] -translate-x-1/2 flex-col overflow-hidden">
+    <div className="relative left-1/2 flex h-[calc(100dvh-8rem)] min-h-[480px] w-[95vw] max-w-[1600px] -translate-x-1/2 flex-col overflow-hidden">
       {/* Compact result header */}
       <div className="flex flex-shrink-0 items-center justify-between gap-4 pb-3">
         <div className="flex items-center gap-5">
@@ -145,7 +145,7 @@ export function ReadingReviewSplit({ result, groups, onRetake }: Props) {
         <div className="min-h-0 overflow-y-auto rounded-2xl border border-[var(--border)] bg-white p-3.5 sm:p-4">
           {groups.map((g) => (
             <div key={g.section.id} className="mb-4 last:mb-0">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 {rangeLabel(g.start, g.end)}
               </p>
               <div className="space-y-2.5">
@@ -185,7 +185,7 @@ function ReviewCard({
 
   const StatusIcon = !answered ? CircleDashed : correct ? CheckCircle2 : XCircle;
   const statusColor = !answered
-    ? "text-slate-400"
+    ? "text-slate-500"
     : correct
       ? "text-green-600"
       : "text-red-600";
@@ -205,7 +205,7 @@ function ReviewCard({
           {question.number}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             {typeLabel(question.question_type)}
           </p>
           <p className="mt-0.5 text-sm font-medium leading-snug text-slate-900">
@@ -240,7 +240,7 @@ function ReviewCard({
               Evidence: {location}
             </span>
           ) : (
-            <span className="mt-2 inline-block text-xs italic text-slate-400">
+            <span className="mt-2 inline-block text-xs italic text-slate-500">
               Not stated in the passage
             </span>
           )}

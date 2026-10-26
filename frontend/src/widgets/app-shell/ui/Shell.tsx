@@ -21,8 +21,9 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const isAuth = pathname === "/login" || pathname === "/register";
   if (isAuth) return <>{children}</>;
 
-  // Avoid a flash of the wrong chrome before auth state is known.
-  if (!ready) return <div className="flex-1" />;
+  // Avoid a flash of the wrong chrome before auth state is known. The home
+  // route renders through so its prerendered landing content stays in the HTML.
+  if (!ready) return pathname === "/" ? <>{children}</> : <div className="flex-1" />;
 
   const isLanding = pathname === "/" && !token;
   if (isLanding) return <>{children}</>;

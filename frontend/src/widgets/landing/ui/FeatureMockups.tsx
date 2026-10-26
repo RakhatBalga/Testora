@@ -250,7 +250,7 @@ function BandTrajectory() {
           ))}
         </div>
         <div className="mt-3 flex items-center justify-between">
-          <p className="font-mono text-xs text-slate-400">8 weeks of graded work</p>
+          <p className="font-mono text-xs text-slate-500">8 weeks of graded work</p>
           <motion.p
             initial={{ opacity: 0, x: 12 }}
             whileInView={{ opacity: 1, x: 0 }}

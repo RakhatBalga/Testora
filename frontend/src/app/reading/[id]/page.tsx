@@ -205,8 +205,8 @@ export default function ReadingPage() {
       <div className="space-y-4">
         <Skeleton className="h-16 w-full" />
         <div className="grid gap-6 lg:grid-cols-[65fr_35fr]">
-          <Skeleton className="h-[70vh] w-full" />
-          <Skeleton className="h-[70vh] w-full" />
+          <Skeleton className="h-[70dvh] w-full" />
+          <Skeleton className="h-[70dvh] w-full" />
         </div>
       </div>
     );

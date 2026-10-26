@@ -50,7 +50,7 @@ function DeltaBadge({ delta }: { delta: number | null }) {
 function BandCard({ label, band, date }: { label: string; band: number | null; date: string | null }) {
   const tone =
     band === null
-      ? "text-slate-400"
+      ? "text-slate-500"
       : band >= 7
         ? "text-emerald-600"
         : band >= 5.5
@@ -290,7 +290,7 @@ export default function CompareContent() {
             <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold capitalize ${skillClass}`}>
               {result.skill}
             </span>
-            <GitCompare className="h-4 w-4 text-slate-400" />
+            <GitCompare className="h-4 w-4 text-slate-500" />
             <span className="text-sm text-[var(--text-secondary)]">Band change</span>
             <DeltaBadge delta={result.band_delta} />
             {result.blocker?.changed && (

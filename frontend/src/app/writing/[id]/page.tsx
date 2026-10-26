@@ -230,7 +230,7 @@ export default function WritingTaskPage() {
       )}
 
       <Card className="p-6">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
           Prompt
         </h2>
         <p className="whitespace-pre-line leading-relaxed text-slate-700">

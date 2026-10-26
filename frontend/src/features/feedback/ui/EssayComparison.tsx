@@ -334,7 +334,7 @@ export function EssayComparison({ prompt, response, improved }: Props) {
     <section className="space-y-5">
       {/* Prompt — full width */}
       <div className="rounded-[20px] border border-[var(--border)] bg-white p-6 shadow-sm shadow-slate-200/50 sm:p-7">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
           Prompt
         </h2>
         <p className="whitespace-pre-line text-[15px] leading-[1.8] text-slate-700">
@@ -380,7 +380,7 @@ export function EssayComparison({ prompt, response, improved }: Props) {
         <div className="hidden lg:grid lg:grid-cols-2">
           {/* Column headers */}
           <div className="border-b border-r border-[var(--border)] px-7 pt-6 pb-4">
-            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
               Your Response
             </h3>
           </div>
@@ -410,7 +410,7 @@ export function EssayComparison({ prompt, response, improved }: Props) {
         {/* ---- Mobile: stacked ---- */}
         <div className="lg:hidden">
           <div className="border-b border-[var(--border)] px-6 py-5">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
               Your Response
             </h3>
             <div className="space-y-3">
@@ -461,7 +461,7 @@ function StatsBar({ counts }: { counts: Record<Criterion, number> }) {
             className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
               active
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-slate-200 bg-slate-50 text-slate-400"
+                : "border-slate-200 bg-slate-50 text-slate-500"
             }`}
             title={active ? `+${n} ${noun}` : "No changes"}
           >

@@ -28,7 +28,7 @@ export function StreakStatus({ streak, href }: { streak: Streak | null; href: st
           : "border-[var(--border)] bg-white hover:border-slate-300 hover:bg-slate-50"
       }`}
     >
-      <Flame className={`h-4 w-4 ${active ? "text-amber-500" : "text-slate-400"}`} />
+      <Flame className={`h-4 w-4 ${active ? "text-amber-500" : "text-slate-500"}`} />
       <span className={active ? "text-amber-700" : "text-[var(--text-primary)]"}>{days}d</span>
     </Link>
   );

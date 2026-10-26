@@ -167,7 +167,7 @@ export default function WritingPage() {
 
       {essayTypeOptions.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
             Essay type
           </span>
           <Link

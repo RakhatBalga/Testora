@@ -52,7 +52,7 @@ export default function ResultPage() {
   const band = result.band;
   const bandTone =
     band === null
-      ? "text-slate-400"
+      ? "text-slate-500"
       : band >= 7
         ? "text-green-600"
         : band >= 5.5
@@ -68,7 +68,7 @@ export default function ResultPage() {
           <p className="text-sm font-medium text-slate-500">{result.test_title}</p>
           {band !== null && (
             <>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Estimated IELTS band
               </p>
               <p className={`text-6xl font-extrabold ${bandTone}`}>{band.toFixed(1)}</p>

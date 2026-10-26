@@ -38,7 +38,7 @@ export default function AuthShell({
     <div className="min-h-screen bg-[var(--background)]">
       <GuestNavbar />
 
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 pb-10 pt-8 sm:px-8 lg:min-h-[calc(100vh-76px)] lg:grid-cols-[1.22fr_1fr] lg:items-stretch lg:gap-12 lg:pb-12">
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 pb-10 pt-8 sm:px-8 lg:min-h-[calc(100dvh-76px)] lg:grid-cols-[1.22fr_1fr] lg:items-stretch lg:gap-12 lg:pb-12">
         {/* Left: brand panel — content changes per step */}
         <aside className="relative hidden overflow-hidden rounded-[28px] bg-[var(--brand)] p-12 text-white shadow-[0_20px_60px_-20px_rgba(37,99,235,0.45)] lg:flex lg:flex-col lg:justify-between lg:gap-12 xl:p-14">
           {/* academic dot grid */}

@@ -435,7 +435,7 @@ function HistoryRow({ item }: { item: HistoryItem }) {
 function EmptyAnalyticsState({ icon, text }: { icon: ReactNode; text: string }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] bg-slate-50/60 p-6 text-sm text-[var(--text-secondary)]">
-      <span className="text-slate-400">{icon}</span>
+      <span className="text-slate-500">{icon}</span>
       {text}
     </div>
   );

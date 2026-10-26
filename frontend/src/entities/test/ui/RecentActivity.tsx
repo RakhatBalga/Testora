@@ -33,7 +33,7 @@ export function RecentActivity({ attempts }: { attempts: AttemptSummary[] }) {
           >
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-slate-800">{a.test_title}</p>
-              <p className="text-xs text-slate-400">{relativeTime(a.created_at)}</p>
+              <p className="text-xs text-slate-500">{relativeTime(a.created_at)}</p>
             </div>
             <span
               className={`flex-shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${bandTone(a.band)}`}

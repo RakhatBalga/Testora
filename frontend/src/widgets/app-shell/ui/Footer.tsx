@@ -16,7 +16,7 @@ export default function Footer() {
             Testora — your AI IELTS coach
           </span>
         </div>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-slate-500">
           © {new Date().getFullYear()} Testora. All rights reserved.
         </p>
       </div>

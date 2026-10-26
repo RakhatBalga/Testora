@@ -132,7 +132,7 @@ export function ListeningAudioPlayer({
           <RotateCcw className="h-4 w-4" />
         </button>
       )}
-      <Volume2 className="hidden h-4 w-4 shrink-0 text-slate-400 sm:block" />
+      <Volume2 className="hidden h-4 w-4 shrink-0 text-slate-500 sm:block" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3 text-xs">
           <span className="truncate font-semibold text-slate-800">{sectionTitle}</span>

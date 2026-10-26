@@ -224,7 +224,7 @@ export default function SpeakingTaskPage() {
       )}
 
       <Card className={`p-6 ${task.part === 2 ? "border-slate-300" : ""}`}>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
           {task.part === 2 ? "Cue card" : "Examiner questions"}
         </h2>
         {task.part === 2 && (

@@ -26,7 +26,7 @@ function RadioRow({ question, value, onChange }: Omit<Props, "active" | "onFocus
           >
             <span
               className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${
-                selected ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-slate-300 text-slate-400"
+                selected ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-slate-300 text-slate-500"
               }`}
             >
               {letter}

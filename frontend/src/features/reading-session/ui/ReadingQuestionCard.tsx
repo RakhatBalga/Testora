@@ -37,7 +37,7 @@ function RadioGroup({
               className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${
                 selected
                   ? "border-[var(--brand)] bg-[var(--brand)] text-white"
-                  : "border-slate-300 text-slate-400"
+                  : "border-slate-300 text-slate-500"
               }`}
             >
               {letter}
@@ -210,7 +210,7 @@ export function ReadingQuestionCard({ question, value, active, onChange, onFocus
           {question.number}
         </span>
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             {typeLabel(question.question_type)}
           </p>
           <p className="mt-0.5 font-medium leading-snug text-slate-900">{question.text}</p>

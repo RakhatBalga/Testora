@@ -54,16 +54,16 @@ export default function ListeningResultPage() {
 
       <Card className="overflow-hidden">
         <div className="grid gap-px bg-slate-200 sm:grid-cols-3">
-          <div className="bg-white p-6 text-center"><p className="text-xs font-semibold uppercase text-slate-400">Score</p><p className="mt-1 text-4xl font-extrabold text-slate-950">{review.score}<span className="text-2xl text-slate-300">/{review.total}</span></p></div>
-          <div className="bg-white p-6 text-center"><p className="text-xs font-semibold uppercase text-slate-400">Estimated band</p><p className="mt-1 text-4xl font-extrabold text-teal-700">{review.band?.toFixed(1) ?? "-"}</p></div>
-          <div className="bg-white p-6 text-center"><p className="text-xs font-semibold uppercase text-slate-400">Accuracy</p><p className="mt-1 text-4xl font-extrabold text-slate-950">{review.accuracy}%</p></div>
+          <div className="bg-white p-6 text-center"><p className="text-xs font-semibold uppercase text-slate-500">Score</p><p className="mt-1 text-4xl font-extrabold text-slate-950">{review.score}<span className="text-2xl text-slate-300">/{review.total}</span></p></div>
+          <div className="bg-white p-6 text-center"><p className="text-xs font-semibold uppercase text-slate-500">Estimated band</p><p className="mt-1 text-4xl font-extrabold text-teal-700">{review.band?.toFixed(1) ?? "-"}</p></div>
+          <div className="bg-white p-6 text-center"><p className="text-xs font-semibold uppercase text-slate-500">Accuracy</p><p className="mt-1 text-4xl font-extrabold text-slate-950">{review.accuracy}%</p></div>
         </div>
       </Card>
 
       <section>
         <h2 className="text-lg font-bold text-slate-950">Section breakdown</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {sectionScores.map((section) => <div key={section.id} className="rounded-lg border border-slate-200 bg-white p-4"><p className="text-xs font-semibold uppercase text-slate-400">Section {section.order}</p><p className="mt-1 text-2xl font-bold text-slate-950">{section.correct}/{section.total}</p></div>)}
+          {sectionScores.map((section) => <div key={section.id} className="rounded-lg border border-slate-200 bg-white p-4"><p className="text-xs font-semibold uppercase text-slate-500">Section {section.order}</p><p className="mt-1 text-2xl font-bold text-slate-950">{section.correct}/{section.total}</p></div>)}
         </div>
       </section>
 
@@ -87,7 +87,7 @@ export default function ListeningResultPage() {
           <details className="rounded-lg border border-slate-200 bg-white px-4 py-3">
             <summary className="cursor-pointer text-sm font-semibold text-slate-800">Section transcript</summary>
             <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
-              {section.transcript_segments.map((segment) => <div key={segment.id} className="grid gap-1 text-sm sm:grid-cols-[72px_100px_1fr]"><span className="tabular-nums text-slate-400">{timestamp(segment.start)}</span><strong className="text-slate-700">{segment.speaker}</strong><p className="leading-6 text-slate-600">{segment.text}</p></div>)}
+              {section.transcript_segments.map((segment) => <div key={segment.id} className="grid gap-1 text-sm sm:grid-cols-[72px_100px_1fr]"><span className="tabular-nums text-slate-500">{timestamp(segment.start)}</span><strong className="text-slate-700">{segment.speaker}</strong><p className="leading-6 text-slate-600">{segment.text}</p></div>)}
             </div>
           </details>
         </section>

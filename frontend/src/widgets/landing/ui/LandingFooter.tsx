@@ -9,14 +9,12 @@ const COLS = [
     title: "Product",
     links: [
       { label: "Features", href: "#features" },
-      { label: "Tests", href: "#showcase" },
       { label: "FAQ", href: "#faq" },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "About", href: "#showcase" },
       { label: "Contact", href: "#contact" },
     ],
   },
