@@ -56,6 +56,21 @@ class Settings(BaseSettings):
     MAX_CONCURRENT_GRADINGS: int = 8
 
     @property
+    def grading_stale_minutes(self) -> int:
+        """How long a pending grading may run before it counts as dead.
+
+        Never shorter than the slowest legitimate grading, or a live request
+        would be failed and refunded under its own feet. With Qwen that is two
+        stages (examiner, coach), each up to 3 transport attempts of
+        QWEN_TIMEOUT_SECONDS, plus slack for backoff.
+        """
+        stale = self.GRADING_STALE_MINUTES
+        if self.AI_PROVIDER.strip().lower() == "qwen":
+            worst_seconds = 2 * 3 * self.QWEN_TIMEOUT_SECONDS + 60
+            stale = max(stale, int(worst_seconds // 60) + 1)
+        return stale
+
+    @property
     def is_production(self) -> bool:
         return self.APP_ENV.strip().lower() == "production"
 
@@ -78,12 +93,6 @@ class Settings(BaseSettings):
     # call would add 15-25s of latency and most of the per-submission cost.
     GEMINI_FAST_MODEL: str = "gemini-2.5-flash"
 
-    # Locally hosted Qwen behind an OpenAI-compatible API (/v1/chat/completions).
-    QWEN_BASE_URL: str = ""
-    QWEN_MODEL: str = ""
-    QWEN_API_KEY: str = ""
-    QWEN_TIMEOUT_SECONDS: int = 120
-
     # Run the second-stage Writing "coach" call (personalised guidance + roadmap).
     # Disable to halve Writing grading cost/latency (examiner scores still return).
     WRITING_COACH_ENABLED: bool = True
@@ -105,7 +114,8 @@ class Settings(BaseSettings):
     AI_GLOBAL_DAILY_ATTEMPTS: int = 400
     # A pending grading older than this is considered dead (worker killed) and
     # is reconciled: marked failed and its quota refunded. Must exceed the
-    # slowest legitimate grading (3 x 60 s timeout, two stages).
+    # slowest legitimate grading (3 x 60 s timeout, two stages). Use
+    # `grading_stale_minutes`, which raises this for a slow Qwen server.
     GRADING_STALE_MINUTES: int = Field(default=10, ge=1)
     # Max time a request waits for a free grading slot before getting a 503.
     GRADING_QUEUE_TIMEOUT_SECONDS: int = 30

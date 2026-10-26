@@ -1,11 +1,10 @@
 """Isolated adapter between the E1 tooling and the app's grader factory.
 
-Integration contract: `app.infrastructure.ai.factory.get_writing_grader(provider=None)`
-with providers mock | gemini | claude | qwen. Until that lands, this adapter
-falls back to setting AI_PROVIDER for the call and then VERIFIES the factory did
-not silently fall back to the mock grader (it does that when a key is missing),
-because measuring the mock under a Gemini label would be a silent lie.
-Once the factory has the parameter, `_via_setting` is dead code and can go.
+Contract: `app.infrastructure.ai.factory.get_writing_grader(provider=...)` with
+providers mock | gemini | claude | qwen. A named provider that is unknown or
+missing its settings raises ProviderUnavailable here (the factory raises
+ProviderNotConfigured), so an experiment can never silently measure the mock
+grader under another provider's label.
 """
 import hashlib
 import importlib.util
@@ -29,32 +28,15 @@ class ProviderUnavailable(RuntimeError):
     pass
 
 
-def _via_setting(provider: str):
-    from app.infrastructure.ai import factory
-    from app.infrastructure.config import settings
-
-    previous = settings.AI_PROVIDER
-    settings.AI_PROVIDER = provider
-    try:
-        grader = factory.get_writing_grader()
-        effective = factory.effective_provider() if hasattr(factory, "effective_provider") else provider
-    finally:
-        settings.AI_PROVIDER = previous
-    if provider != "mock" and effective != provider:
-        raise ProviderUnavailable(
-            f"provider {provider!r} is not usable here (factory fell back to {effective!r}); "
-            "check the API key / base URL settings")
-    return grader
-
-
 def make_grader(provider: str):
     if provider in _REGISTRY:
         return _REGISTRY[provider]()
     from app.infrastructure.ai import factory
 
-    if "provider" in inspect.signature(factory.get_writing_grader).parameters:
+    try:
         return factory.get_writing_grader(provider=provider)
-    return _via_setting(provider)
+    except factory.ProviderNotConfigured as exc:
+        raise ProviderUnavailable(f"provider {provider!r} is not usable here: {exc}") from exc
 
 
 def model_name(provider: str, grader=None) -> str:

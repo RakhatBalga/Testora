@@ -68,12 +68,12 @@ def submit_speaking(db: Session, user: User, task: SpeakingTask, audio: bytes) -
                     logger.warning("Speaking grading failed for user %s task %s: %s",
                                    user.id, task.id, feedback.summary)
                     feedback.summary = "Automatic grading could not be completed. Please try again."
-                    submission.feedback = feedback.to_dict()
+                    submission.feedback = {**feedback.to_dict(), "diagnostics": feedback.diagnostics()}
                     submission.band = None
                     db.commit()
                     db.refresh(submission)
                     return submission
-                submission.feedback = feedback.to_dict()
+                submission.feedback = {**feedback.to_dict(), "diagnostics": feedback.diagnostics()}
                 submission.band = feedback.band
                 db.flush()  # assign submission.id before recording its mistakes
                 record_mistakes(db, user_id=user.id, submission_id=submission.id,

@@ -89,7 +89,7 @@ def _stuck_submission(db, minutes_old):
 
 
 def test_stale_pending_is_failed_and_fresh_pending_is_left_alone(db):
-    stale = _stuck_submission(db, settings.GRADING_STALE_MINUTES + 5)
+    stale = _stuck_submission(db, settings.grading_stale_minutes + 5)
     fresh = _stuck_submission(db, 1)
     assert reconcile_stale_writing(db) == 1
     db.refresh(stale)
@@ -102,11 +102,11 @@ def test_stale_pending_is_failed_and_fresh_pending_is_left_alone(db):
 def test_dead_worker_reservation_is_refunded_and_retry_unblocked(db, monkeypatch):
     monkeypatch.setattr(settings, "FREE_WRITING_SUBMISSIONS", 2)
     monkeypatch.setattr(writing_service, "get_writing_grader", lambda: _Grader())
-    stale = _stuck_submission(db, settings.GRADING_STALE_MINUTES + 5)
+    stale = _stuck_submission(db, settings.grading_stale_minutes + 5)
     # The killed worker had reserved a review and held the retry lock.
     db.add(AIReservation(id="dead", user_id=1, kind="writing", charged=True, status="reserved",
                          active_resource=f"writing:{stale.id}",
-                         created_at=utcnow() - timedelta(minutes=settings.GRADING_STALE_MINUTES + 5)))
+                         created_at=utcnow() - timedelta(minutes=settings.grading_stale_minutes + 5)))
     db.add(AIQuotaBucket(user_id=1, kind="writing", period="lifetime", used=1))
     db.commit()
     assert quota_status(db, WritingSubmission, db.get(User, 1), 2)["used"] == 0  # refunded lazily
@@ -264,3 +264,12 @@ def test_pair_runs_both_calls_and_tolerates_a_failing_secondary():
 
     primary, secondary = ai_gate.run_graded_pair(lambda: "graded", {}, boom, {})
     assert primary == "graded" and isinstance(secondary, RuntimeError)
+
+
+def test_stale_window_covers_a_slow_qwen_grading(monkeypatch):
+    # examiner + coach, 3 transport attempts of QWEN_TIMEOUT_SECONDS each, plus slack
+    monkeypatch.setattr(settings, "AI_PROVIDER", "qwen")
+    monkeypatch.setattr(settings, "QWEN_TIMEOUT_SECONDS", 180.0)
+    assert settings.grading_stale_minutes >= 19
+    monkeypatch.setattr(settings, "AI_PROVIDER", "gemini")
+    assert settings.grading_stale_minutes == settings.GRADING_STALE_MINUTES

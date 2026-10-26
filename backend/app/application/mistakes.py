@@ -6,7 +6,7 @@ separate from analytics, which only *reads* these rows.
 from sqlalchemy.orm import Session
 
 from app.domain.models.mistake import Mistake
-from app.infrastructure.ai.base import MistakeItem
+from app.domain.grading import MistakeItem
 
 
 def clear_mistakes(

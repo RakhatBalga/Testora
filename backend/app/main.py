@@ -17,6 +17,7 @@ from app.api.middleware import BodySizeLimitMiddleware, RequestContextMiddleware
 from app.application.quota import reconcile_stale_reservations
 from app.application.writing import reconcile_stale_writing
 from app.infrastructure.ai.factory import effective_provider
+from app.infrastructure.ai.qwen import ping_qwen
 from app.api.routers import auth, tests, results, writing, speaking, analytics, learning, listening
 from app.api.routers import history, vocabulary
 
@@ -65,8 +66,8 @@ def _validate_ai_configuration() -> None:
     if settings.is_production and provider == "mock":
         raise RuntimeError(
             "Refusing to start in production with the mock grader. Set "
-            "AI_PROVIDER=gemini and provide GEMINI_API_KEY (current "
-            f"AI_PROVIDER={settings.AI_PROVIDER!r})."
+            "AI_PROVIDER=gemini and provide GEMINI_API_KEY, or set AI_PROVIDER=qwen "
+            f"with QWEN_BASE_URL and QWEN_MODEL (current AI_PROVIDER={settings.AI_PROVIDER!r})."
         )
     if provider == "mock" and settings.AI_PROVIDER.lower() != "mock":
         logger.warning(
@@ -188,11 +189,17 @@ async def health_ready(response: Response):
     db_ok = await run_in_threadpool(_check_db)
     provider = effective_provider()
     grading_ok = not (settings.is_production and provider == "mock")
+    result = {"grading_provider": provider}
+    if provider == "qwen":
+        # The self-hosted model server can be down while the API itself is fine.
+        qwen = await ping_qwen()
+        result["qwen"] = qwen
+        grading_ok = grading_ok and qwen["ok"] and qwen["model_available"]
     ready = db_ok and grading_ok
     if not ready:
         response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     return {
         "status": "ready" if ready else "not_ready",
         "database": "ok" if db_ok else "down",
-        "grading_provider": provider,
+        **result,
     }

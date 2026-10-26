@@ -32,13 +32,20 @@ _DUPLICATE_WINDOW = timedelta(minutes=2)
 _create_lock = threading.Lock()
 
 
+def _stored_feedback(feedback) -> dict:
+    """Feedback JSON plus the method/provenance record (provider, model, prompt version, caps)."""
+    data = feedback.to_dict()
+    data["diagnostics"] = feedback.diagnostics()
+    return data
+
+
 def _failure_feedback(summary: str) -> dict:
     return {"band": 0.0, "criteria": {}, "summary": summary, "suggestions": ["Try submitting again."]}
 
 
 def reconcile_stale_writing(db: Session, user_id: int | None = None) -> int:
     """Mark gradings abandoned by a dead worker as failed so they can be retried."""
-    cutoff = utcnow() - timedelta(minutes=settings.GRADING_STALE_MINUTES)
+    cutoff = utcnow() - timedelta(minutes=settings.grading_stale_minutes)
     marker = WritingSubmission.status_updated_at
     query = db.query(WritingSubmission).filter(
         WritingSubmission.status == "pending",
@@ -196,7 +203,7 @@ def _perform_grading(db: Session, user: User, submission: WritingSubmission, tas
         # never show provider/exception text to the user (log it instead).
         logger.warning("Writing grading failed for user %s task %s: %s", user.id, task.id, feedback.summary)
         feedback.summary = GRADING_FAILED_SUMMARY
-        submission.feedback = feedback.to_dict()
+        submission.feedback = _stored_feedback(feedback)
         submission.band = None
         submission.status = "failed"
         submission.status_updated_at = utcnow()
@@ -204,7 +211,7 @@ def _perform_grading(db: Session, user: User, submission: WritingSubmission, tas
         db.refresh(submission)
         return submission
 
-    submission.feedback = feedback.to_dict()
+    submission.feedback = _stored_feedback(feedback) if precheck.valid else feedback.to_dict()
     submission.band = feedback.band
     submission.status = "graded"
     submission.status_updated_at = utcnow()

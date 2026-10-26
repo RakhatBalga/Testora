@@ -113,7 +113,7 @@ def _increment_global(db: Session, period: str) -> None:
 
 def reconcile_stale_reservations(db: Session, user_id: int | None = None) -> int:
     """Release reservations whose worker died and refund their lifetime review."""
-    cutoff = utcnow() - timedelta(minutes=settings.GRADING_STALE_MINUTES)
+    cutoff = utcnow() - timedelta(minutes=settings.grading_stale_minutes)
     query = db.query(AIReservation).filter(
         AIReservation.status == "reserved", AIReservation.created_at < cutoff,
     )
