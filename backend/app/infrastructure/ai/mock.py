@@ -169,7 +169,7 @@ class MockWritingGrader(WritingGrader):
         overall = normalized.overall
 
         if not suggestions:
-            suggestions.append("Solid attempt. Keep practising to push past band 6.5.")
+            suggestions.append(f"Solid attempt. Keep practising to push past band {overall:.1f}.")
 
         summary = (
             f"Estimated band {overall} based on {words} words across "
