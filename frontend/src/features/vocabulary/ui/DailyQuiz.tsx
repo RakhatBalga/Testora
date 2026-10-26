@@ -79,7 +79,7 @@ export function DailyQuiz() {
             <p className="text-2xl font-extrabold text-slate-950">
               {result.score}/{result.total}
             </p>
-            <p className="text-xs text-slate-400">correct</p>
+            <p className="text-xs text-slate-500">correct</p>
           </div>
         ) : quiz.completed ? (
           <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
@@ -110,7 +110,7 @@ export function DailyQuiz() {
                     if (oi === res.answer_index)
                       tone = "border-emerald-300 bg-emerald-50 text-emerald-800";
                     else if (chosen) tone = "border-red-300 bg-red-50 text-red-800";
-                    else tone = "border-slate-200 text-slate-400";
+                    else tone = "border-slate-200 text-slate-500";
                   }
                   return (
                     <button
@@ -157,7 +157,7 @@ export function DailyQuiz() {
           </Button>
         )}
         {!result && !allAnswered && (
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-slate-500">
             Answer all {quiz.questions.length} questions to check.
           </span>
         )}

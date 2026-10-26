@@ -180,7 +180,7 @@ function WordCard({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-lg font-bold text-slate-900">{word.word}</span>
             {e?.part_of_speech && (
-              <span className="text-xs italic text-slate-400">{e.part_of_speech}</span>
+              <span className="text-xs italic text-slate-500">{e.part_of_speech}</span>
             )}
             <span className={`rounded-md px-2 py-0.5 text-xs font-semibold capitalize ${statusTone}`}>
               {word.status}

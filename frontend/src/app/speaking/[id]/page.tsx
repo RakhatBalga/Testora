@@ -5,20 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import { Loader2, Mic, RotateCcw, Square } from "lucide-react";
 import { api, SpeakingTask } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
-import { Badge } from "@/shared/ui";
-import { Button } from "@/shared/ui";
-import { Card } from "@/shared/ui";
-import { Skeleton } from "@/shared/ui";
+import { SPEAKING_AVAILABLE } from "@/shared/config";
+import { formatClockSeconds, micErrorMessage, useDeadlineCountdown } from "@/shared/lib";
+import { Badge, Button, Card, ErrorState, Skeleton } from "@/shared/ui";
 
 type Phase = "prep" | "ready" | "recording" | "recorded";
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, "0");
-  const s = (seconds % 60).toString().padStart(2, "0");
-  return `${m}:${s}`;
-}
 
 function preferredMimeType(): string | undefined {
   if (typeof MediaRecorder === "undefined") return undefined;
@@ -38,10 +29,13 @@ export default function SpeakingTaskPage() {
   const router = useRouter();
   const taskId = Number(params?.id);
 
+  // Speaking is switched off (see SPEAKING_AVAILABLE); don't allow direct links.
+  useEffect(() => {
+    if (!SPEAKING_AVAILABLE) router.replace("/speaking");
+  }, [router]);
+
   const [task, setTask] = useState<SpeakingTask | null>(null);
   const [phase, setPhase] = useState<Phase>("prep");
-  const [prepLeft, setPrepLeft] = useState(0);
-  const [speakLeft, setSpeakLeft] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioPreviewUrl, setAudioPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,39 +68,15 @@ export default function SpeakingTaskPage() {
       .getSpeakingTask(taskId)
       .then((data) => {
         setTask(data);
-        setPrepLeft(data.prep_seconds);
-        setSpeakLeft(data.speak_seconds);
         setPhase(data.prep_seconds > 0 ? "prep" : "ready");
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [token, taskId]);
 
-  useEffect(() => {
-    if (phase !== "prep" || prepLeft <= 0) return;
-    const timer = setTimeout(() => {
-      if (prepLeft <= 1) {
-        setPrepLeft(0);
-        setPhase("ready");
-      } else {
-        setPrepLeft(prepLeft - 1);
-      }
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [phase, prepLeft]);
-
-  useEffect(() => {
-    if (phase !== "recording" || speakLeft <= 0) return;
-    const timer = setTimeout(() => {
-      if (speakLeft <= 1) {
-        setSpeakLeft(0);
-        stopRecording();
-      } else {
-        setSpeakLeft(speakLeft - 1);
-      }
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [phase, speakLeft, stopRecording]);
+  // Deadline-based, so a throttled background tab cannot stretch the timers.
+  const prepLeft = useDeadlineCountdown(!!task && phase === "prep", task?.prep_seconds ?? 0, () => setPhase("ready"));
+  const speakLeft = useDeadlineCountdown(!!task && phase === "recording", task?.speak_seconds ?? 0, stopRecording);
 
   useEffect(() => {
     return () => {
@@ -156,15 +126,10 @@ export default function SpeakingTaskPage() {
         cleanupStream();
       };
 
-      setSpeakLeft(task.speak_seconds);
       setPhase("recording");
       recorder.start();
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Could not start recording. Check microphone permission."
-      );
+      setError(micErrorMessage(err));
       cleanupStream();
     }
   };
@@ -191,13 +156,11 @@ export default function SpeakingTaskPage() {
       if (current) URL.revokeObjectURL(current);
       return null;
     });
-    setPrepLeft(task.prep_seconds);
-    setSpeakLeft(task.speak_seconds);
     setPhase(task.prep_seconds > 0 ? "prep" : "ready");
     setError("");
   };
 
-  if (!ready || !token) return null;
+  if (!SPEAKING_AVAILABLE || !ready || !token) return null;
   if (loading) {
     return (
       <div className="space-y-4">
@@ -208,9 +171,7 @@ export default function SpeakingTaskPage() {
     );
   }
   if (!task && error) {
-    return (
-      <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-    );
+    return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   }
   if (!task) return null;
 
@@ -244,7 +205,7 @@ export default function SpeakingTaskPage() {
                   : "bg-slate-100 text-slate-700"
               }`}
             >
-              {phase === "recorded" ? "Done" : formatTime(activeTime)}
+              {phase === "recorded" ? "Done" : formatClockSeconds(activeTime)}
             </div>
           </div>
         </Card>
@@ -255,7 +216,7 @@ export default function SpeakingTaskPage() {
       )}
 
       <Card className={`p-6 ${task.part === 2 ? "border-slate-300" : ""}`}>
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-400">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
           {task.part === 2 ? "Cue card" : "Examiner questions"}
         </h2>
         {task.part === 2 && (
@@ -287,10 +248,7 @@ export default function SpeakingTaskPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             {phase === "prep" && (
-              <Button variant="secondary" onClick={() => {
-                setPrepLeft(0);
-                setPhase("ready");
-              }}>
+              <Button variant="secondary" onClick={() => setPhase("ready")}>
                 Skip prep
               </Button>
             )}

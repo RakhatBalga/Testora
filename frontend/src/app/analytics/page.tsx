@@ -26,11 +26,10 @@ import {
   type Streak,
   type Weakness,
 } from "@/shared/api";
-import { SKILLS, skillMeta, toneClasses, type Skill } from "@/entities/dashboard";
-import { BandTrajectory } from "@/shared/ui/dashboard";
-import { PageHeader, ProgressBar, StatTile, skillIcons } from "@/shared/ui/dashboard";
+import { SKILLS, skillMeta, toneClasses, type Skill, BandTrajectory, PageHeader, ProgressBar, StatTile, skillIcons } from "@/entities/dashboard";
 import { LinkButton } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
+import { formatDate } from "@/shared/lib";
 
 const FALLBACK_TARGET_BAND = 7.5;
 
@@ -435,15 +434,10 @@ function HistoryRow({ item }: { item: HistoryItem }) {
 function EmptyAnalyticsState({ icon, text }: { icon: ReactNode; text: string }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] bg-slate-50/60 p-6 text-sm text-[var(--text-secondary)]">
-      <span className="text-slate-400">{icon}</span>
+      <span className="text-slate-500">{icon}</span>
       {text}
     </div>
   );
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "No date";
-  return new Date(value).toLocaleDateString();
 }
 
 function sourceLabel(source: DailyPlanTask["source"]): string {

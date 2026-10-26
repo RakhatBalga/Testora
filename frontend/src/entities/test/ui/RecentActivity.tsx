@@ -1,13 +1,7 @@
 import Link from "next/link";
 import type { AttemptSummary } from "@/shared/api";
 import { relativeTime } from "../model/library";
-
-function bandTone(band: number | null): string {
-  if (band === null) return "bg-slate-100 text-slate-500";
-  if (band >= 7) return "bg-emerald-50 text-emerald-700";
-  if (band >= 5.5) return "bg-amber-50 text-amber-700";
-  return "bg-rose-50 text-rose-700";
-}
+import { bandBadgeClass } from "@/shared/lib";
 
 function resultHref(attempt: AttemptSummary): string {
   return attempt.test_type === "listening"
@@ -33,10 +27,10 @@ export function RecentActivity({ attempts }: { attempts: AttemptSummary[] }) {
           >
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-slate-800">{a.test_title}</p>
-              <p className="text-xs text-slate-400">{relativeTime(a.created_at)}</p>
+              <p className="text-xs text-slate-500">{relativeTime(a.created_at)}</p>
             </div>
             <span
-              className={`flex-shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${bandTone(a.band)}`}
+              className={`flex-shrink-0 rounded-md px-2 py-0.5 text-xs font-semibold ${bandBadgeClass(a.band)}`}
             >
               {a.band !== null ? `Band ${a.band.toFixed(1)}` : `${a.score}/${a.total}`}
             </span>

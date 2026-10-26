@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { api } from "@/shared/api";
-import { beginGoogleFlow } from "../googleFlow";
+import { beginGoogleFlow } from "../model/googleFlow";
 
 /** sessionStorage key carrying register-flow choices across the OAuth redirect. */
 export const GOOGLE_SIGNUP_KEY = "testora.google.signup";

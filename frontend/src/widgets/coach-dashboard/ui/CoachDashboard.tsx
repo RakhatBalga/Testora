@@ -10,7 +10,7 @@ import {
   Target,
 } from "lucide-react";
 import { api, type LearningDashboard } from "@/shared/api";
-import { Card, Skeleton } from "@/shared/ui";
+import { Card, ErrorState, Skeleton } from "@/shared/ui";
 import { formatDisplayName, greeting } from "@/shared/lib";
 
 export function CoachDashboard({ username }: { username: string | null }) {
@@ -18,11 +18,11 @@ export function CoachDashboard({ username }: { username: string | null }) {
   const [error, setError] = useState("");
   const [completing, setCompleting] = useState(false);
 
-  const load = () => api.getLearningDashboard().then(setData).catch((err) => setError(err.message));
+  const load = () => api.getLearningDashboard().then((d) => { setError(""); setData(d); }).catch((err) => setError(err.message));
   useEffect(() => { void load(); }, []);
 
   if (!data) {
-    return error ? <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : <div className="space-y-4"><Skeleton className="h-44 w-full" /><Skeleton className="h-64 w-full" /></div>;
+    return error ? <ErrorState message={error} onRetry={() => { setError(""); void load(); }} /> : <div className="space-y-4"><Skeleton className="h-44 w-full" /><Skeleton className="h-64 w-full" /></div>;
   }
 
   const current = data.profile.current_level;
@@ -49,14 +49,14 @@ export function CoachDashboard({ username }: { username: string | null }) {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
         <Card className="p-6">
-          <div className="flex items-center justify-between"><div><p className="text-xs font-semibold uppercase text-slate-400">Today</p><h2 className="mt-1 text-xl font-bold text-slate-950">{today?.title || "You are caught up"}</h2></div>{today && <span className={`rounded-md px-2 py-1 text-xs font-semibold capitalize ${today.skill === "writing" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{today.skill}</span>}</div>
+          <div className="flex items-center justify-between"><div><p className="text-xs font-semibold uppercase text-slate-500">Today</p><h2 className="mt-1 text-xl font-bold text-slate-950">{today?.title || "You are caught up"}</h2></div>{today && <span className={`rounded-md px-2 py-1 text-xs font-semibold capitalize ${today.skill === "writing" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{today.skill}</span>}</div>
           {today ? <><p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{today.reason}</p><p className="mt-3 text-sm font-medium text-slate-500">{today.minutes} minutes</p><div className="mt-5 flex flex-wrap gap-3"><Link href={today.href} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">Start task <ArrowRight className="h-4 w-4" /></Link><button type="button" disabled={completing} onClick={completeToday} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Check className="h-4 w-4" /> Mark complete</button></div></> : <p className="mt-3 text-sm text-slate-500">Recalculate your plan when you are ready for the next task.</p>}
         </Card>
 
         <Card className="p-6">
           <div className="flex items-center justify-between"><h2 className="font-bold text-slate-950">This week</h2><span className="text-sm font-semibold text-emerald-700">{data.weekly_plan.completed}/{data.weekly_plan.total}</span></div>
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full bg-emerald-500" style={{ width: `${data.weekly_plan.progress}%` }} /></div>
-          <div className="mt-5 space-y-2">{data.weekly_plan.items.slice(0, 4).map((item) => <div key={item.id} className="flex items-center gap-2 text-sm"><span className={`h-2 w-2 rounded-full ${item.status === "completed" ? "bg-emerald-500" : item.status === "skipped" ? "bg-slate-300" : "bg-blue-500"}`} /><span className={item.status === "completed" ? "text-slate-400 line-through" : "text-slate-600"}>{item.title}</span></div>)}</div>
+          <div className="mt-5 space-y-2">{data.weekly_plan.items.slice(0, 4).map((item) => <div key={item.id} className="flex items-center gap-2 text-sm"><span className={`h-2 w-2 rounded-full ${item.status === "completed" ? "bg-emerald-500" : item.status === "skipped" ? "bg-slate-300" : "bg-blue-500"}`} /><span className={item.status === "completed" ? "text-slate-500 line-through" : "text-slate-600"}>{item.title}</span></div>)}</div>
           <Link href="/study-plan" className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[var(--brand)] hover:underline">Open full plan <ArrowRight className="h-3.5 w-3.5" /></Link>
         </Card>
       </div>
@@ -66,4 +66,4 @@ export function CoachDashboard({ username }: { username: string | null }) {
   );
 }
 
-function Metric({ label, value, hint, icon }: { label: string; value: string; hint: string; icon: React.ReactNode }) { return <div><p className="flex items-center gap-1.5 text-sm font-medium text-slate-500">{icon}{label}</p><p className="mt-1 text-2xl font-extrabold text-slate-950">{value}</p><p className="mt-0.5 text-xs text-slate-400">{hint}</p></div>; }
+function Metric({ label, value, hint, icon }: { label: string; value: string; hint: string; icon: React.ReactNode }) { return <div><p className="flex items-center gap-1.5 text-sm font-medium text-slate-500">{icon}{label}</p><p className="mt-1 text-2xl font-extrabold text-slate-950">{value}</p><p className="mt-0.5 text-xs text-slate-500">{hint}</p></div>; }

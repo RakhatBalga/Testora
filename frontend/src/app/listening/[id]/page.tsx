@@ -13,22 +13,19 @@ import {
   type TestDetail,
 } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
-import { Button, Card, Skeleton } from "@/shared/ui";
-import {
-  buildGroups,
-  flattenQuestions,
-  isAnswered,
-  type AnswerMap,
-} from "@/features/reading-session";
-import { useReadingTimer } from "@/features/reading-session";
+import { formatClockSeconds, useExamTimer } from "@/shared/lib";
+import { Button, Card, ErrorState, Skeleton } from "@/shared/ui";
+import { buildGroups, flattenQuestions, isAnswered, type AnswerMap } from "@/entities/test";
 import {
   ListeningAudioPlayer,
   ListeningQuestions,
   ListeningSectionNav,
   SubmitConfirm,
+  createProgressWriter,
+  listeningSessionKey,
+  restoreProgress,
 } from "@/features/listening-session";
 
-import { createProgressWriter, listeningSessionKey, restoreProgress } from "@/features/listening-session/progress";
 
 function asGroups(test: ListeningTest) {
   const compatible: TestDetail = {
@@ -50,11 +47,6 @@ function asGroups(test: ListeningTest) {
     })),
   };
   return buildGroups(compatible);
-}
-
-function clock(seconds: number | null): string {
-  if (seconds === null) return "--:--";
-  return `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
 }
 
 function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: ListeningMode; initial: ListeningProgress | null }) {
@@ -113,7 +105,9 @@ function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: Lis
     }
   }, [answers, flat, mode, router, sessionKey, test, writer]);
 
-  const { remaining, paused, pause, resume } = useReadingTimer(sessionKey, test.duration_minutes * 60, handleSubmit);
+  const { remaining, paused, pause, resume } = useExamTimer(sessionKey, test.duration_minutes * 60, handleSubmit, {
+    shouldSubmitStale: () => Object.keys(initial?.answers ?? {}).length > 0,
+  });
 
   useEffect(() => { timerRef.current = remaining; }, [remaining]);
   useEffect(() => {
@@ -161,7 +155,7 @@ function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: Lis
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0"><h1 className="truncate text-sm font-bold text-slate-950">{test.title}</h1><p className="text-xs text-slate-500">Section {activeSection + 1} of 4 · {answeredCount}/{flat.length} answered</p></div>
             <div className="flex shrink-0 items-center gap-2">
-              <div className={`flex h-9 items-center gap-1.5 rounded-xl px-2.5 font-mono text-sm font-semibold ${remaining !== null && remaining < 60 ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-700"}`}><Clock3 className="h-4 w-4" />{clock(remaining)}</div>
+              <div className={`flex h-9 items-center gap-1.5 rounded-xl px-2.5 font-mono text-sm font-semibold ${remaining !== null && remaining < 60 ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-700"}`}><Clock3 className="h-4 w-4" />{formatClockSeconds(remaining)}</div>
               {mode === "practice" && <button type="button" aria-label={paused ? "Resume timer" : "Pause timer"} onClick={paused ? resume : pause} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50">{paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}</button>}
               <Button size="sm" onClick={() => setConfirmOpen(true)}><ListChecks className="h-4 w-4" /> Submit</Button>
             </div>
@@ -226,7 +220,7 @@ export default function ListeningPage() {
   }, [testId, token]);
 
   if (!ready || !token) return null;
-  if (error) return <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   if (loading || !ready2) return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-72 w-full" /></div>;
   if (!test) return <Card className="p-8 text-center text-slate-500">Listening test is unavailable.</Card>;
   return <ActiveSession test={test} mode="practice" initial={progress} />;

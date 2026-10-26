@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api } from "@/shared/api";
+import { api, useWarmUp } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
+import { safeNext } from "@/shared/lib";
 import { AuthField, AuthShell, GoogleSignInButton } from "@/features/auth";
 
 export default function LoginPage() {
@@ -12,8 +13,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [slow, setSlow] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
+  useWarmUp();
+
+  // Free-tier backend sleeps when idle; tell the user why sign-in is slow.
+  useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => setSlow(true), 6_000);
+    return () => {
+      clearTimeout(timer);
+      setSlow(false);
+    };
+  }, [loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +37,7 @@ export default function LoginPage() {
       login(res.access_token, username);
       const next = new URLSearchParams(window.location.search).get("next");
       // Only honour same-site relative paths to avoid open-redirect abuse.
-      router.push(next && next.startsWith("/") ? next : "/");
+      router.push(safeNext(next));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -84,14 +97,11 @@ export default function LoginPage() {
           autoComplete="current-password"
         />
 
-        <div className="flex justify-end">
-          <Link
-            href="/login"
-            className="text-sm font-semibold text-[var(--brand)] hover:underline"
-          >
-            Forgot password?
-          </Link>
-        </div>
+        {slow && (
+          <p role="status" className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            The server is waking up after a period of inactivity. This can take up to a minute — please keep this page open.
+          </p>
+        )}
 
         <button
           type="submit"

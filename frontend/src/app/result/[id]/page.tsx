@@ -5,17 +5,10 @@ import { useParams } from "next/navigation";
 import { CheckCircle2, XCircle, Target, Clock, Percent, Flag } from "lucide-react";
 import { api, AttemptResult } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
-import { Card } from "@/shared/ui";
-import { LinkButton } from "@/shared/ui";
-import { Skeleton } from "@/shared/ui";
+import { Card, ErrorState, LinkButton, Skeleton } from "@/shared/ui";
+import { examHref } from "@/entities/test";
 import { ResultBreakdown } from "@/features/test-session";
-
-function formatDuration(seconds: number | null): string | null {
-  if (seconds == null) return null;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
+import { bandTextClass, formatDuration } from "@/shared/lib";
 
 export default function ResultPage() {
   const { token, ready } = useRequireAuth();
@@ -46,19 +39,12 @@ export default function ResultPage() {
     );
   }
   if (error) {
-    return <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>;
+    return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   }
   if (!result) return null;
 
   const band = result.band;
-  const bandTone =
-    band === null
-      ? "text-slate-400"
-      : band >= 7
-        ? "text-green-600"
-        : band >= 5.5
-          ? "text-amber-600"
-          : "text-red-600";
+  const bandTone = bandTextClass(band);
   const duration = formatDuration(result.duration_seconds);
 
   return (
@@ -69,7 +55,7 @@ export default function ResultPage() {
           <p className="text-sm font-medium text-slate-500">{result.test_title}</p>
           {band !== null && (
             <>
-              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Estimated IELTS band
               </p>
               <p className={`text-6xl font-extrabold ${bandTone}`}>{band.toFixed(1)}</p>
@@ -143,7 +129,7 @@ export default function ResultPage() {
 
       <div className="flex flex-wrap gap-3">
         <LinkButton href="/">Back to dashboard</LinkButton>
-        <LinkButton href={`/test/${result.test_id}`} variant="secondary">
+        <LinkButton href={examHref(result.test_type, result.test_id)} variant="secondary">
           Retake test
         </LinkButton>
       </div>

@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { api, fetchAuthenticatedMedia, SpeakingSubmission } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { FeedbackCard } from "@/features/feedback";
-import { ReviewStatusNotice, reviewState } from "@/features/feedback/ui/ReviewStatusNotice";
+import { ReviewStatusNotice, reviewState } from "@/features/feedback";
 import { Badge } from "@/shared/ui";
 import { Card } from "@/shared/ui";
 import { LinkButton } from "@/shared/ui";
@@ -126,7 +126,7 @@ export default function SpeakingResultPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-6">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
             Questions
           </h2>
           <div className="space-y-3">
@@ -142,7 +142,7 @@ export default function SpeakingResultPage() {
         </Card>
 
         <Card className="p-6">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
             Transcript
           </h2>
           {submission.transcript ? (

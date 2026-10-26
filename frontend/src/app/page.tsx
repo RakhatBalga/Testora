@@ -1,11 +1,12 @@
-"use client";
-
-import { useAuth } from "@/shared/auth";
-import { CoachDashboard } from "@/widgets/coach-dashboard";
+import type { Metadata } from "next";
 import { PublicLanding } from "@/widgets/landing";
+import { HomeGate } from "./HomeGate";
+
+export const metadata: Metadata = {
+  title: { absolute: "Testora — IELTS Practice with AI Feedback" },
+  alternates: { canonical: "/" },
+};
 
 export default function HomeRoute() {
-  const { token, username, ready } = useAuth();
-  if (!ready) return null;
-  return token ? <CoachDashboard username={username} /> : <PublicLanding />;
+  return <HomeGate landing={<PublicLanding />} />;
 }

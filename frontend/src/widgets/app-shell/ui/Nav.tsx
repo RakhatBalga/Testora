@@ -73,6 +73,7 @@ export default function Nav() {
                   <Link
                     key={l.href}
                     href={l.href}
+                    aria-current={active ? "page" : undefined}
                     className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                       active
                         ? "bg-[var(--brand)]/[0.08] text-[var(--brand)]"
@@ -128,6 +129,8 @@ export default function Nav() {
                 onClick={() => setMobileOpen((v) => !v)}
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-slate-50 lg:hidden"
                 aria-label="Toggle menu"
+                aria-expanded={mobileOpen}
+                aria-controls="mobile-menu"
               >
                 {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>
@@ -147,7 +150,7 @@ export default function Nav() {
 
       {/* mobile section menu */}
       {token && mobileOpen && (
-        <div className="border-t border-[var(--border)] bg-white px-5 py-3 lg:hidden">
+        <div id="mobile-menu" className="border-t border-[var(--border)] bg-white px-5 py-3 lg:hidden">
           <div className="grid gap-1">
             <Link
               href="/profile"
@@ -166,6 +169,7 @@ export default function Nav() {
                 <Link
                   key={l.href}
                   href={l.href}
+                  aria-current={active ? "page" : undefined}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     active
                       ? "bg-[var(--brand)]/[0.08] text-[var(--brand)]"

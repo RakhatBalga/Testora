@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
-import { GOOGLE_SIGNUP_KEY } from "@/features/auth/ui/GoogleSignInButton";
-import { consumeGoogleFlow } from "@/features/auth/googleFlow";
+import { GOOGLE_SIGNUP_KEY, consumeGoogleFlow } from "@/features/auth";
 
 type Phase = "working" | "pick-username" | "error";
 

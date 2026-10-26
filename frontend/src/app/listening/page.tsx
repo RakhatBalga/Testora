@@ -7,7 +7,7 @@ import { Skeleton } from "@/shared/ui";
 import { ContinueCard, RecentActivity, TestCard } from "@/entities/test";
 import { accentFor, deriveProgress, type TestProgress } from "@/entities/test";
 
-import { listeningSessionKey, restoreProgress } from "@/features/listening-session/progress";
+import { listeningSessionKey, restoreProgress } from "@/features/listening-session";
 
 export default function ListeningLibraryPage() {
   const { token, ready } = useRequireAuth();
