@@ -44,3 +44,10 @@ describe("formatClockSeconds", () => {
     expect(formatClockSeconds(null)).toBe("--:--");
   });
 });
+
+describe("formatClockSeconds with fractional media durations", () => {
+  it("floors fractional and negative seconds", () => {
+    expect(formatClockSeconds(150.52000000000001)).toBe("02:30");
+    expect(formatClockSeconds(-3)).toBe("00:00");
+  });
+});

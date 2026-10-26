@@ -40,7 +40,8 @@ export function resolveTimerStart(
 /** Format seconds as mm:ss (e.g. 3605 -> "60:05"). */
 export function formatClockSeconds(seconds: number | null): string {
   if (seconds === null) return "--:--";
-  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
-  const s = (seconds % 60).toString().padStart(2, "0");
+  const safe = Math.max(0, Math.floor(seconds));
+  const m = Math.floor(safe / 60).toString().padStart(2, "0");
+  const s = (safe % 60).toString().padStart(2, "0");
   return `${m}:${s}`;
 }
