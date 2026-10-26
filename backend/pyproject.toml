@@ -1,0 +1,25 @@
+[tool.pytest.ini_options]
+# Make the backend/ package root importable so tests can `import app...`
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+# Minimal, non-noisy set for the lint-only CI step: real errors and unused
+# imports/variables. Style rules (I, UP, B, SIM, C90) come with the formatter pass.
+select = ["E9", "F"]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "content_tools", "scripts", "ml"]
+
+[tool.ruff.lint.per-file-ignores]
+# Pre-existing findings in files owned by other lanes; remove these entries when
+# the owning code is cleaned up (ruff check --fix) in the formatting commit.
+"app/application/comparison/comparison.py" = ["F401"]
+"app/infrastructure/ai/gemini.py" = ["F401"]
+"ml/data.py" = ["F841"]

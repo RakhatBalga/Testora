@@ -1,0 +1,71 @@
+name: Database backup
+
+# DISABLED BY DEFAULT: runs only when started by hand from the Actions tab.
+# To enable a nightly backup, uncomment the schedule below and add the
+# repository secret DATABASE_URL (Settings > Secrets and variables > Actions):
+# a Neon connection string, ideally for a read-only role, with sslmode=require.
+# The repository is PUBLIC and anyone can download workflow artifacts, so the
+# dump is encrypted with GPG (AES256, symmetric) BEFORE it is uploaded. Add the
+# repository secret BACKUP_PASSPHRASE (a long random string, also kept outside
+# GitHub): the job fails if it is missing and never uploads a plain dump.
+# The artifact is kept for 7 days. To read it:
+#   gpg --decrypt testora_db_<stamp>.dump.gz.gpg > testora_db_<stamp>.dump.gz
+# then restore with scripts/restore_prod.sh (see docs/operations.md).
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "17 2 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require encryption passphrase
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Secret BACKUP_PASSPHRASE is not set; refusing to create an unencrypted backup."
+            exit 1
+          fi
+
+      - name: Install matching pg_dump (client 17)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          . /etc/os-release
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $VERSION_CODENAME-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+
+      - name: Dump database
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_DIR: ${{ runner.temp }}/backup
+        run: bash scripts/backup_prod.sh
+
+      - name: Encrypt dump
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          BACKUP_DIR: ${{ runner.temp }}/backup
+        run: |
+          set -euo pipefail
+          for f in "$BACKUP_DIR"/*.dump.gz; do
+            printf '%s' "$BACKUP_PASSPHRASE" | gpg --symmetric --batch --yes --pinentry-mode loopback \
+              --passphrase-fd 0 --cipher-algo AES256 --output "$f.gpg" "$f"
+            rm -f "$f"
+          done
+          ls -l "$BACKUP_DIR"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: testora-db-${{ github.run_id }}
+          path: ${{ runner.temp }}/backup/*.dump.gz.gpg
+          retention-days: 7
+          if-no-files-found: error

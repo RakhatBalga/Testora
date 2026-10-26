@@ -1,4 +1,5 @@
 """Validate structured IELTS Academic Writing Task 1 content."""
+
 from __future__ import annotations
 
 import json
@@ -6,7 +7,7 @@ import sys
 from pathlib import Path
 
 
-CONTENT_DIR = Path(__file__).resolve().parent / "content" / "writing"
+CONTENT_DIR = Path(__file__).resolve().parents[1] / "content" / "writing"
 KINDS = {"line", "bar", "table", "pie", "process", "map"}
 
 

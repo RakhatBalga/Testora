@@ -14,8 +14,9 @@ Scans content/reading/*.json and enforces the production quality bar:
 
 Exit code 0 = all checks passed; 1 = one or more failures.
 
-Run from backend/:  venv/bin/python validate_reading.py
+Run from backend/:  python -m content_tools.validate_reading
 """
+
 from __future__ import annotations
 
 import json
@@ -23,7 +24,7 @@ import re
 import sys
 from pathlib import Path
 
-CONTENT_DIR = Path(__file__).resolve().parent / "content" / "reading"
+CONTENT_DIR = Path(__file__).resolve().parents[1] / "content" / "reading"
 EXPECTED_TESTS = 10
 QCOUNTS = [13, 13, 14]
 WORD_RANGES = [(800, 900), (900, 1000), (950, 1100)]
@@ -98,17 +99,17 @@ def validate_test(data: dict, where: str, rep: Report) -> None:
         rep.p_words.append(wc)
         lo, hi = WORD_RANGES[i]
         if not (lo <= wc <= hi):
-            rep.err(f"{title} · Passage {i+1}: {wc} words (target {lo}-{hi})")
+            rep.err(f"{title} · Passage {i + 1}: {wc} words (target {lo}-{hi})")
         if PLACEHOLDER_PATTERNS.search(passage):
-            rep.err(f"{title} · Passage {i+1}: contains placeholder text")
+            rep.err(f"{title} · Passage {i + 1}: contains placeholder text")
 
         questions = section.get("questions", [])
         if len(questions) != QCOUNTS[i]:
-            rep.err(f"{title} · Passage {i+1}: {len(questions)} questions (expected {QCOUNTS[i]})")
+            rep.err(f"{title} · Passage {i + 1}: {len(questions)} questions (expected {QCOUNTS[i]})")
         total_q += len(questions)
         orders = [q.get("order") for q in questions]
         if len(orders) != len(set(orders)):
-            rep.err(f"{title} · Passage {i+1}: duplicate question order")
+            rep.err(f"{title} · Passage {i + 1}: duplicate question order")
 
         norm_passage = _norm(passage)
         for q in questions:
@@ -149,7 +150,7 @@ def validate_test(data: dict, where: str, rep: Report) -> None:
                     rep.err(f"{qid}: evidence missing quote")
                     continue
                 if _norm(quote) not in norm_passage:
-                    rep.err(f"{qid}: evidence quote not found verbatim: \"{quote[:60]}…\"")
+                    rep.err(f'{qid}: evidence quote not found verbatim: "{quote[:60]}…"')
 
     if total_q != 40:
         rep.err(f"{title}: {total_q} questions total (expected 40)")
@@ -164,14 +165,17 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(description="Validate Academic Reading content packs.")
     parser.add_argument(
-        "--files", nargs="+", metavar="PATH",
+        "--files",
+        nargs="+",
+        metavar="PATH",
         help="Validate only these JSON files (per-test rules only; skips the "
-             "full-pack count check). Use for batch authoring.",
+        "full-pack count check). Use for batch authoring.",
     )
     parser.add_argument(
-        "--allow-partial", action="store_true",
+        "--allow-partial",
+        action="store_true",
         help="Scan the whole content/reading directory but skip the "
-             f"exactly-{EXPECTED_TESTS}-tests rule (per-test rules still enforced).",
+        f"exactly-{EXPECTED_TESTS}-tests rule (per-test rules still enforced).",
     )
     args = parser.parse_args()
 

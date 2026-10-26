@@ -1,20 +1,22 @@
-# Production composition for Testora.
+# Full Testora stack in Docker: Postgres + backend + frontend.
 #
-#   docker compose -f docker-compose.prod.yml up -d --build
+# Local run (mock grader, no secrets needed):
+#   docker compose up --build            # http://localhost:3000, API on :8000
+# Real Gemini grading:
+#   AI_PROVIDER=gemini GEMINI_API_KEY=... docker compose up --build
+# Optional local Qwen via Ollama (profile "qwen"; the backend wiring to
+# AI_PROVIDER=qwen lands separately):
+#   docker compose --profile qwen up --build
+#   docker compose exec ollama ollama pull qwen2.5:7b-instruct
 #
-# Required env (put in a .env file next to this one — see .env.example):
-#   POSTGRES_PASSWORD, SECRET_KEY, CORS_ORIGINS, NEXT_PUBLIC_API_URL,
-#   AI_PROVIDER=gemini, GEMINI_API_KEY
+# Self-hosted production (NOT how testora.studio runs: that is Vercel + Render +
+# Neon, see render.yaml): put real values in a .env next to this file (see
+# .env.example), set APP_ENV=production and terminate TLS at a reverse proxy.
 #
-# NOTE: terminate TLS for testora.studio at a reverse proxy (nginx/Caddy/Traefik)
-# in front of the `frontend` and `backend` services.
-#
-# SECURITY: the `backend` and `frontend` ports below bind to 127.0.0.1 only, so
-# they are reachable solely from the reverse proxy on the same host — never from
-# the public internet directly. The auth rate-limiter trusts X-Forwarded-For
-# only from TRUSTED_PROXY_CIDRS; configure that to the reverse proxy/container
-# gateway CIDR. If you run the proxy on another host, replace 127.0.0.1 with the
-# private interface the proxy reaches — do not expose 0.0.0.0.
+# SECURITY: `backend` and `frontend` ports bind to 127.0.0.1 only, so they are
+# reachable solely from a reverse proxy on the same host. The auth rate-limiter
+# trusts X-Forwarded-For only from TRUSTED_PROXY_CIDRS; set it to the proxy CIDR.
+# Do not expose 0.0.0.0.
 services:
   db:
     image: postgres:16
@@ -22,7 +24,7 @@ services:
     environment:
       POSTGRES_DB: testora
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-testora-local}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -38,15 +40,15 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/testora
-      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
-      APP_ENV: production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-testora-local}@db:5432/testora
+      SECRET_KEY: ${SECRET_KEY:-local-dev-secret-change-me-0123456789abcdef}
+      APP_ENV: ${APP_ENV:-development}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
-      CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
       TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-127.0.0.1/32,::1/128,172.16.0.0/12}
       APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Almaty}
-      AI_PROVIDER: ${AI_PROVIDER:?set AI_PROVIDER}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:?set GEMINI_API_KEY}
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       GEMINI_FAST_MODEL: ${GEMINI_FAST_MODEL:-gemini-2.5-flash}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -56,7 +58,10 @@ services:
       AI_DAILY_ATTEMPTS: ${AI_DAILY_ATTEMPTS:-20}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      FRONTEND_URL: ${FRONTEND_URL:-https://testora.studio}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      QWEN_BASE_URL: ${QWEN_BASE_URL:-http://ollama:11434/v1}
+      QWEN_MODEL: ${QWEN_MODEL:-qwen2.5:7b-instruct}
+      QWEN_API_KEY: ${QWEN_API_KEY:-}
     volumes:
       - audio:/app/private/audio_submissions
       # User-uploaded avatars are served from /app/static/avatars; keep them on a
@@ -74,7 +79,7 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
     depends_on:
@@ -88,7 +93,18 @@ services:
       timeout: 5s
       retries: 5
 
+  # Optional local LLM server (OpenAI-compatible API at :11434/v1).
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["qwen"]
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+
 volumes:
+  ollama:
   pgdata:
   audio:
   avatars:
