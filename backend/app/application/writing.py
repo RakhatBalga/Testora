@@ -10,11 +10,17 @@ import threading
 from datetime import timedelta
 
 from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.application.ai_gate import grading_admission, run_graded_pair
 from app.application.mistakes import clear_mistakes, record_mistakes
-from app.application.quota import enforce_free_quota, reserve_ai_call
+from app.application.quota import (
+    enforce_free_quota,
+    reconcile_stale_reservations,
+    release_resource,
+    reserve_ai_call,
+)
 from app.application.writing_precheck import validate_writing_submission, zero_band_feedback
 from app.domain.models.user import User
 from app.domain.models.writing import WritingSubmission, WritingTask
@@ -60,9 +66,15 @@ def reconcile_stale_writing(db: Session, user_id: int | None = None) -> int:
         row.band = None
         row.feedback = _failure_feedback(INTERRUPTED_SUMMARY)
         row.status_updated_at = utcnow()
+        # Its grading is dead, so free the retry lock and refund the review now
+        # (once) instead of waiting for the reservation's own age check.
+        release_resource(db, f"writing:{row.id}")
+    # Reservations of other kinds / without a row are swept on their own age; do it
+    # here too so a retry never hits a stale lock, even for quota-exempt users.
+    released = reconcile_stale_reservations(db, user_id)
     if rows:
         db.commit()
-    return len(rows)
+    return len(rows) + released
 
 
 def get_owned_submission(db: Session, user: User, submission_id: int) -> WritingSubmission:
@@ -209,6 +221,20 @@ def _perform_grading(db: Session, user: User, submission: WritingSubmission, tas
             improved = improved_result
     else:
         feedback = zero_band_feedback(task.task_type, precheck)
+
+    # A very slow grading can outlive the stale window; if the sweep already failed
+    # this row (and refunded its review), the late result must not overwrite it:
+    # that would hand out a graded essay for a refunded review. Keep it failed.
+    current_status = db.execute(select(WritingSubmission.status).where(WritingSubmission.id == submission.id)).scalar()
+    if current_status != "pending":
+        logger.warning(
+            "Writing grading for submission %s finished after it was reconciled (%s); discarding the late result",
+            submission.id,
+            current_status,
+        )
+        db.rollback()
+        db.refresh(submission)
+        return submission
 
     db.add(submission)
     db.flush()  # assign submission.id before replacing/recording its mistakes

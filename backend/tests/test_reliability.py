@@ -13,6 +13,7 @@ from app.application.quota import quota_status, reconcile_stale_reservations, re
 from app.application.writing import reconcile_stale_writing, submit_writing
 from app.domain.models.ai_quota import AIGlobalBudget, AIQuotaBucket, AIReservation
 from app.domain.models.attempt import AnswerRecord, Attempt
+from app.domain.models import speaking as _speaking_models, stored_file as _stored_file_model  # noqa: F401 (tables)
 from app.domain.models.test import Question, Section, Test as ContentTest
 from app.domain.models.user import User
 from app.domain.models.writing import WritingSubmission, WritingTask
@@ -301,10 +302,170 @@ def test_pair_runs_both_calls_and_tolerates_a_failing_secondary():
     assert primary == "graded" and isinstance(secondary, RuntimeError)
 
 
-def test_stale_window_covers_a_slow_qwen_grading(monkeypatch):
-    # examiner + coach, 3 transport attempts of QWEN_TIMEOUT_SECONDS each, plus slack
-    monkeypatch.setattr(settings, "AI_PROVIDER", "qwen")
+def test_stale_window_covers_the_slowest_grading_for_every_provider(monkeypatch):
     monkeypatch.setattr(settings, "QWEN_TIMEOUT_SECONDS", 180.0)
-    assert settings.grading_stale_minutes >= 19
-    monkeypatch.setattr(settings, "AI_PROVIDER", "gemini")
-    assert settings.grading_stale_minutes == settings.GRADING_STALE_MINUTES
+    monkeypatch.setattr(settings, "GRADING_QUEUE_TIMEOUT_SECONDS", 30)
+    # 2 stages x 2 schema attempts x (3 transport attempts x timeout + 60 s back-off) + queue wait + margin
+    monkeypatch.setattr(settings, "AI_PROVIDER", "qwen")
+    assert settings.grading_stale_minutes * 60 >= 2 * 2 * (3 * 180 + 60) + 30 + 60
+    for provider in ("gemini", "claude", "mock"):
+        monkeypatch.setattr(settings, "AI_PROVIDER", provider)
+        assert settings.grading_stale_minutes * 60 >= 2 * 2 * (3 * 60 + 60) + 30 + 60
+        assert settings.grading_stale_minutes >= settings.GRADING_STALE_MINUTES
+
+
+def test_retry_after_dead_worker_needs_no_quota_poll(db, monkeypatch):
+    """Regression: retry returned 409 until /quota swept the reservation."""
+    monkeypatch.setattr(settings, "FREE_WRITING_SUBMISSIONS", 2)
+    monkeypatch.setattr(writing_service, "get_writing_grader", lambda: _Grader())
+    stale = _stuck_submission(db, settings.grading_stale_minutes + 5)
+    db.add(
+        AIReservation(
+            id="dead",
+            user_id=1,
+            kind="writing",
+            charged=True,
+            status="reserved",
+            active_resource=f"writing:{stale.id}",
+            created_at=utcnow() - timedelta(minutes=settings.grading_stale_minutes + 5),
+        )
+    )
+    db.add(AIQuotaBucket(user_id=1, kind="writing", period="lifetime", used=1))
+    db.commit()
+
+    result = writing_service.retry_writing(db, db.get(User, 1), stale.id)
+
+    assert result.status == "graded"
+    assert db.get(AIReservation, "dead").status == "expired"
+    assert db.query(AIQuotaBucket).filter_by(user_id=1, kind="writing").one().used == 1  # refunded once, charged once
+
+
+def test_retry_after_dead_worker_works_for_exempt_users(db, monkeypatch):
+    monkeypatch.setattr(settings, "QUOTA_EXEMPT_USER_IDS", "1")
+    monkeypatch.setattr(settings, "FREE_WRITING_SUBMISSIONS", 2)
+    monkeypatch.setattr(writing_service, "get_writing_grader", lambda: _Grader())
+    stale = _stuck_submission(db, settings.grading_stale_minutes + 5)
+    db.add(
+        AIReservation(
+            id="dead",
+            user_id=1,
+            kind="writing",
+            charged=False,
+            status="reserved",
+            active_resource=f"writing:{stale.id}",
+            created_at=utcnow() - timedelta(minutes=settings.grading_stale_minutes + 5),
+        )
+    )
+    db.commit()
+    assert writing_service.retry_writing(db, db.get(User, 1), stale.id).status == "graded"
+
+
+def test_live_grading_inside_the_window_keeps_its_lock(db):
+    sub = _stuck_submission(db, 1)
+    db.add(
+        AIReservation(
+            id="live", user_id=1, kind="writing", charged=True, status="reserved", active_resource=f"writing:{sub.id}"
+        )
+    )
+    db.commit()
+    assert reconcile_stale_writing(db, 1) == 0
+    assert db.get(AIReservation, "live").status == "reserved" and sub.status == "pending"
+    with pytest.raises(HTTPException) as error:
+        writing_service.retry_writing(db, db.get(User, 1), sub.id)
+    assert error.value.status_code == 409
+
+
+def test_late_result_cannot_overwrite_a_reconciled_submission_or_refund_twice(db, monkeypatch):
+    monkeypatch.setattr(settings, "FREE_WRITING_SUBMISSIONS", 2)
+
+    class SlowGrader(_Grader):
+        def grade(self, **kwargs):
+            # While this grading "runs", the sweep decides the worker is dead.
+            row = db.query(WritingSubmission).one()
+            row.status_updated_at = utcnow() - timedelta(minutes=settings.grading_stale_minutes + 5)
+            db.query(AIReservation).update(
+                {"created_at": utcnow() - timedelta(minutes=settings.grading_stale_minutes + 5)}
+            )
+            db.commit()
+            reconcile_stale_writing(db, 1)
+            return super().grade(**kwargs)
+
+    monkeypatch.setattr(writing_service, "get_writing_grader", lambda: SlowGrader())
+    out = submit_writing(db, db.get(User, 1), db.get(WritingTask, 1), ESSAY)
+
+    assert out.status == "failed" and out.band is None
+    assert db.query(AIQuotaBucket).filter_by(user_id=1, kind="writing").one().used == 0  # refunded exactly once
+    assert db.query(AIReservation).one().status == "expired"
+    assert quota_status(db, WritingSubmission, db.get(User, 1), 2)["used"] == 0
+
+
+# ---- speaking rows that never finish --------------------------------------------------
+
+
+def _speaking_api_fixture(db):
+    from app.domain.models.speaking import SpeakingTask
+
+    db.add(SpeakingTask(id=1, part=1, questions=["Q"]))
+    db.commit()
+
+
+def test_speaking_grader_exception_marks_row_failed_and_refunds(db, monkeypatch):
+    from app.application import speaking as speaking_service
+    from app.domain.models.speaking import SpeakingSubmission, SpeakingTask
+
+    _speaking_api_fixture(db)
+    monkeypatch.setattr(settings, "SPEAKING_ENABLED", True)
+    monkeypatch.setattr(settings, "FREE_SPEAKING_SUBMISSIONS", 2)
+    monkeypatch.setattr(settings, "STORAGE_BACKEND", "database")
+
+    class Boom:
+        def grade(self, **kwargs):
+            raise RuntimeError("grader crashed")
+
+    monkeypatch.setattr(speaking_service, "get_speaking_grader", lambda: Boom())
+    with pytest.raises(RuntimeError):
+        speaking_service.submit_speaking(
+            db, db.get(User, 1), db.get(SpeakingTask, 1), b"\x1a\x45\xdf\xa3" + b"\x00" * 32
+        )
+
+    row = db.query(SpeakingSubmission).one()
+    assert row.band is None and "could not be completed" in row.feedback["summary"]
+    assert quota_status(db, SpeakingSubmission, db.get(User, 1), 2)["used"] == 0
+
+
+def test_stale_speaking_row_without_result_is_failed_and_refunded(db):
+    from app.application.speaking import reconcile_stale_speaking
+    from app.domain.models.speaking import SpeakingSubmission
+
+    _speaking_api_fixture(db)
+    old = utcnow() - timedelta(minutes=settings.grading_stale_minutes + 5)
+    db.add(SpeakingSubmission(user_id=1, task_id=1, audio_url="db:x", created_at=old))
+    db.add(SpeakingSubmission(user_id=1, task_id=1, audio_url="db:y"))  # fresh: still grading
+    db.add(AIReservation(id="dead", user_id=1, kind="speaking", charged=True, status="reserved", created_at=old))
+    db.add(AIQuotaBucket(user_id=1, kind="speaking", period="lifetime", used=1))
+    db.commit()
+
+    assert reconcile_stale_speaking(db, 1) == 2
+    stale, fresh = db.query(SpeakingSubmission).order_by(SpeakingSubmission.id).all()
+    assert stale.feedback["summary"] and stale.band is None
+    assert fresh.feedback is None
+    assert db.query(AIQuotaBucket).filter_by(kind="speaking").one().used == 0
+
+
+@pytest.mark.parametrize(
+    "answer, words",
+    [
+        ("1,500", 1),
+        ("10:30", 1),
+        ("\u00a325.50", 1),
+        ("45%", 1),
+        ("2nd", 1),
+        ("about 1,500 people", 3),
+        ("forty-two", 1),
+        ("the river", 2),
+    ],
+)
+def test_numbers_count_as_one_answer_word(answer, words):
+    from app.domain.scoring import answer_word_count
+
+    assert answer_word_count(answer) == words

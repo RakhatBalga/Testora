@@ -142,8 +142,50 @@ def _increment_global(db: Session, period: str) -> None:
         raise _quota_error("global", limit)
 
 
+def _expire_reservation(db: Session, row: AIReservation) -> bool:
+    """Release one dead reservation and refund its lifetime review (once).
+
+    The conditional UPDATE makes this idempotent: if the reservation already
+    completed, was released, or was expired by a concurrent sweep, nothing is
+    refunded a second time.
+    """
+    changed = db.execute(
+        update(AIReservation)
+        .where(AIReservation.id == row.id, AIReservation.status == "reserved")
+        .values(status="expired", active_resource=None)
+        .execution_options(synchronize_session=False)
+    )
+    if changed.rowcount != 1:
+        return False
+    if row.charged:
+        db.execute(
+            update(AIQuotaBucket)
+            .where(
+                AIQuotaBucket.user_id == row.user_id,
+                AIQuotaBucket.kind == row.kind,
+                AIQuotaBucket.period == "lifetime",
+                AIQuotaBucket.used > 0,
+            )
+            .values(used=AIQuotaBucket.used - 1)
+            .execution_options(synchronize_session=False)
+        )
+    return True
+
+
+def release_resource(db: Session, resource: str) -> int:
+    """Expire the live reservation that holds `resource` (its grading is known dead).
+
+    Does not commit; the caller commits together with the state change.
+    """
+    rows = db.query(AIReservation).filter(AIReservation.active_resource == resource, AIReservation.status == "reserved")
+    return sum(_expire_reservation(db, row) for row in rows.all())
+
+
 def reconcile_stale_reservations(db: Session, user_id: int | None = None) -> int:
-    """Release reservations whose worker died and refund their lifetime review."""
+    """Release reservations whose worker died and refund their lifetime review.
+
+    Runs for quota-exempt users too (they hold resource locks, just no charge).
+    """
     cutoff = utcnow() - timedelta(minutes=settings.grading_stale_minutes)
     query = db.query(AIReservation).filter(
         AIReservation.status == "reserved",
@@ -151,32 +193,7 @@ def reconcile_stale_reservations(db: Session, user_id: int | None = None) -> int
     )
     if user_id is not None:
         query = query.filter(AIReservation.user_id == user_id)
-    released = 0
-    for row in query.all():
-        changed = db.execute(
-            update(AIReservation)
-            .where(
-                AIReservation.id == row.id,
-                AIReservation.status == "reserved",
-            )
-            .values(status="expired", active_resource=None)
-            .execution_options(synchronize_session=False)
-        )
-        if changed.rowcount != 1:
-            continue
-        released += 1
-        if row.charged:
-            db.execute(
-                update(AIQuotaBucket)
-                .where(
-                    AIQuotaBucket.user_id == row.user_id,
-                    AIQuotaBucket.kind == row.kind,
-                    AIQuotaBucket.period == "lifetime",
-                    AIQuotaBucket.used > 0,
-                )
-                .values(used=AIQuotaBucket.used - 1)
-                .execution_options(synchronize_session=False)
-            )
+    released = sum(_expire_reservation(db, row) for row in query.all())
     if released:
         db.commit()
     return released

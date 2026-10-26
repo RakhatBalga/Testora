@@ -58,6 +58,7 @@ def get_quota(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    speaking_service.reconcile_stale_speaking(db, current_user.id)
     return quota_status(db, SpeakingSubmission, current_user, settings.FREE_SPEAKING_SUBMISSIONS)
 
 
@@ -131,6 +132,7 @@ def list_submissions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    speaking_service.reconcile_stale_speaking(db, current_user.id)
     submissions = (
         db.query(SpeakingSubmission)
         .filter(SpeakingSubmission.user_id == current_user.id)
@@ -156,6 +158,7 @@ def get_submission(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    speaking_service.reconcile_stale_speaking(db, current_user.id)
     submission = (
         db.query(SpeakingSubmission)
         .filter(
