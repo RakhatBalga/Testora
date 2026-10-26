@@ -1,4 +1,4 @@
-import { isAnswered, type AnswerMap, type ReadingGroup } from "@/features/reading-session";
+import { isAnswered, type AnswerMap, type ReadingGroup } from "@/entities/test";
 
 type Props = {
   sections: ReadingGroup[];

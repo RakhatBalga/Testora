@@ -12,19 +12,15 @@ import {
 import { useAuth, useRequireAuth } from "@/shared/auth";
 import { useExamTimer } from "@/shared/lib";
 import { Card, ErrorState, Skeleton, Button } from "@/shared/ui";
-import { examStorageKey } from "@/entities/test";
-import { ReadingPassage } from "@/features/reading-session";
-import { PassageAnnotator } from "@/features/reading-session";
-import { ReadingPassageNav } from "@/features/reading-session";
-import { ReadingQuestions } from "@/features/reading-session";
-import { ReadingTimer } from "@/features/reading-session";
-import { ReadingReviewSplit } from "@/features/reading-session";
 import {
-  buildGroups,
-  flattenQuestions,
-  isAnswered,
-  type AnswerMap,
+  ReadingPassage,
+  PassageAnnotator,
+  ReadingPassageNav,
+  ReadingQuestions,
+  ReadingTimer,
+  ReadingReviewSplit,
 } from "@/features/reading-session";
+import { buildGroups, examStorageKey, flattenQuestions, isAnswered, type AnswerMap } from "@/entities/test";
 
 type Tab = "passage" | "questions";
 
@@ -292,7 +288,6 @@ export default function ReadingPage() {
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] gap-4 lg:grid-cols-[60fr_40fr] lg:gap-5 2xl:grid-cols-[65fr_35fr]">
         <div
           ref={passageScrollRef}
-          data-vocab-selectable
           className={`min-h-0 overflow-y-auto rounded-xl bg-white px-7 py-5 shadow-sm ring-1 ring-slate-100 sm:px-10 ${
             tab === "passage" ? "block" : "hidden"
           } lg:block ${paused ? "invisible" : ""}`}

@@ -21,7 +21,7 @@ import {
   typeLabel,
   type NumberedQuestion,
   type ReadingGroup,
-} from "../model/types";
+} from "@/entities/test";
 
 type Props = {
   result: AttemptResult;

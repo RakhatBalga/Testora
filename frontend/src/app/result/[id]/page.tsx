@@ -8,13 +8,7 @@ import { useRequireAuth } from "@/shared/auth";
 import { Card, ErrorState, LinkButton, Skeleton } from "@/shared/ui";
 import { examHref } from "@/entities/test";
 import { ResultBreakdown } from "@/features/test-session";
-
-function formatDuration(seconds: number | null): string | null {
-  if (seconds == null) return null;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
-}
+import { bandTextClass, formatDuration } from "@/shared/lib";
 
 export default function ResultPage() {
   const { token, ready } = useRequireAuth();
@@ -50,14 +44,7 @@ export default function ResultPage() {
   if (!result) return null;
 
   const band = result.band;
-  const bandTone =
-    band === null
-      ? "text-slate-500"
-      : band >= 7
-        ? "text-green-600"
-        : band >= 5.5
-          ? "text-amber-600"
-          : "text-red-600";
+  const bandTone = bandTextClass(band);
   const duration = formatDuration(result.duration_seconds);
 
   return (

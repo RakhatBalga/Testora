@@ -5,9 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import { Loader2, Lock, Sparkles, Trash2 } from "lucide-react";
 import { api, FreeQuota, WritingTask } from "@/shared/api";
 import { useAuth, useRequireAuth } from "@/shared/auth";
-import { useExamTimer } from "@/shared/lib";
+import { formatClockSeconds, useExamTimer } from "@/shared/lib";
 import { Badge, Button, Card, ErrorState, Skeleton } from "@/shared/ui";
-import { WritingTaskVisual } from "@/features/writing-task/ui/WritingTaskVisual";
+import { WritingTaskVisual } from "@/features/writing-task";
 
 // Count words the way an IELTS examiner does, matching the backend's
 // count_words(): whitespace-separated tokens that contain at least one ASCII
@@ -19,14 +19,6 @@ function countWords(text: string): number {
     .trim()
     .split(/\s+/)
     .filter((token) => /[A-Za-z0-9]/.test(token)).length;
-}
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, "0");
-  const s = (seconds % 60).toString().padStart(2, "0");
-  return `${m}:${s}`;
 }
 
 function taskTone(taskType: number) {
@@ -174,7 +166,7 @@ export default function WritingTaskPage() {
                       : "bg-slate-100 text-slate-700"
                   }`}
                 >
-                  {formatTime(timeLeft)}
+                  {formatClockSeconds(timeLeft)}
                 </span>
               )}
             </div>

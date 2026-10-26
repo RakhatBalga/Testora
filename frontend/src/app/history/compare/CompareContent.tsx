@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 import { useRequireAuth } from "@/shared/auth";
 import { api, type CompareResult, type CriteriaDiffItem, type QTypeDiffItem, type MistakeDiffItem } from "@/shared/api";
-import { PageHeader } from "@/shared/ui/dashboard";
+import { PageHeader } from "@/entities/dashboard";
+import { formatShortDate } from "@/shared/lib";
 
 const SKILL_COLORS: Record<string, string> = {
   writing: "bg-blue-50 text-blue-700",
@@ -25,11 +26,6 @@ const SKILL_COLORS: Record<string, string> = {
   reading: "bg-amber-50 text-amber-700",
   listening: "bg-violet-50 text-violet-700",
 };
-
-function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
 
 function DeltaBadge({ delta }: { delta: number | null }) {
   if (delta === null) return null;
@@ -60,7 +56,7 @@ function BandCard({ label, band, date }: { label: string; band: number | null; d
     <div className="flex-1 rounded-2xl border border-[var(--border)] bg-white p-5 text-center shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{label}</p>
       <p className={`mt-1 text-5xl font-extrabold ${tone}`}>{band != null ? band.toFixed(1) : "—"}</p>
-      <p className="mt-1 text-xs text-[var(--text-secondary)]">{fmtDate(date)}</p>
+      <p className="mt-1 text-xs text-[var(--text-secondary)]">{formatShortDate(date)}</p>
     </div>
   );
 }

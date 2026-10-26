@@ -13,22 +13,19 @@ import {
   type TestDetail,
 } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
-import { useExamTimer } from "@/shared/lib";
+import { formatClockSeconds, useExamTimer } from "@/shared/lib";
 import { Button, Card, ErrorState, Skeleton } from "@/shared/ui";
-import {
-  buildGroups,
-  flattenQuestions,
-  isAnswered,
-  type AnswerMap,
-} from "@/features/reading-session";
+import { buildGroups, flattenQuestions, isAnswered, type AnswerMap } from "@/entities/test";
 import {
   ListeningAudioPlayer,
   ListeningQuestions,
   ListeningSectionNav,
   SubmitConfirm,
+  createProgressWriter,
+  listeningSessionKey,
+  restoreProgress,
 } from "@/features/listening-session";
 
-import { createProgressWriter, listeningSessionKey, restoreProgress } from "@/features/listening-session/progress";
 
 function asGroups(test: ListeningTest) {
   const compatible: TestDetail = {
@@ -50,11 +47,6 @@ function asGroups(test: ListeningTest) {
     })),
   };
   return buildGroups(compatible);
-}
-
-function clock(seconds: number | null): string {
-  if (seconds === null) return "--:--";
-  return `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
 }
 
 function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: ListeningMode; initial: ListeningProgress | null }) {
@@ -163,7 +155,7 @@ function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: Lis
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0"><h1 className="truncate text-sm font-bold text-slate-950">{test.title}</h1><p className="text-xs text-slate-500">Section {activeSection + 1} of 4 · {answeredCount}/{flat.length} answered</p></div>
             <div className="flex shrink-0 items-center gap-2">
-              <div className={`flex h-9 items-center gap-1.5 rounded-xl px-2.5 font-mono text-sm font-semibold ${remaining !== null && remaining < 60 ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-700"}`}><Clock3 className="h-4 w-4" />{clock(remaining)}</div>
+              <div className={`flex h-9 items-center gap-1.5 rounded-xl px-2.5 font-mono text-sm font-semibold ${remaining !== null && remaining < 60 ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-700"}`}><Clock3 className="h-4 w-4" />{formatClockSeconds(remaining)}</div>
               {mode === "practice" && <button type="button" aria-label={paused ? "Resume timer" : "Pause timer"} onClick={paused ? resume : pause} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50">{paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}</button>}
               <Button size="sm" onClick={() => setConfirmOpen(true)}><ListChecks className="h-4 w-4" /> Submit</Button>
             </div>

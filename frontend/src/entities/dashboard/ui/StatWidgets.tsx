@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { Headphones, BookOpen, PenLine, Mic, type LucideIcon } from "lucide-react";
-import { type Skill } from "@/entities/dashboard";
+import { type Skill } from "../model/dashboard";
 
 export const skillIcons: Record<Skill, LucideIcon> = {
   listening: Headphones,
@@ -73,43 +73,6 @@ export function StatTile({
         {value}
       </p>
       {hint && <p className="mt-1 text-xs text-[var(--text-secondary)]">{hint}</p>}
-    </div>
-  );
-}
-
-/** Circular progress ring (SVG). `value` is 0..1. */
-export function Ring({
-  value,
-  size = 132,
-  stroke = 12,
-  children,
-}: {
-  value: number;
-  size?: number;
-  stroke?: number;
-  children?: ReactNode;
-}) {
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const offset = c * (1 - value);
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border)" strokeWidth={stroke} />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="var(--brand)"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={offset}
-          className="transition-[stroke-dashoffset] duration-700 ease-out"
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
     </div>
   );
 }

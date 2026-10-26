@@ -1,6 +1,6 @@
 import type { AnswerValue } from "@/shared/api";
 import { ReadingQuestionCard } from "./ReadingQuestionCard";
-import { rangeLabel, type AnswerMap, type ReadingGroup } from "../model/types";
+import { rangeLabel, type AnswerMap, type ReadingGroup } from "@/entities/test";
 
 type Props = {
   group: ReadingGroup;

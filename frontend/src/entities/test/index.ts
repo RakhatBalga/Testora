@@ -1,4 +1,15 @@
 export {
+  buildGroups,
+  evidenceLocation,
+  flattenQuestions,
+  isAnswered,
+  rangeLabel,
+  typeLabel,
+  type AnswerMap,
+  type NumberedQuestion,
+  type ReadingGroup,
+} from "./model/questions";
+export {
   accentFor,
   deriveProgress,
   relativeTime,

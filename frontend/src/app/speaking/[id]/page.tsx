@@ -6,18 +6,10 @@ import { Loader2, Mic, RotateCcw, Square } from "lucide-react";
 import { api, SpeakingTask } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { SPEAKING_AVAILABLE } from "@/shared/config";
-import { micErrorMessage, useDeadlineCountdown } from "@/shared/lib";
+import { formatClockSeconds, micErrorMessage, useDeadlineCountdown } from "@/shared/lib";
 import { Badge, Button, Card, ErrorState, Skeleton } from "@/shared/ui";
 
 type Phase = "prep" | "ready" | "recording" | "recorded";
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, "0");
-  const s = (seconds % 60).toString().padStart(2, "0");
-  return `${m}:${s}`;
-}
 
 function preferredMimeType(): string | undefined {
   if (typeof MediaRecorder === "undefined") return undefined;
@@ -213,7 +205,7 @@ export default function SpeakingTaskPage() {
                   : "bg-slate-100 text-slate-700"
               }`}
             >
-              {phase === "recorded" ? "Done" : formatTime(activeTime)}
+              {phase === "recorded" ? "Done" : formatClockSeconds(activeTime)}
             </div>
           </div>
         </Card>

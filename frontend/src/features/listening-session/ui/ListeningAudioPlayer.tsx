@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Pause, Play, RotateCcw, Volume2 } from "lucide-react";
 import { mediaUrl, type ListeningMode } from "@/shared/api";
+import { formatClockSeconds } from "@/shared/lib";
 
 type Props = {
   src: string | null;
@@ -14,11 +15,6 @@ type Props = {
   onTimeChange: (position: number) => void;
   onEnded: () => void;
 };
-
-function clock(seconds: number): string {
-  const safe = Math.max(0, Math.floor(seconds));
-  return `${Math.floor(safe / 60).toString().padStart(2, "0")}:${(safe % 60).toString().padStart(2, "0")}`;
-}
 
 export function ListeningAudioPlayer({
   src,
@@ -136,7 +132,7 @@ export function ListeningAudioPlayer({
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3 text-xs">
           <span className="truncate font-semibold text-slate-800">{sectionTitle}</span>
-          <span className="shrink-0 tabular-nums text-slate-500">{clock(displayPosition)} / {clock(displayDuration)}</span>
+          <span className="shrink-0 tabular-nums text-slate-500">{formatClockSeconds(displayPosition)} / {formatClockSeconds(displayDuration)}</span>
         </div>
         <input
           aria-label="Audio position"

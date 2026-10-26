@@ -88,10 +88,3 @@ export function evidenceLocation(spans: EvidenceSpan[] | null | undefined): stri
   if (contiguous) return `Paragraphs ${paras[0]}–${paras[paras.length - 1]}`;
   return `Paragraphs ${paras.join(", ")}`;
 }
-
-export function formatClock(totalSeconds: number): string {
-  const safe = Math.max(0, totalSeconds);
-  const m = Math.floor(safe / 60).toString().padStart(2, "0");
-  const s = (safe % 60).toString().padStart(2, "0");
-  return `${m}:${s}`;
-}

@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useRequireAuth } from "@/shared/auth";
-import { SKILLS, skillMeta, toneClasses } from "@/entities/dashboard";
-import { PageHeader, skillIcons } from "@/shared/ui/dashboard";
+import { SKILLS, skillMeta, toneClasses, PageHeader, skillIcons } from "@/entities/dashboard";
 
 export default function PracticePage() {
   const { token, ready } = useRequireAuth();

@@ -9,7 +9,7 @@ import {
 } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { FeedbackCard, EssayComparison } from "@/features/feedback";
-import { ReviewStatusNotice, reviewState } from "@/features/feedback/ui/ReviewStatusNotice";
+import { ReviewStatusNotice, reviewState } from "@/features/feedback";
 import { Badge } from "@/shared/ui";
 import { Button, Card } from "@/shared/ui";
 import { LinkButton } from "@/shared/ui";

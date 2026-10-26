@@ -118,6 +118,4 @@ export function relativeTime(iso: string | number): string {
   return new Date(then).toLocaleDateString();
 }
 
-export function roundHalf(n: number): number {
-  return Math.round(n * 2) / 2;
-}
+export { roundHalf } from "@/shared/lib";

@@ -1,4 +1,4 @@
-import { isAnswered, type AnswerMap, type ReadingGroup } from "../model/types";
+import { isAnswered, type AnswerMap, type ReadingGroup } from "@/entities/test";
 
 type Props = {
   groups: ReadingGroup[];

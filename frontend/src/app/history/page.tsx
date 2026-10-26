@@ -11,8 +11,9 @@ import {
 } from "lucide-react";
 import { useRequireAuth } from "@/shared/auth";
 import { api, type HistoryItem } from "@/shared/api";
-import { PageHeader } from "@/shared/ui/dashboard";
+import { PageHeader } from "@/entities/dashboard";
 import { useRouter } from "next/navigation";
+import { bandTextClass, formatShortDate } from "@/shared/lib";
 
 type Skill = "all" | "writing" | "speaking" | "reading" | "listening";
 type Sort = "newest" | "oldest" | "highest" | "lowest";
@@ -38,18 +39,6 @@ const SKILL_COLORS: Record<string, string> = {
   reading: "bg-amber-50 text-amber-700 border-amber-200",
   listening: "bg-violet-50 text-violet-700 border-violet-200",
 };
-
-function bandTone(band: number | null): string {
-  if (band === null) return "text-slate-500";
-  if (band >= 7) return "text-emerald-600";
-  if (band >= 5.5) return "text-amber-600";
-  return "text-red-600";
-}
-
-function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
 
 export default function HistoryPage() {
   const { token, ready } = useRequireAuth();
@@ -233,7 +222,7 @@ function HistoryRow({
   onSelect: () => void;
 }) {
   const skillClass = SKILL_COLORS[item.skill] ?? "bg-slate-100 text-slate-600 border-slate-200";
-  const tone = bandTone(item.band);
+  const tone = bandTextClass(item.band);
 
   return (
     <div
@@ -269,7 +258,7 @@ function HistoryRow({
       {/* Title + date */}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{item.title}</p>
-        <p className="text-xs text-[var(--text-secondary)]">{fmtDate(item.created_at)}</p>
+        <p className="text-xs text-[var(--text-secondary)]">{formatShortDate(item.created_at)}</p>
       </div>
 
       {/* Score */}

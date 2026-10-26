@@ -1,5 +1,5 @@
 import type { AnswerValue } from "@/shared/api";
-import type { NumberedQuestion } from "@/features/reading-session";
+import type { NumberedQuestion } from "@/entities/test";
 
 type Props = {
   question: NumberedQuestion;

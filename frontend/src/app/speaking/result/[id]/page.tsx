@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { api, fetchAuthenticatedMedia, SpeakingSubmission } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { FeedbackCard } from "@/features/feedback";
-import { ReviewStatusNotice, reviewState } from "@/features/feedback/ui/ReviewStatusNotice";
+import { ReviewStatusNotice, reviewState } from "@/features/feedback";
 import { Badge } from "@/shared/ui";
 import { Card } from "@/shared/ui";
 import { LinkButton } from "@/shared/ui";

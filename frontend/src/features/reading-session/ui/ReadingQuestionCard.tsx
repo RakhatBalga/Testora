@@ -1,5 +1,5 @@
 import type { AnswerValue } from "@/shared/api";
-import { typeLabel, type NumberedQuestion } from "../model/types";
+import { typeLabel, type NumberedQuestion } from "@/entities/test";
 
 type Props = {
   question: NumberedQuestion;
