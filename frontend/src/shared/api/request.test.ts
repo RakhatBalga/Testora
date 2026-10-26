@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { api } from "./api";
 import { NetworkError, isNetworkError } from "./errors";
+import { WRITING_GRADING_TIMEOUT_MS } from "./endpoints/writing";
 import { REQUEST_TIMEOUT_MS } from "./http";
 
 beforeEach(() => vi.useFakeTimers());
@@ -68,5 +69,18 @@ it("lets the caller cancel without it being reported as a timeout", async () => 
     api.saveListeningProgress(1, {} as never, controller.signal),
   ).rejects.toMatchObject({ name: "AbortError" });
   controller.abort();
+  await result;
+});
+
+it("gives Writing grading enough time for a slow local model (and still times out)", async () => {
+  vi.stubGlobal("fetch", vi.fn((_u, o: RequestInit) => new Promise((_, reject) => {
+    o.signal!.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+  })));
+  const result = expect(api.submitWriting(1, "essay")).rejects.toSatisfy(
+    (e) => isNetworkError(e) && e.kind === "timeout",
+  );
+  await vi.advanceTimersByTimeAsync(WRITING_GRADING_TIMEOUT_MS - 1);
+  expect(fetch).toHaveBeenCalledTimes(1); // still waiting after the default 60 s
+  await vi.advanceTimersByTimeAsync(1);
   await result;
 });

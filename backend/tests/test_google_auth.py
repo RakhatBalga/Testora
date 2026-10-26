@@ -1,7 +1,7 @@
 import base64
 import hashlib
 import secrets
-from datetime import datetime, timedelta
+from datetime import timedelta
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -18,6 +18,7 @@ from app.domain.models.oauth import OAuthFlow
 from app.domain.models.user import User
 from app.infrastructure.config import settings
 from app.infrastructure.database import Base
+from app.infrastructure.time import utcnow
 from app.infrastructure.security import access_token_user_id
 
 REDIRECT = "http://localhost:3000/auth/google/callback"
@@ -66,7 +67,7 @@ def test_missing_and_expired_state_rejected_before_google(db, monkeypatch):
         pytest.fail("Invalid state must not call Google")
     monkeypatch.setattr(httpx, "Client", unexpected)
     state, _ = start(db)
-    db.query(OAuthFlow).update({OAuthFlow.expires_at: datetime.utcnow() - timedelta(seconds=1)})
+    db.query(OAuthFlow).update({OAuthFlow.expires_at: utcnow() - timedelta(seconds=1)})
     db.commit()
     for value in (state, secrets.token_urlsafe(32)):
         with pytest.raises(HTTPException) as error:

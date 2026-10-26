@@ -1,8 +1,9 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.infrastructure.time import utcnow
 from app.application.analytics.weekly import compute_weekly_weakest
 from app.domain.models.attempt import Attempt
 from app.domain.models.speaking import SpeakingSubmission, SpeakingTask
@@ -24,7 +25,7 @@ def test_weekly_weakest_uses_only_recent_graded_events():
         reading = ContentTest(title="Reading", test_type="reading", duration_minutes=60)
         db.add_all([user, writing_task, speaking_task, listening, reading])
         db.flush()
-        now = datetime.utcnow()
+        now = utcnow()
         db.add_all([
             WritingSubmission(user_id=user.id, task_id=writing_task.id, text="x", word_count=1, status="graded", band=7.0, created_at=now),
             SpeakingSubmission(user_id=user.id, task_id=speaking_task.id, audio_url="a.webm", band=6.5, created_at=now - timedelta(days=2)),
