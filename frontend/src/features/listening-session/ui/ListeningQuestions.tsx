@@ -1,6 +1,6 @@
 import type { AnswerValue } from "@/shared/api";
 import { ListeningQuestionCard } from "./ListeningQuestionCard";
-import { rangeLabel, type AnswerMap, type ReadingGroup } from "@/features/reading-session";
+import { rangeLabel, type AnswerMap, type ReadingGroup } from "@/entities/test";
 
 type Props = {
   section: ReadingGroup;

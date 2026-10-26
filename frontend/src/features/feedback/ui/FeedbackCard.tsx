@@ -35,7 +35,7 @@ export function FeedbackCard({
       {/* Overall band */}
       <Card className="overflow-hidden">
         <div className="bg-hero p-8 text-center">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Estimated IELTS band
           </p>
           {graded ? (
@@ -43,7 +43,7 @@ export function FeedbackCard({
               {band.toFixed(1)}
             </p>
           ) : (
-            <p className="mt-2 text-2xl font-bold text-slate-400">Awaiting review</p>
+            <p className="mt-2 text-2xl font-bold text-slate-500">Awaiting review</p>
           )}
         </div>
       </Card>

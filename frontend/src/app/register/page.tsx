@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { api } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
-import { IELTS_TARGET_BAND } from "@/shared/config";
+import { IELTS_TARGET_BAND, routes } from "@/shared/config";
 import { AccountExistsModal, AuthField, AuthShell, GoogleSignInButton } from "@/features/auth";
 
 export default function RegisterPage() {
@@ -31,7 +31,7 @@ export default function RegisterPage() {
       await api.register(username, password, IELTS_TARGET_BAND);
       const res = await api.login(username, password);
       login(res.access_token, username);
-      router.push("/");
+      router.push(routes.dashboard());
     } catch (err) {
       const message = err instanceof Error ? err.message : "Registration failed";
       // Surface a friendly modal instead of a raw "already taken" error.
@@ -119,7 +119,7 @@ export default function RegisterPage() {
 
       <p className="mt-8 text-center text-sm text-[var(--text-secondary)]">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-[var(--brand)] hover:underline">
+        <Link href={routes.login()} className="font-semibold text-[var(--brand)] hover:underline">
           Sign in
         </Link>
       </p>

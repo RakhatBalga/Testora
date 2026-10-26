@@ -1,5 +1,5 @@
 import type { AnswerValue } from "@/shared/api";
-import { typeLabel, type NumberedQuestion } from "../model/types";
+import { typeLabel, type NumberedQuestion } from "@/entities/test";
 
 type Props = {
   question: NumberedQuestion;
@@ -20,7 +20,7 @@ function RadioGroup({
   onChange: (v: AnswerValue) => void;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5" role="radiogroup" aria-label={`Question ${question.number}`}>
       {question.options!.map((option, i) => {
         const selected = value === option;
         const letter = String.fromCharCode(65 + i);
@@ -37,7 +37,7 @@ function RadioGroup({
               className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${
                 selected
                   ? "border-[var(--brand)] bg-[var(--brand)] text-white"
-                  : "border-slate-300 text-slate-400"
+                  : "border-slate-300 text-slate-500"
               }`}
             >
               {letter}
@@ -75,7 +75,7 @@ function CheckboxGroup({
         : [...selected, option]
     );
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" role="group" aria-label={`Question ${question.number}`}>
       {question.options!.map((option) => {
         const checked = selected.includes(option);
         return (
@@ -128,6 +128,7 @@ function MatchSelect({
 }) {
   return (
     <select
+      aria-label={`Question ${question.number}`}
       value={typeof value === "string" ? value : ""}
       onChange={(e) => onChange(e.target.value)}
       className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/20"
@@ -144,15 +145,23 @@ function MatchSelect({
 
 /** Free-text input for sentence/summary completion and short answers. */
 function TextEntry({
+  question,
   value,
   onChange,
 }: {
+  question: NumberedQuestion;
   value: AnswerValue;
   onChange: (v: AnswerValue) => void;
 }) {
   return (
     <input
       type="text"
+      aria-label={`Question ${question.number}`}
+      // Exam answers must not be fixed by the browser or the phone keyboard.
+      spellCheck={false}
+      autoCorrect="off"
+      autoCapitalize="off"
+      autoComplete="off"
       value={typeof value === "string" ? value : ""}
       onChange={(e) => onChange(e.target.value)}
       placeholder="Type your answer"
@@ -173,7 +182,7 @@ function Input({ question, value, onChange }: Omit<Props, "active" | "onFocus">)
     case "sentence_completion":
     case "summary_completion":
     case "short_answer":
-      return <TextEntry value={value} onChange={onChange} />;
+      return <TextEntry question={question} value={value} onChange={onChange} />;
     case "single_choice":
     case "true_false_notgiven":
     case "yes_no_not_given":
@@ -181,7 +190,7 @@ function Input({ question, value, onChange }: Omit<Props, "active" | "onFocus">)
       return question.options ? (
         <RadioGroup question={question} value={value} onChange={onChange} />
       ) : (
-        <TextEntry value={value} onChange={onChange} />
+        <TextEntry question={question} value={value} onChange={onChange} />
       );
   }
 }
@@ -201,7 +210,7 @@ export function ReadingQuestionCard({ question, value, active, onChange, onFocus
           {question.number}
         </span>
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             {typeLabel(question.question_type)}
           </p>
           <p className="mt-0.5 font-medium leading-snug text-slate-900">{question.text}</p>

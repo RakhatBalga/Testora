@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Check, TrendingUp } from "lucide-react";
 import GuestNavbar from "./GuestNavbar";
+import { routes } from "@/shared/config";
 
 export type AuthPanel = {
   eyebrow?: string;
@@ -38,7 +39,7 @@ export default function AuthShell({
     <div className="min-h-screen bg-[var(--background)]">
       <GuestNavbar />
 
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 pb-10 pt-8 sm:px-8 lg:min-h-[calc(100vh-76px)] lg:grid-cols-[1.22fr_1fr] lg:items-stretch lg:gap-12 lg:pb-12">
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 pb-10 pt-8 sm:px-8 lg:min-h-[calc(100dvh-76px)] lg:grid-cols-[1.22fr_1fr] lg:items-stretch lg:gap-12 lg:pb-12">
         {/* Left: brand panel — content changes per step */}
         <aside className="relative hidden overflow-hidden rounded-[28px] bg-[var(--brand)] p-12 text-white shadow-[0_20px_60px_-20px_rgba(37,99,235,0.45)] lg:flex lg:flex-col lg:justify-between lg:gap-12 xl:p-14">
           {/* academic dot grid */}
@@ -55,7 +56,7 @@ export default function AuthShell({
           <div className="pointer-events-none absolute -bottom-24 -left-16 h-80 w-80 rounded-full bg-[var(--brand-dark)]/50 blur-3xl" />
 
           {/* logo */}
-          <Link href="/" className="relative flex items-center gap-3">
+          <Link href={routes.dashboard()} className="relative flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/95 p-1.5 shadow-sm">
               <Image
                 src="/logo.svg"

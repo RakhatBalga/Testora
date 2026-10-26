@@ -1,5 +1,5 @@
 import { Clock, Pause, Play } from "lucide-react";
-import { formatClock } from "../model/types";
+import { formatClockSeconds } from "@/shared/lib";
 
 type Props = {
   remaining: number | null;
@@ -17,14 +17,14 @@ export function ReadingTimer({ remaining, paused, onPause, onResume }: Props) {
       <div
         className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 font-mono text-lg font-semibold tabular-nums transition-colors ${
           paused
-            ? "bg-slate-100 text-slate-400"
+            ? "bg-slate-100 text-slate-500"
             : low
               ? "animate-pulse bg-red-100 text-red-700"
               : "bg-slate-100 text-slate-700"
         }`}
       >
         <Clock className="h-4 w-4" />
-        {formatClock(remaining)}
+        {formatClockSeconds(remaining)}
       </div>
       <button
         type="button"

@@ -1,5 +1,5 @@
 import type { AnswerValue } from "@/shared/api";
-import type { NumberedQuestion } from "@/features/reading-session";
+import type { NumberedQuestion } from "@/entities/test";
 
 type Props = {
   question: NumberedQuestion;
@@ -11,7 +11,7 @@ type Props = {
 
 function RadioRow({ question, value, onChange }: Omit<Props, "active" | "onFocus">) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5" role="radiogroup" aria-label={`Question ${question.number}`}>
       {question.options!.map((option, i) => {
         const selected = value === option;
         const letter = String.fromCharCode(65 + i);
@@ -26,7 +26,7 @@ function RadioRow({ question, value, onChange }: Omit<Props, "active" | "onFocus
           >
             <span
               className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${
-                selected ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-slate-300 text-slate-400"
+                selected ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-slate-300 text-slate-500"
               }`}
             >
               {letter}
@@ -91,6 +91,7 @@ function Field({ question, value, active, onChange, onFocus }: Props) {
   ) {
     return (
       <select
+        aria-label={`Question ${question.number}`}
         value={typeof value === "string" ? value : ""}
         onChange={(e) => onChange(e.target.value)}
         onFocus={onFocus}
@@ -107,6 +108,12 @@ function Field({ question, value, active, onChange, onFocus }: Props) {
   return (
     <input
       type="text"
+      aria-label={`Question ${question.number}`}
+      // Exam answers must not be fixed by the browser or the phone keyboard.
+      spellCheck={false}
+      autoCorrect="off"
+      autoCapitalize="off"
+      autoComplete="off"
       value={typeof value === "string" ? value : ""}
       onChange={(e) => onChange(e.target.value)}
       onFocus={onFocus}

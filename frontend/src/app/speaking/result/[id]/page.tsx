@@ -5,11 +5,12 @@ import { useParams } from "next/navigation";
 import { api, fetchAuthenticatedMedia, SpeakingSubmission } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { FeedbackCard } from "@/features/feedback";
-import { ReviewStatusNotice, reviewState } from "@/features/feedback/ui/ReviewStatusNotice";
+import { ReviewStatusNotice, reviewState } from "@/features/feedback";
 import { Badge } from "@/shared/ui";
 import { Card } from "@/shared/ui";
 import { LinkButton } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
+import { routes } from "@/shared/config";
 
 export default function SpeakingResultPage() {
   const { token, ready } = useRequireAuth();
@@ -126,7 +127,7 @@ export default function SpeakingResultPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="p-6">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
             Questions
           </h2>
           <div className="space-y-3">
@@ -142,7 +143,7 @@ export default function SpeakingResultPage() {
         </Card>
 
         <Card className="p-6">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
             Transcript
           </h2>
           {submission.transcript ? (
@@ -159,11 +160,11 @@ export default function SpeakingResultPage() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <LinkButton href={`/speaking/${submission.task_id}`}>
+        <LinkButton href={routes.speaking.exam(submission.task_id)}>
           Try this part again
         </LinkButton>
-        <LinkButton href="/speaking">Back to speaking</LinkButton>
-        <LinkButton href="/profile" variant="secondary">
+        <LinkButton href={routes.speaking.library()}>Back to speaking</LinkButton>
+        <LinkButton href={routes.profile()} variant="secondary">
           My results
         </LinkButton>
       </div>

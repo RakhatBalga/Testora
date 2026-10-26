@@ -1,4 +1,4 @@
-import { isAnswered, type AnswerMap, type ReadingGroup } from "../model/types";
+import { isAnswered, type AnswerMap, type ReadingGroup } from "@/entities/test";
 
 type Props = {
   groups: ReadingGroup[];
@@ -32,7 +32,7 @@ export function ReadingPassageNav({ groups, active, answers, onSelect }: Props) 
             </span>
             <span
               className={`text-[11px] tabular-nums ${
-                done ? "font-semibold text-emerald-600" : "text-slate-400"
+                done ? "font-semibold text-emerald-600" : "text-slate-500"
               }`}
             >
               {g.start}–{g.end}

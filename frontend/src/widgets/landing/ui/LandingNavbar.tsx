@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
+import { routes } from "@/shared/config";
 
 const LINKS = [
   { label: "Features", href: "#features" },
@@ -32,7 +33,7 @@ export default function LandingNavbar() {
     >
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
         {/* Logo */}
-        <Link href="/" className="group flex items-center gap-2.5" onClick={() => setOpen(false)}>
+        <Link href={routes.dashboard()} className="group flex items-center gap-2.5" onClick={() => setOpen(false)}>
           <Image
             src="/logo.svg"
             alt="Testora"
@@ -60,13 +61,13 @@ export default function LandingNavbar() {
         {/* Desktop auth */}
         <div className="hidden items-center gap-2 md:flex">
           <Link
-            href="/login"
+            href={routes.login()}
             className="rounded-full px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:text-slate-900"
           >
             Login
           </Link>
           <Link
-            href="/register"
+            href={routes.register()}
             className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-blue-500/20 transition-all duration-300 hover:bg-[var(--brand-dark)] hover:shadow-md hover:shadow-blue-500/30"
           >
             Register
@@ -107,14 +108,14 @@ export default function LandingNavbar() {
               ))}
               <div className="mt-2 flex gap-2">
                 <Link
-                  href="/login"
+                  href={routes.login()}
                   onClick={() => setOpen(false)}
                   className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-700"
                 >
                   Login
                 </Link>
                 <Link
-                  href="/register"
+                  href={routes.register()}
                   onClick={() => setOpen(false)}
                   className="flex-1 rounded-xl bg-[var(--brand)] px-4 py-3 text-center text-sm font-semibold text-white"
                 >

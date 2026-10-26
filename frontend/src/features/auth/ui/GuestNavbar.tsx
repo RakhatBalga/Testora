@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { routes } from "@/shared/config";
 
 export default function GuestNavbar() {
   const pathname = usePathname();
@@ -26,7 +27,7 @@ export default function GuestNavbar() {
       }`}
     >
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6 sm:px-8">
-        <Link href="/" className="group flex items-center gap-2.5">
+        <Link href={routes.dashboard()} className="group flex items-center gap-2.5">
           <Image
             src="/logo.svg"
             alt="Testora"
@@ -42,7 +43,7 @@ export default function GuestNavbar() {
 
         <div className="flex items-center gap-3">
           <Link
-            href="/login"
+            href={routes.login()}
             className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
               onRegister
                 ? "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
@@ -52,7 +53,7 @@ export default function GuestNavbar() {
             Sign In
           </Link>
           <Link
-            href="/register"
+            href={routes.register()}
             className={`rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-300 ${
               onRegister
                 ? "border border-[var(--border)] text-[var(--text-secondary)] hover:border-slate-300 hover:bg-white"

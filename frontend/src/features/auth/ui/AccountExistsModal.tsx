@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { UserCheck, X, KeyRound, ArrowRight } from "lucide-react";
+import { routes } from "@/shared/config";
 
 export default function AccountExistsModal({
   open,
@@ -27,7 +28,7 @@ export default function AccountExistsModal({
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-600"
         >
           <X className="h-5 w-5" />
         </button>
@@ -50,7 +51,7 @@ export default function AccountExistsModal({
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
-            onClick={() => router.push("/login")}
+            onClick={() => router.push(routes.login())}
             className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--brand)] text-sm font-semibold text-white shadow-sm shadow-[var(--brand)]/30 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--brand-dark)]"
           >
             Sign In
@@ -58,7 +59,7 @@ export default function AccountExistsModal({
           </button>
           <button
             type="button"
-            onClick={() => router.push("/login")}
+            onClick={() => router.push(routes.login())}
             className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-[var(--border)] text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-slate-50"
           >
             <KeyRound className="h-4 w-4" />

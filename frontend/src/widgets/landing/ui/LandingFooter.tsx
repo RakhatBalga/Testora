@@ -3,20 +3,19 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Mail } from "lucide-react";
+import { routes } from "@/shared/config";
 
 const COLS = [
   {
     title: "Product",
     links: [
       { label: "Features", href: "#features" },
-      { label: "Tests", href: "#showcase" },
       { label: "FAQ", href: "#faq" },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "About", href: "#showcase" },
       { label: "Contact", href: "#contact" },
     ],
   },
@@ -29,7 +28,7 @@ export default function LandingFooter() {
         <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr]">
           {/* Brand */}
           <div>
-            <Link href="/" className="flex items-center gap-2.5">
+            <Link href={routes.dashboard()} className="flex items-center gap-2.5">
               <Image
                 src="/logo.svg"
                 alt="Testora"

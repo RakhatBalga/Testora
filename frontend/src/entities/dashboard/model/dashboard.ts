@@ -1,3 +1,5 @@
+import { routes } from "@/shared/config";
+
 export const SKILLS = ["listening", "reading", "writing", "speaking"] as const;
 export type Skill = (typeof SKILLS)[number];
 
@@ -15,25 +17,25 @@ export const skillMeta: Record<
   listening: {
     label: "Listening",
     tone: "sky",
-    href: "/listening",
+    href: routes.listening.library(),
     blurb: "Audio recordings with section-by-section question sets.",
   },
   reading: {
     label: "Reading",
     tone: "violet",
-    href: "/tests/reading",
+    href: routes.reading.library(),
     blurb: "Academic passages with mixed IELTS question types.",
   },
   writing: {
     label: "Writing",
     tone: "emerald",
-    href: "/writing",
+    href: routes.writing.library(),
     blurb: "Task 1 & Task 2 responses with instant band feedback.",
   },
   speaking: {
     label: "Speaking",
     tone: "amber",
-    href: "/speaking",
+    href: routes.speaking.library(),
     blurb: "Recorded answers across all three speaking parts.",
   },
 };

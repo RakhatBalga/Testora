@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
-import { GOOGLE_SIGNUP_KEY } from "@/features/auth/ui/GoogleSignInButton";
-import { consumeGoogleFlow } from "@/features/auth/googleFlow";
+import { GOOGLE_SIGNUP_KEY, consumeGoogleFlow } from "@/features/auth";
+import { routes } from "@/shared/config";
 
 type Phase = "working" | "pick-username" | "error";
 
@@ -44,7 +44,7 @@ export default function GoogleCallbackPage() {
       }
       sessionStorage.removeItem(GOOGLE_SIGNUP_KEY);
 
-      const redirectUri = `${window.location.origin}/auth/google/callback`;
+      const redirectUri = `${window.location.origin}${routes.googleCallback()}`;
       const res = await api.googleAuth(code, redirectUri, state, signup);
       login(res.access_token, res.username);
       if (res.is_new_user && !signup?.username) {
@@ -55,7 +55,7 @@ export default function GoogleCallbackPage() {
         setPhase("pick-username");
         return;
       }
-      router.push("/");
+      router.push(routes.dashboard());
     };
 
     run().catch((err) => {
@@ -76,7 +76,7 @@ export default function GoogleCallbackPage() {
     try {
       const res = await api.setUsername(trimmed);
       login(res.access_token, trimmed);
-      router.push("/");
+      router.push(routes.dashboard());
     } catch (err) {
       setNickError(err instanceof Error ? err.message : "Could not set username");
       setSaving(false);
@@ -131,7 +131,7 @@ export default function GoogleCallbackPage() {
           <h2 className="text-lg font-semibold text-[var(--text-primary)]">Sign-in failed</h2>
           <p className="mt-2 text-sm text-[var(--text-secondary)]">{error}</p>
           <button
-            onClick={() => router.push("/login")}
+            onClick={() => router.push(routes.login())}
             className="mt-6 rounded-xl bg-[var(--brand)] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[var(--brand-dark)]"
           >
             Back to login

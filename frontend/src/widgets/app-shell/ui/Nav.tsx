@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  CalendarCheck,
   LayoutDashboard,
   Dumbbell,
   BarChart3,
@@ -15,18 +16,27 @@ import {
   Menu,
   UserRound,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/shared/auth";
+import { routes } from "@/shared/config";
 import { mediaUrl } from "@/shared/api";
 import { LinkButton } from "@/shared/ui";
 
-const LINKS = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/practice", label: "Practice", icon: Dumbbell },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/mistakes", label: "Notebook", icon: BookMarked },
-  { href: "/vocabulary", label: "Vocabulary", icon: Languages },
-  { href: "/history", label: "History", icon: History },
+const LINKS: { href: string; label: string; icon: LucideIcon; exact?: boolean; also?: string[] }[] = [
+  { href: routes.dashboard(), label: "Dashboard", icon: LayoutDashboard, exact: true },
+  {
+    href: routes.practice(),
+    label: "Practice",
+    icon: Dumbbell,
+    // The skill pages are part of Practice.
+    also: [routes.reading.library(), routes.listening.library(), routes.writing.library(), routes.speaking.library()],
+  },
+  { href: routes.studyPlan(), label: "Study plan", icon: CalendarCheck },
+  { href: routes.analytics(), label: "Analytics", icon: BarChart3 },
+  { href: routes.mistakes(), label: "Mistakes", icon: BookMarked },
+  { href: routes.vocabulary(), label: "Vocabulary", icon: Languages },
+  { href: routes.history(), label: "History", icon: History },
 ];
 
 export default function Nav() {
@@ -40,19 +50,21 @@ export default function Nav() {
     return () => window.clearTimeout(timer);
   }, [pathname]);
 
-  const isActive = (href: string, exact?: boolean) =>
-    exact ? pathname === href : pathname === href || pathname?.startsWith(`${href}/`);
+  const isActive = (href: string, exact?: boolean, also: string[] = []) =>
+    exact
+      ? pathname === href
+      : [href, ...also].some((base) => pathname === base || pathname?.startsWith(`${base}/`));
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    router.push(routes.login());
   };
 
   return (
     <nav className="sticky top-0 z-40 border-b border-[var(--border)] bg-white/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
         <div className="flex items-center gap-8">
-          <Link href="/" className="group flex items-center gap-2.5">
+          <Link href={routes.dashboard()} className="group flex items-center gap-2.5">
             <Image
               src="/logo.svg"
               alt="Testora"
@@ -68,11 +80,12 @@ export default function Nav() {
           {token && (
             <div className="hidden items-center gap-1 lg:flex">
               {LINKS.map((l) => {
-                const active = isActive(l.href, l.exact);
+                const active = isActive(l.href, l.exact, l.also);
                 return (
                   <Link
                     key={l.href}
                     href={l.href}
+                    aria-current={active ? "page" : undefined}
                     className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                       active
                         ? "bg-[var(--brand)]/[0.08] text-[var(--brand)]"
@@ -92,9 +105,9 @@ export default function Nav() {
           {!ready ? null : token ? (
             <>
               <Link
-                href="/profile"
+                href={routes.profile()}
                 className={`flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 transition ${
-                  isActive("/profile")
+                  isActive(routes.profile())
                     ? "border-[var(--brand)]/30 bg-[var(--brand)]/[0.06]"
                     : "border-[var(--border)] hover:border-slate-300 hover:bg-slate-50"
                 }`}
@@ -128,16 +141,18 @@ export default function Nav() {
                 onClick={() => setMobileOpen((v) => !v)}
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--text-secondary)] hover:bg-slate-50 lg:hidden"
                 aria-label="Toggle menu"
+                aria-expanded={mobileOpen}
+                aria-controls="mobile-menu"
               >
                 {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>
             </>
           ) : (
             <>
-              <LinkButton href="/login" variant="ghost" size="sm">
+              <LinkButton href={routes.login()} variant="ghost" size="sm">
                 Sign in
               </LinkButton>
-              <LinkButton href="/register" size="sm">
+              <LinkButton href={routes.register()} size="sm">
                 Get started
               </LinkButton>
             </>
@@ -147,12 +162,12 @@ export default function Nav() {
 
       {/* mobile section menu */}
       {token && mobileOpen && (
-        <div className="border-t border-[var(--border)] bg-white px-5 py-3 lg:hidden">
+        <div id="mobile-menu" className="border-t border-[var(--border)] bg-white px-5 py-3 lg:hidden">
           <div className="grid gap-1">
             <Link
-              href="/profile"
+              href={routes.profile()}
               className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                isActive("/profile")
+                isActive(routes.profile())
                   ? "bg-[var(--brand)]/[0.08] text-[var(--brand)]"
                   : "text-[var(--text-secondary)] hover:bg-slate-50"
               }`}
@@ -161,11 +176,12 @@ export default function Nav() {
               Profile
             </Link>
             {LINKS.map((l) => {
-              const active = isActive(l.href, l.exact);
+              const active = isActive(l.href, l.exact, l.also);
               return (
                 <Link
                   key={l.href}
                   href={l.href}
+                  aria-current={active ? "page" : undefined}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     active
                       ? "bg-[var(--brand)]/[0.08] text-[var(--brand)]"

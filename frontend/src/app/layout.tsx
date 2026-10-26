@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/shared/auth";
@@ -14,13 +14,37 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://testora.studio";
+const DESCRIPTION =
+  "Practice IELTS Academic Reading and Listening, and get instant AI feedback on your Writing with band scores and a personal study plan.";
+
 export const metadata: Metadata = {
-  title: "Testora — IELTS Practice",
-  description: "Practice IELTS Academic Reading and get AI Writing feedback",
+  metadataBase: new URL(SITE_URL),
+  title: { default: "Testora — IELTS Practice", template: "%s | Testora" },
+  description: DESCRIPTION,
+  applicationName: "Testora",
   icons: {
     icon: "/logo.svg",
     shortcut: "/logo.svg",
   },
+  openGraph: {
+    type: "website",
+    siteName: "Testora",
+    title: "Testora — IELTS Practice with AI Feedback",
+    description: DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Testora — IELTS Practice with AI Feedback",
+    description: DESCRIPTION,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#2563eb",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

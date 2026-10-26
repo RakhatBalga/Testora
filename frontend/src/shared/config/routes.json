@@ -1,0 +1,29 @@
+{
+  "_comment": "Page URL patterns of the frontend. Checked against src/app by the frontend tests and used by the backend tests to validate the links it generates. {id} = a dynamic segment.",
+  "patterns": [
+    "/",
+    "/login",
+    "/register",
+    "/auth/google/callback",
+    "/practice",
+    "/study-plan",
+    "/mistakes",
+    "/vocabulary",
+    "/history",
+    "/history/compare",
+    "/analytics",
+    "/profile",
+    "/reading",
+    "/reading/{id}",
+    "/reading/result/{id}",
+    "/listening",
+    "/listening/{id}",
+    "/listening/result/{id}",
+    "/writing",
+    "/writing/{id}",
+    "/writing/result/{id}",
+    "/speaking",
+    "/speaking/{id}",
+    "/speaking/result/{id}"
+  ]
+}
