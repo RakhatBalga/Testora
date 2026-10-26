@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from sqlalchemy import (
     Column,
     Date,
@@ -15,6 +13,7 @@ from sqlalchemy import (
 )
 
 from app.infrastructure.database import Base
+from app.infrastructure.time import utcnow
 
 
 class DiagnosticSession(Base):
@@ -27,12 +26,10 @@ class DiagnosticSession(Base):
     writing_submission_id = Column(Integer, nullable=True)
     reading_attempt_id = Column(Integer, nullable=True)
     provisional_level = Column(Float, nullable=True)
-    started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    started_at = Column(DateTime, default=utcnow, nullable=False)
     completed_at = Column(DateTime, nullable=True)
 
-    __table_args__ = (
-        Index("ix_diagnostic_sessions_user_started", "user_id", "started_at"),
-    )
+    __table_args__ = (Index("ix_diagnostic_sessions_user_started", "user_id", "started_at"),)
 
 
 class StudyPlanItem(Base):
@@ -52,8 +49,8 @@ class StudyPlanItem(Base):
     scheduled_date = Column(Date, nullable=False)
     source_type = Column(String, nullable=False)
     source_ref = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
 
     __table_args__ = (
         UniqueConstraint("user_id", "week_start", "stable_key", name="uq_study_plan_user_week_key"),
@@ -70,8 +67,8 @@ class MistakeReview(Base):
     skill = Column(String, nullable=False)
     source_id = Column(Integer, nullable=False)
     status = Column(String, nullable=False, default="new")
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
 
     __table_args__ = (
         UniqueConstraint("user_id", "skill", "source_id", name="uq_mistake_review_source"),

@@ -1,7 +1,7 @@
-from datetime import datetime
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Float, JSON, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.infrastructure.database import Base
+from app.infrastructure.time import utcnow
 
 
 class Attempt(Base):
@@ -20,12 +20,10 @@ class Attempt(Base):
     content_version = Column(String, nullable=False, default="legacy")
     mode = Column(String, nullable=False, default="exam")
     submission_key = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     test = relationship("Test")
-    answers = relationship(
-        "AnswerRecord", back_populates="attempt", cascade="all, delete-orphan"
-    )
+    answers = relationship("AnswerRecord", back_populates="attempt", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index("ix_attempts_user_created", "user_id", "created_at"),
@@ -60,11 +58,14 @@ class ListeningProgress(Base):
     audio_position = Column(Float, nullable=False, default=0)
     max_audio_position = Column(Float, nullable=False, default=0)
     status = Column(String, nullable=False, default="in_progress")
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
 
     __table_args__ = (
         UniqueConstraint(
-            "user_id", "test_id", "content_version", "mode",
+            "user_id",
+            "test_id",
+            "content_version",
+            "mode",
             name="uq_listening_progress_user_test_version_mode",
         ),
         Index("ix_listening_progress_user_updated", "user_id", "updated_at"),

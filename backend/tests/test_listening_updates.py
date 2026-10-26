@@ -5,7 +5,13 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
 
-from app.api.routers.listening import get_progress, list_listening_tests, review_listening, save_progress, submit_listening
+from app.api.routers.listening import (
+    get_progress,
+    list_listening_tests,
+    review_listening,
+    save_progress,
+    submit_listening,
+)
 from app.api.routers.tests import is_catalog_test
 from app.api.schemas.listening import ListeningProgressIn, ListeningSubmitIn
 from app.api.schemas.result import AnswerIn
@@ -13,15 +19,17 @@ from app.domain.models.attempt import Attempt, ListeningProgress
 from app.domain.models.test import Test as ContentTest
 from app.domain.models.user import User
 from app.infrastructure.database import Base
-from seed_listening import CONTENT_PATH, seed_package
+from scripts.seed.seed_listening import CONTENT_PATH, seed_package
 
 
 @pytest.fixture
 def db():
     engine = create_engine("sqlite://")
+
     @event.listens_for(engine, "connect")
     def foreign_keys(connection, _):
         connection.execute("PRAGMA foreign_keys=ON")
+
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         session.add(User(id=1, username="student", password="hash"))
@@ -42,15 +50,31 @@ def test_update_preserves_attempts_question_ids_and_in_progress_sessions(db):
     old, _ = seed_package(db, old_data)
     question = old.sections[0].questions[0]
     question_id = question.id
-    submitted = submit_listening(old.id, ListeningSubmitIn(
-        content_version="1.0.0", mode="exam", submission_key="old-attempt-123",
-        answers=[AnswerIn(question_id=question_id, answer="Hartley")],
-    ), db=db, current_user=user)
+    submitted = submit_listening(
+        old.id,
+        ListeningSubmitIn(
+            content_version="1.0.0",
+            mode="exam",
+            submission_key="old-attempt-123",
+            answers=[AnswerIn(question_id=question_id, answer="Hartley")],
+        ),
+        db=db,
+        current_user=user,
+    )
     before = review_listening(submitted["attempt_id"], db=db, current_user=user)
-    save_progress(old.id, ListeningProgressIn(
-        content_version="1.0.0", mode="practice", answers={str(question_id): "Hartley"},
-        current_section=0, audio_position=20, max_audio_position=20,
-    ), db=db, current_user=user)
+    save_progress(
+        old.id,
+        ListeningProgressIn(
+            content_version="1.0.0",
+            mode="practice",
+            answers={str(question_id): "Hartley"},
+            current_section=0,
+            audio_position=20,
+            max_audio_position=20,
+        ),
+        db=db,
+        current_user=user,
+    )
     data = package("1.0.1")
     data["sections"][0]["questions"][0]["explanation"] = "Updated explanation for future attempts."
     new, created = seed_package(db, data, update_existing=True)
@@ -61,10 +85,17 @@ def test_update_preserves_attempts_question_ids_and_in_progress_sessions(db):
     assert [item["id"] for item in list_listening_tests(db=db, current_user=user)] == [new.id]
     assert is_catalog_test(new) and not is_catalog_test(old)
     # Old open tabs can still finish against their original question IDs/version.
-    submit_listening(old.id, ListeningSubmitIn(
-        content_version="1.0.0", mode="practice", submission_key="resumed-attempt-123",
-        answers=[AnswerIn(question_id=question_id, answer="Hartley")],
-    ), db=db, current_user=user)
+    submit_listening(
+        old.id,
+        ListeningSubmitIn(
+            content_version="1.0.0",
+            mode="practice",
+            submission_key="resumed-attempt-123",
+            answers=[AnswerIn(question_id=question_id, answer="Hartley")],
+        ),
+        db=db,
+        current_user=user,
+    )
     assert db.query(Attempt).count() == 2
     again, created = seed_package(db, data, update_existing=True)
     assert not created and again.id == new.id
@@ -99,9 +130,12 @@ def test_progress_roundtrip_submission_review_and_user_isolation(db):
     test, _ = seed_package(db, package("1.0.1"))
     question = test.sections[0].questions[0]
     payload = ListeningProgressIn(
-        content_version=test.content_version, mode="practice",
-        answers={str(question.id): "Hartley"}, current_section=2,
-        audio_position=320, max_audio_position=350,
+        content_version=test.content_version,
+        mode="practice",
+        answers={str(question.id): "Hartley"},
+        current_section=2,
+        audio_position=320,
+        max_audio_position=350,
     )
     save_progress(test.id, payload, db=db, current_user=user)
     db.expire_all()
@@ -113,7 +147,9 @@ def test_progress_roundtrip_submission_review_and_user_isolation(db):
     assert get_progress(test.id, test.content_version, "practice", db=db, current_user=other) is None
     assert get_progress(test.id, test.content_version, "exam", db=db, current_user=user) is None
     submission = ListeningSubmitIn(
-        content_version=test.content_version, mode="practice", submission_key="progress-roundtrip",
+        content_version=test.content_version,
+        mode="practice",
+        submission_key="progress-roundtrip",
         answers=[AnswerIn(question_id=question.id, answer="Hartley")],
     )
     result = submit_listening(test.id, submission, db=db, current_user=user)

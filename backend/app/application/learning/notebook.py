@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 
+from app.application import frontend_routes as routes
+from app.domain.scoring import display_answer
 from app.domain.models.attempt import AnswerRecord, Attempt
 from app.domain.models.learning import MistakeReview
 from app.domain.models.mistake import Mistake
@@ -17,8 +19,7 @@ def _writing_items(db: Session, user_id: int, statuses: dict) -> list[dict]:
         db.query(Mistake, WritingSubmission)
         .join(
             WritingSubmission,
-            (WritingSubmission.id == Mistake.submission_id)
-            & (WritingSubmission.user_id == Mistake.user_id),
+            (WritingSubmission.id == Mistake.submission_id) & (WritingSubmission.user_id == Mistake.user_id),
         )
         .filter(Mistake.user_id == user_id, Mistake.skill == "writing")
         .order_by(Mistake.created_at.desc(), Mistake.id.desc())
@@ -34,28 +35,25 @@ def _writing_items(db: Session, user_id: int, statuses: dict) -> list[dict]:
         if dedupe_key in seen:
             continue
         seen.add(dedupe_key)
-        items.append({
-            "id": f"writing-{mistake.id}",
-            "source_id": mistake.id,
-            "skill": "writing",
-            "status": statuses.get(("writing", mistake.id), "new"),
-            "category": mistake.category,
-            "label": (mistake.subskill or mistake.category).replace("_", " ").title(),
-            "quote": quote or None,
-            "user_answer": None,
-            "correct_answer": mistake.correction,
-            "explanation": mistake.explanation,
-            "evidence": None,
-            "source_href": f"/writing/result/{submission.id}",
-            "source_title": submission.task.title if submission.task else "Writing result",
-            "created_at": mistake.created_at,
-        })
+        items.append(
+            {
+                "id": f"writing-{mistake.id}",
+                "source_id": mistake.id,
+                "skill": "writing",
+                "status": statuses.get(("writing", mistake.id), "new"),
+                "category": mistake.category,
+                "label": (mistake.subskill or mistake.category).replace("_", " ").title(),
+                "quote": quote or None,
+                "user_answer": None,
+                "correct_answer": mistake.correction,
+                "explanation": mistake.explanation,
+                "evidence": None,
+                "source_href": routes.result("writing", submission.id),
+                "source_title": submission.task.title if submission.task else "Writing result",
+                "created_at": mistake.created_at,
+            }
+        )
     return items
-
-
-def _display_answer(value) -> str:
-    values = value if isinstance(value, list) else [value]
-    return ", ".join(str(item) for item in values if item is not None)
 
 
 def _reading_items(db: Session, user_id: int, statuses: dict) -> list[dict]:
@@ -79,7 +77,7 @@ def _reading_items(db: Session, user_id: int, statuses: dict) -> list[dict]:
             "label": question.question_type.replace("_", " ").title(),
             "quote": None,
             "user_answer": record.user_answer,
-            "correct_answer": _display_answer(question.correct_answer),
+            "correct_answer": display_answer(question.correct_answer),
             "explanation": question.explanation,
             "evidence": [
                 span
@@ -87,8 +85,9 @@ def _reading_items(db: Session, user_id: int, statuses: dict) -> list[dict]:
                 if isinstance(span, dict)
                 and isinstance(span.get("text"), str)
                 and span["text"] in (section.passage or "")
-            ] or None,
-            "source_href": f"/reading/{attempt.test_id}?attempt={attempt.id}",
+            ]
+            or None,
+            "source_href": routes.result("reading", attempt.id),
             "source_title": test.title,
             "created_at": attempt.created_at,
         }
@@ -114,17 +113,23 @@ def _listening_items(db: Session, user_id: int, statuses: dict) -> list[dict]:
             "skill": "listening",
             "status": statuses.get(("listening", record.id), "new"),
             "category": (question.question_metadata or {}).get("target_skill", question.question_type),
-            "label": (question.question_metadata or {}).get("target_skill", question.question_type).replace("_", " ").title(),
+            "label": (question.question_metadata or {})
+            .get("target_skill", question.question_type)
+            .replace("_", " ")
+            .title(),
             "quote": None,
             "user_answer": record.user_answer,
-            "correct_answer": _display_answer(question.correct_answer),
+            "correct_answer": display_answer(question.correct_answer),
             "explanation": question.explanation,
             "evidence": [
-                span for span in (question.evidence or [])
-                if isinstance(span, dict) and isinstance(span.get("text"), str)
+                span
+                for span in (question.evidence or [])
+                if isinstance(span, dict)
+                and isinstance(span.get("text"), str)
                 and span["text"] in (section.passage or "")
-            ] or None,
-            "source_href": f"/listening/result/{attempt.id}",
+            ]
+            or None,
+            "source_href": routes.result("listening", attempt.id),
             "source_title": test.title,
             "created_at": attempt.created_at,
         }

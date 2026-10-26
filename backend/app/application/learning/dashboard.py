@@ -2,6 +2,7 @@ from statistics import mean
 
 from sqlalchemy.orm import Session
 
+from app.application import frontend_routes as routes
 from app.domain.band import round_ielts
 from app.domain.models.attempt import Attempt
 from app.domain.models.test import Test
@@ -52,7 +53,7 @@ def dashboard_summary(db: Session, user: User) -> dict:
     writing_weakness = None
     if scored:
         key = min(scored, key=scored.get)
-        writing_weakness = {"label": key, "value": float(scored[key]), "href": f"/writing/result/{writing.id}"}
+        writing_weakness = {"label": key, "value": float(scored[key]), "href": routes.result("writing", writing.id)}
 
     reading_weakness = None
     breakdown = [item for item in (reading.breakdown or []) if item.get("total", 0) > 0] if reading else []
@@ -61,7 +62,7 @@ def dashboard_summary(db: Session, user: User) -> dict:
         reading_weakness = {
             "label": item.get("label") or str(item.get("question_type", "Questions")).replace("_", " ").title(),
             "value": float(item.get("accuracy", 0)),
-            "href": f"/reading/{reading.test_id}?attempt={reading.id}",
+            "href": routes.result("reading", reading.id),
         }
 
     plan = get_weekly_plan(db, user)
@@ -71,23 +72,27 @@ def dashboard_summary(db: Session, user: User) -> dict:
 
     recent = []
     if writing:
-        recent.append({
-            "id": f"writing-{writing.id}",
-            "skill": "writing",
-            "title": writing.task.title if writing.task else "Writing",
-            "band": writing.band,
-            "created_at": writing.created_at,
-            "href": f"/writing/result/{writing.id}",
-        })
+        recent.append(
+            {
+                "id": f"writing-{writing.id}",
+                "skill": "writing",
+                "title": writing.task.title if writing.task else "Writing",
+                "band": writing.band,
+                "created_at": writing.created_at,
+                "href": routes.result("writing", writing.id),
+            }
+        )
     if reading:
-        recent.append({
-            "id": f"reading-{reading.id}",
-            "skill": "reading",
-            "title": reading.test.title if reading.test else "Reading",
-            "band": reading.band,
-            "created_at": reading.created_at,
-            "href": f"/reading/{reading.test_id}?attempt={reading.id}",
-        })
+        recent.append(
+            {
+                "id": f"reading-{reading.id}",
+                "skill": "reading",
+                "title": reading.test.title if reading.test else "Reading",
+                "band": reading.band,
+                "created_at": reading.created_at,
+                "href": routes.result("reading", reading.id),
+            }
+        )
     recent.sort(key=lambda row: row["created_at"], reverse=True)
 
     return {

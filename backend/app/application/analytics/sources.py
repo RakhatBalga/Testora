@@ -3,6 +3,7 @@
 Bridges the three submission tables (writing_submissions, speaking_submissions,
 attempts) into a uniform per-skill view for the analytics engines.
 """
+
 from statistics import mean
 
 from sqlalchemy.orm import Session
@@ -24,11 +25,24 @@ def _attempt_query(db: Session, user_id: int, test_type: str):
     )
 
 
+def graded_writing(db: Session, user_id: int):
+    """Writing submissions that really were graded (not failed, pending or Band-0 rejected)."""
+    return db.query(WritingSubmission).filter(
+        WritingSubmission.user_id == user_id,
+        WritingSubmission.status == "graded",
+        WritingSubmission.band > 0,
+    )
+
+
+def graded_speaking(db: Session, user_id: int):
+    return db.query(SpeakingSubmission).filter(SpeakingSubmission.user_id == user_id, SpeakingSubmission.band > 0)
+
+
 def opportunities(db: Session, user_id: int) -> dict[str, int]:
     """How many graded attempts exist per skill (the denominator for weakness scores)."""
     return {
-        "writing": db.query(WritingSubmission).filter(WritingSubmission.user_id == user_id).count(),
-        "speaking": db.query(SpeakingSubmission).filter(SpeakingSubmission.user_id == user_id).count(),
+        "writing": graded_writing(db, user_id).count(),
+        "speaking": graded_speaking(db, user_id).count(),
         "reading": _attempt_query(db, user_id, "reading").count(),
         "listening": _attempt_query(db, user_id, "listening").count(),
     }
@@ -38,16 +52,16 @@ def recent_submission_ids(db: Session, user_id: int, skill: str, limit: int = 8)
     """IDs of the most recent attempts for a skill (newest first)."""
     if skill == "writing":
         rows = (
-            db.query(WritingSubmission.id)
-            .filter(WritingSubmission.user_id == user_id)
+            graded_writing(db, user_id)
+            .with_entities(WritingSubmission.id)
             .order_by(WritingSubmission.created_at.desc())
             .limit(limit)
             .all()
         )
     elif skill == "speaking":
         rows = (
-            db.query(SpeakingSubmission.id)
-            .filter(SpeakingSubmission.user_id == user_id)
+            graded_speaking(db, user_id)
+            .with_entities(SpeakingSubmission.id)
             .order_by(SpeakingSubmission.created_at.desc())
             .limit(limit)
             .all()

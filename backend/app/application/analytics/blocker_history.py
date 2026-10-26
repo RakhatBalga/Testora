@@ -6,6 +6,7 @@ the dashboard show "Grammar → Grammar → Grammar → Vocabulary" and call out
 a long-standing blocker is finally dethroned. Pure read-time aggregation, no AI,
 no new tables.
 """
+
 from datetime import datetime
 
 from sqlalchemy.orm import Session

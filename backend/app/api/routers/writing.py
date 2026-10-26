@@ -1,10 +1,8 @@
-import asyncio
-import logging
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_db, get_current_user
+from app.api.dependencies import get_db, get_current_user, user_rate_limit
 from app.domain.models.writing import WritingTask, WritingSubmission
 from app.domain.models.user import User
 from app.api.schemas.writing import (
@@ -13,18 +11,11 @@ from app.api.schemas.writing import (
     WritingSubmissionOut,
     WritingSubmissionSummary,
 )
-from app.infrastructure.ai import get_writing_grader
-from app.infrastructure.ai.concurrency import run_grading
-from app.application.mistakes import clear_mistakes, record_mistakes
-from app.application.quota import enforce_free_quota, quota_status, reserve_ai_call
-from app.application.writing_precheck import (
-    validate_writing_submission,
-    zero_band_feedback,
-)
+from app.application import writing as writing_service
+from app.application.quota import quota_status
 from app.infrastructure.config import settings
 
 router = APIRouter()
-logger = logging.getLogger("testora.writing")
 
 
 @router.get("/tasks", response_model=List[WritingTaskOut])
@@ -52,168 +43,26 @@ def get_quota(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return quota_status(
-        db, WritingSubmission, current_user, settings.FREE_WRITING_SUBMISSIONS
-    )
+    return quota_status(db, WritingSubmission, current_user, settings.FREE_WRITING_SUBMISSIONS)
 
 
-@router.post("/submit", response_model=WritingSubmissionOut)
-async def submit(
+@router.post(
+    "/submit",
+    response_model=WritingSubmissionOut,
+    dependencies=[Depends(user_rate_limit("writing-submit", 10))],
+)
+def submit(
     payload: WritingSubmitIn,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # Plain `def`: FastAPI runs it in the threadpool, so the synchronous DB work
+    # and the blocking grader never stall the event loop.
     task = db.query(WritingTask).filter(WritingTask.id == payload.task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-
-    enforce_free_quota(
-        db, WritingSubmission, current_user,
-        settings.FREE_WRITING_SUBMISSIONS, "writing",
-    )
-
-    precheck = validate_writing_submission(
-        task_type=task.task_type,
-        text=payload.text,
-        min_words=task.min_words,
-    )
-    word_count = precheck.word_count
-    submission = WritingSubmission(
-        user_id=current_user.id,
-        task_id=task.id,
-        text=payload.text,
-        word_count=word_count,
-        status="pending",
-    )
-
-    submission = await _grade_and_persist(submission, task, db, current_user)
+    submission = writing_service.submit_writing(db, current_user, task, payload.text)
     return _to_out(submission, task)
-
-
-async def _grade_and_persist(
-    submission: WritingSubmission,
-    task: WritingTask,
-    db: Session,
-    current_user: User,
-) -> WritingSubmission:
-    retry = submission.id is not None
-    resource = f"writing:{submission.id}" if retry else None
-    with reserve_ai_call(db, current_user, "writing", model=WritingSubmission,
-                         limit=settings.FREE_WRITING_SUBMISSIONS, resource=resource) as reservation:
-        if retry:
-            db.refresh(submission)
-            if submission.status != "failed":
-                raise HTTPException(409, "Only failed writing submissions can be retried")
-        submission.status = "pending"
-        db.add(submission)
-        db.commit()
-        try:
-            result = await _perform_grading(submission, task, db, current_user)
-        except BaseException:
-            db.rollback()
-            submission.status = "failed"
-            submission.band = None
-            db.commit()
-            raise
-        reservation.success = result.status == "graded"
-        return result
-
-
-async def _perform_grading(
-    submission: WritingSubmission,
-    task: WritingTask,
-    db: Session,
-    current_user: User,
-) -> WritingSubmission:
-    precheck = validate_writing_submission(
-        task_type=task.task_type,
-        text=submission.text,
-        min_words=task.min_words,
-    )
-    word_count = precheck.word_count
-    submission.word_count = word_count
-    submission.status = "pending"
-    submission.band = None
-
-    improved: str | None = None
-    if precheck.valid:
-        # Grade via the AI layer (mock now, Gemini when AI_PROVIDER=gemini). The
-        # blocking calls are offloaded to the threadpool and globally rate-bounded
-        # so concurrent gradings can't starve the event loop or hammer the model.
-        # The "Better Version" rewrite doesn't depend on the examiner's output, so
-        # it runs concurrently with grading instead of adding its latency on top.
-        grader = get_writing_grader()
-        feedback, improved_result = await asyncio.gather(
-            run_grading(
-                grader.grade,
-                task_type=task.task_type,
-                prompt=task.prompt,
-                text=submission.text,
-                min_words=task.min_words,
-            ),
-            run_grading(
-                grader.improve,
-                task_type=task.task_type,
-                prompt=task.prompt,
-                text=submission.text,
-            ),
-            return_exceptions=True,
-        )
-        if isinstance(feedback, BaseException):
-            raise feedback
-        if isinstance(improved_result, BaseException):
-            logger.warning(
-                "Better Version generation failed for user %s task %s",
-                current_user.id,
-                task.id,
-            )
-        else:
-            improved = improved_result
-    else:
-        feedback = zero_band_feedback(task.task_type, precheck)
-
-    db.add(submission)
-    db.flush()  # assign submission.id before replacing/recording its mistakes
-    clear_mistakes(
-        db,
-        user_id=current_user.id,
-        submission_id=submission.id,
-        skill="writing",
-    )
-    submission.feedback = feedback.to_dict()
-    if feedback.error:
-        # Grading failed — preserve the user's text but do NOT record a band or
-        # mistakes. Analytics ignore failed/unbanded submissions, and the user
-        # can re-submit. (Mock graders never set error, so they're unaffected.)
-        submission.band = None
-        submission.status = "failed"
-        logger.warning(
-            "Writing grading failed for user %s task %s; saved as failed",
-            current_user.id,
-            task.id,
-        )
-        db.commit()
-        db.refresh(submission)
-        return submission
-
-    submission.band = feedback.band
-    submission.status = "graded"
-
-    # Best-effort "Better Version" rewrite (generated concurrently above; mock
-    # returns None so the UI keeps its deterministic diff).
-    if improved:
-        submission.improved_text = improved
-
-    record_mistakes(
-        db,
-        user_id=current_user.id,
-        submission_id=submission.id,
-        skill="writing",
-        mistakes=feedback.mistakes,
-    )
-    db.commit()
-    db.refresh(submission)
-    return submission
 
 
 @router.get("/submissions", response_model=List[WritingSubmissionSummary])
@@ -221,12 +70,6 @@ def list_submissions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    subs = (
-        db.query(WritingSubmission)
-        .filter(WritingSubmission.user_id == current_user.id)
-        .order_by(WritingSubmission.created_at.desc())
-        .all()
-    )
     return [
         {
             "id": s.id,
@@ -237,7 +80,7 @@ def list_submissions(
             "band": s.band,
             "created_at": s.created_at,
         }
-        for s in subs
+        for s in writing_service.list_submissions(db, current_user)
     ]
 
 
@@ -247,42 +90,21 @@ def get_submission(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    sub = (
-        db.query(WritingSubmission)
-        .filter(
-            WritingSubmission.id == submission_id,
-            WritingSubmission.user_id == current_user.id,
-        )
-        .first()
-    )
-    if not sub:
-        raise HTTPException(status_code=404, detail="Submission not found")
+    sub = writing_service.get_owned_submission(db, current_user, submission_id)
     return _to_out(sub, sub.task)
 
 
-@router.post("/submissions/{submission_id}/retry", response_model=WritingSubmissionOut)
-async def retry_submission(
+@router.post(
+    "/submissions/{submission_id}/retry",
+    response_model=WritingSubmissionOut,
+    dependencies=[Depends(user_rate_limit("writing-submit", 10))],
+)
+def retry_submission(
     submission_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    sub = (
-        db.query(WritingSubmission)
-        .filter(
-            WritingSubmission.id == submission_id,
-            WritingSubmission.user_id == current_user.id,
-        )
-        .first()
-    )
-    if not sub:
-        raise HTTPException(status_code=404, detail="Submission not found")
-    if sub.status != "failed":
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Only failed writing submissions can be retried",
-        )
-
-    sub = await _grade_and_persist(sub, sub.task, db, current_user)
+    sub = writing_service.retry_writing(db, current_user, submission_id)
     return _to_out(sub, sub.task)
 
 

@@ -35,8 +35,21 @@ def test_listening_attempt_is_scored_stored_and_reviewable():
         test = ContentTest(title="Listening test", test_type="listening", duration_minutes=30)
         section = Section(order=1, title="Section 1", passage="The room is on King Street.")
         section.questions = [
-            Question(order=1, text="Street", question_type="fill_blank", correct_answer=["King Street"], explanation="The speaker names King Street."),
-            Question(order=2, text="Day", question_type="single_choice", options=["Monday", "Tuesday"], correct_answer=["Tuesday"], explanation="The appointment is Tuesday."),
+            Question(
+                order=1,
+                text="Street",
+                question_type="fill_blank",
+                correct_answer=["King Street"],
+                explanation="The speaker names King Street.",
+            ),
+            Question(
+                order=2,
+                text="Day",
+                question_type="single_choice",
+                options=["Monday", "Tuesday"],
+                correct_answer=["Tuesday"],
+                explanation="The appointment is Tuesday.",
+            ),
         ]
         test.sections = [section]
         db.add_all([user, test])
@@ -79,18 +92,28 @@ def _published_test(db):
         section_metadata={
             "audio_start": 10.0,
             "audio_end": 30.0,
-            "transcript_segments": [{"id": "s1-01", "speaker": "Guide", "text": "The workshop is on King Street.", "start": 10.0, "end": 12.0}],
+            "transcript_segments": [
+                {
+                    "id": "s1-01",
+                    "speaker": "Guide",
+                    "text": "The workshop is on King Street.",
+                    "start": 10.0,
+                    "end": 12.0,
+                }
+            ],
         },
     )
-    section.questions = [Question(
-        order=1,
-        text="Street",
-        question_type="fill_blank",
-        correct_answer=["King Street"],
-        explanation="The guide names King Street.",
-        evidence=[{"paragraph": 1, "text": "King Street"}],
-        question_metadata={"word_limit": 2, "target_skill": "detail", "evidence_segment": "s1-01"},
-    )]
+    section.questions = [
+        Question(
+            order=1,
+            text="Street",
+            question_type="fill_blank",
+            correct_answer=["King Street"],
+            explanation="The guide names King Street.",
+            evidence=[{"paragraph": 1, "text": "King Street"}],
+            question_metadata={"word_limit": 2, "target_skill": "detail", "evidence_segment": "s1-01"},
+        )
+    ]
     test.sections = [section]
     db.add(test)
     db.commit()

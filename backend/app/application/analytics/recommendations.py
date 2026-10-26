@@ -9,6 +9,7 @@ Deterministic — no AI. Pulls from five ranked signals:
 
 Every recommendation carries a `reason` — the exact signal that triggered it.
 """
+
 from collections import defaultdict
 from datetime import datetime
 from statistics import mean
@@ -21,7 +22,9 @@ from app.domain.models.test import Question, Section, Test
 from app.domain.models.writing import WritingSubmission
 from app.domain.models.speaking import SpeakingSubmission
 from app.application.analytics.band_gap import compute_band_gap, generate_blockers, DEFAULT_TARGET
+from app.application import frontend_routes as routes
 from app.application.analytics.links import practice_href
+from app.infrastructure.time import local_today, to_local_date
 from app.application.analytics.weakness import compute_recurring_mistakes
 
 _SKILL_MINUTES = {"writing": 40, "speaking": 15, "reading": 20, "listening": 30}
@@ -61,14 +64,10 @@ def _rec(
 def _last_activity(db: Session, user_id: int) -> dict[str, datetime | None]:
     out: dict[str, datetime | None] = {}
     out["writing"] = (
-        db.query(func.max(WritingSubmission.created_at))
-        .filter(WritingSubmission.user_id == user_id)
-        .scalar()
+        db.query(func.max(WritingSubmission.created_at)).filter(WritingSubmission.user_id == user_id).scalar()
     )
     out["speaking"] = (
-        db.query(func.max(SpeakingSubmission.created_at))
-        .filter(SpeakingSubmission.user_id == user_id)
-        .scalar()
+        db.query(func.max(SpeakingSubmission.created_at)).filter(SpeakingSubmission.user_id == user_id).scalar()
     )
     for skill in ("reading", "listening"):
         out[skill] = (
@@ -184,8 +183,7 @@ def compute_recommendations(
             _rec(
                 f"blocker-{skill}-{b['criterion'].replace(' ', '-').lower()}",
                 f"Practice {b['skill']} — focus on {b['criterion']}",
-                b.get("explanation")
-                or f"{b['criterion']} is capping your {b['skill']} band at {b['band_cap']}.",
+                b.get("explanation") or f"{b['criterion']} is capping your {b['skill']} band at {b['band_cap']}.",
                 "blocker",
                 skill,
                 priority,
@@ -243,9 +241,7 @@ def compute_recommendations(
         if weakest_qt:
             skill = weakest_qt["skill"]
             matched_test = _test_for_question_type(db, skill, weakest_qt["question_type"])
-            matched_href = (
-                f"/{skill}/{matched_test.id}" if matched_test else practice_href(skill)
-            )
+            matched_href = routes.exam(skill, matched_test.id) if matched_test else practice_href(skill)
             recs.append(
                 _rec(
                     f"qt-{skill}-{weakest_qt['question_type']}",
@@ -263,13 +259,13 @@ def compute_recommendations(
     # ── 5. Longest inactive skill ─────────────────────────────────────────────
     if len(recs) < limit:
         last = _last_activity(db, user_id)
-        today = datetime.utcnow().date()
+        today = local_today()
         stale: list[tuple[int, str]] = []
         for skill in ("writing", "speaking", "reading", "listening"):
             if skill in seen_skills:
                 continue
             ts = last.get(skill)
-            age = (today - ts.date()).days if ts else 999
+            age = (today - to_local_date(ts)).days if ts else 999
             stale.append((age, skill))
         stale.sort(reverse=True)
         for age, skill in stale:

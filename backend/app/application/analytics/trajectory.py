@@ -6,6 +6,7 @@ of the latest known band per skill as of that moment, rounded to the nearest 0.5
 — the same definition the Band Gap engine uses for "current", just walked forward
 through history. Feeds the dashboard trajectory chart.
 """
+
 from datetime import datetime
 
 from sqlalchemy.orm import Session
