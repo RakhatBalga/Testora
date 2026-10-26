@@ -79,3 +79,14 @@ it("pauses and resumes without losing time", async () => {
   await advance(1_000);
   expect(result.current.remaining).toBe((left as number) - 1);
 });
+
+it("leaves an in-progress stored timer untouched while the duration is null (review mode)", async () => {
+  const stored = JSON.stringify({ deadline: Date.now() + 300_000, pausedRemaining: null });
+  localStorage.setItem("t-timer", stored);
+  const onExpire = vi.fn();
+  const { result } = renderHook(() => useExamTimer("t", null, onExpire));
+  await advance(10_000);
+  expect(result.current.remaining).toBeNull();
+  expect(onExpire).not.toHaveBeenCalled();
+  expect(localStorage.getItem("t-timer")).toBe(stored);
+});

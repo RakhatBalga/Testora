@@ -1,4 +1,4 @@
-import { request, queryString } from "../http";
+import { AI_TIMEOUT_MS, queryString, request, retryWhenInProgress } from "../http";
 import type { DailyQuiz, QuizResult, SavedWord, VocabularyList } from "../types";
 
 export const vocabularyApi = {
@@ -18,7 +18,9 @@ export const vocabularyApi = {
     request<{ deleted: number }>(`/vocabulary/words/${wordId}`, { method: "DELETE" }),
 
   enrichWord: (wordId: number) =>
-    request<SavedWord>(`/vocabulary/words/${wordId}/enrich`, { method: "POST" }),
+    retryWhenInProgress(() =>
+      request<SavedWord>(`/vocabulary/words/${wordId}/enrich`, { method: "POST" }, { timeoutMs: AI_TIMEOUT_MS, retries: 0 }),
+    ),
 
   setWordTraining: (wordId: number, training: boolean) =>
     request<SavedWord>(`/vocabulary/words/${wordId}/training`, {
@@ -26,7 +28,9 @@ export const vocabularyApi = {
       body: JSON.stringify({ training }),
     }),
 
-  getDailyQuiz: () => request<DailyQuiz>("/vocabulary/daily-quiz"),
+  // Calls the AI synchronously: long timeout, and no GET retry (a retry would hit 409 in progress).
+  getDailyQuiz: () =>
+    retryWhenInProgress(() => request<DailyQuiz>("/vocabulary/daily-quiz", {}, { timeoutMs: AI_TIMEOUT_MS, retries: 0 })),
 
   submitDailyQuiz: (answers: (number | null)[]) =>
     request<QuizResult>("/vocabulary/daily-quiz/submit", {

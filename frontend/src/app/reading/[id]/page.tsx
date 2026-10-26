@@ -41,6 +41,9 @@ export default function ReadingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [submitError, setSubmitError] = useState("");
+  // The clock may start only after we know this visit is a live attempt, not a
+  // review of a finished one (?attempt=, or a stored result still loading).
+  const [liveAttempt, setLiveAttempt] = useState(false);
 
   const passageScrollRef = useRef<HTMLDivElement>(null);
   const questionsScrollRef = useRef<HTMLDivElement>(null);
@@ -88,7 +91,7 @@ export default function ReadingPage() {
   // answers; with nothing saved it restarts instead of filing an empty attempt.
   const { remaining, paused, pause, resume, clear: clearTimer } = useExamTimer(
     storeKey,
-    test && !result ? test.duration_minutes * 60 : null,
+    test && liveAttempt && !result ? test.duration_minutes * 60 : null,
     handleSubmit,
     {
       shouldSubmitStale: () => {
@@ -127,19 +130,22 @@ export default function ReadingPage() {
           /* ignore corrupt storage */
         }
 
-        const requestedResult = new URLSearchParams(window.location.search).get("attempt");
+        const query = new URLSearchParams(window.location.search);
+        const requestedResult = query.get("attempt");
+        // "Retake" from a result page: forget the stored result and start fresh.
+        if (query.get("retake") === "1") localStorage.removeItem(`${storeKey}-result`);
         const savedResult = requestedResult || localStorage.getItem(`${storeKey}-result`);
         if (savedResult) {
           try {
             const attempt = await api.getAttempt(Number(savedResult));
             if (!cancelled && attempt.test_id === data.id && attempt.test_type === "reading") {
               setResult(attempt);
-              clearTimerRef.current?.();
             }
           } catch {
             if (!requestedResult) localStorage.removeItem(`${storeKey}-result`);
           }
         }
+        if (!cancelled && !requestedResult) setLiveAttempt(true);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load test");
       } finally {

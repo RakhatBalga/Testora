@@ -18,6 +18,17 @@ export class NetworkError extends Error {
   }
 }
 
+/** A normal HTTP error response (the server answered), with its status code. */
+export class ApiError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 export function isNetworkError(error: unknown): error is NetworkError {
   return error instanceof NetworkError;
 }

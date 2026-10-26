@@ -85,6 +85,8 @@ export default function WritingTaskPage() {
     `testora.writing.${username ?? "anonymous"}.${taskId}`,
     task ? task.duration_minutes * 60 : null,
     noop,
+    // A deadline that passed while away stays at 00:00 instead of granting a fresh timer.
+    { shouldSubmitStale: () => true },
   );
 
   const wordCount = countWords(answer);
