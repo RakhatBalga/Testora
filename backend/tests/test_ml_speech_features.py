@@ -3,12 +3,16 @@ from ml.speech_features import Transcript, extract_features
 
 
 def test_fluency_proxies_have_known_values():
-    transcript = Transcript(text="Um I I agree", duration_seconds=4, words=[
-        dict(text="Um", start=0, end=0.5, probability=0.8),
-        dict(text="I", start=1, end=1.5, probability=0.9),
-        dict(text="I", start=1.5, end=2, probability=0.9),
-        dict(text="agree", start=3, end=3.5, probability=1),
-    ])
+    transcript = Transcript(
+        text="Um I I agree",
+        duration_seconds=4,
+        words=[
+            dict(text="Um", start=0, end=0.5, probability=0.8),
+            dict(text="I", start=1, end=1.5, probability=0.9),
+            dict(text="I", start=1.5, end=2, probability=0.9),
+            dict(text="agree", start=3, end=3.5, probability=1),
+        ],
+    )
     features = extract_features(transcript)
     assert features["words_per_minute"] == 60
     assert features["articulation_words_per_minute"] == 120

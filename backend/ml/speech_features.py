@@ -1,4 +1,5 @@
 """ASR-derived fluency proxies, not pronunciation or IELTS grades."""
+
 from statistics import mean
 from pydantic import Field, model_validator
 from ml.data import Record
@@ -6,9 +7,15 @@ from ml.metrics import words
 
 FEATURE_VERSION = "fluency.v1"
 FEATURE_NAMES = (
-    "word_count", "words_per_minute", "articulation_words_per_minute",
-    "pause_count", "interword_pause_ratio", "mean_pause_seconds",
-    "filler_ratio", "immediate_repeat_ratio", "repair_marker_count",
+    "word_count",
+    "words_per_minute",
+    "articulation_words_per_minute",
+    "pause_count",
+    "interword_pause_ratio",
+    "mean_pause_seconds",
+    "filler_ratio",
+    "immediate_repeat_ratio",
+    "repair_marker_count",
     "mean_asr_confidence",
 )
 

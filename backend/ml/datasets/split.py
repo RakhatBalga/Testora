@@ -1,4 +1,5 @@
 """Shared first-response temporal split for readiness checks and experiments."""
+
 from ml.data import ResponseRecord
 
 

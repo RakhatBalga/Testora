@@ -50,7 +50,7 @@ against the live model:
 
 ```bash
 cd backend && PYTHONPATH=. AI_PROVIDER=gemini venv/bin/python \
-  scripts/run_writing_calibration.py tests/fixtures/writing_calibration_bank.jsonl
+  scripts/dev/run_writing_calibration.py tests/fixtures/writing_calibration_bank.jsonl
 ```
 
 **Measured 2026-06-30 (examiner = gemini-2.5-flash, deployed):** 8/8 within
