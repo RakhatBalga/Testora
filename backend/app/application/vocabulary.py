@@ -2,25 +2,27 @@
 synonyms / better alternatives / native translation), opt words into training,
 and generate + grade a daily practice quiz.
 
-AI-backed operations (enrich, quiz generation) offload the blocking model call to
-the threadpool and cache the result (enrichment on the word row, quiz by date),
+AI-backed operations (enrich, quiz generation) run the blocking model call under the
+grading gate (see ai_gate) from sync handlers, and cache the result (enrichment on the word row, quiz by date),
 so repeat opens never re-call the model. There is no scheduler — "daily" means
 on-demand, date-keyed generation, mirroring the weekly study plan.
 """
-from datetime import date, datetime
+
+from datetime import date
 from fastapi import HTTPException
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.infrastructure.time import utcnow
 from app.domain.models.user import User
 from app.domain.models.vocabulary import DailyWordQuiz, SavedWord
-from app.infrastructure.ai.concurrency import offload
+from app.application.ai_gate import grading_admission, run_graded
 from app.infrastructure.ai.factory import get_vocabulary_coach
 from app.application.quota import reserve_ai_call
 
 MAX_WORD_LEN = 80
-QUIZ_WORD_POOL = 12   # most-recent training words fed to the quiz generator
+QUIZ_WORD_POOL = 12  # most-recent training words fed to the quiz generator
 QUIZ_QUESTIONS = 8
 
 # correct answer advances a word's mastery; a wrong answer pulls it back to learning
@@ -56,11 +58,7 @@ def save_word(
     if not clean:
         raise ValueError("word is empty")
 
-    existing = (
-        db.query(SavedWord)
-        .filter(SavedWord.user_id == user_id, SavedWord.word == clean)
-        .first()
-    )
+    existing = db.query(SavedWord).filter(SavedWord.user_id == user_id, SavedWord.word == clean).first()
     if existing:
         if context and not existing.context:
             existing.context = context
@@ -68,9 +66,7 @@ def save_word(
             db.refresh(existing)
         return existing
 
-    row = SavedWord(
-        user_id=user_id, word=clean, context=context, source=source, source_ref=source_ref
-    )
+    row = SavedWord(user_id=user_id, word=clean, context=context, source=source, source_ref=source_ref)
     db.add(row)
     try:
         db.commit()
@@ -79,11 +75,7 @@ def save_word(
     except IntegrityError:
         # Two concurrent saves of the same word raced past the check above.
         db.rollback()
-        return (
-            db.query(SavedWord)
-            .filter(SavedWord.user_id == user_id, SavedWord.word == clean)
-            .first()
-        )
+        return db.query(SavedWord).filter(SavedWord.user_id == user_id, SavedWord.word == clean).first()
 
 
 def list_words(
@@ -98,17 +90,8 @@ def list_words(
     if training_only:
         q = q.filter(SavedWord.training.is_(True))
     total = q.count()
-    items = (
-        q.order_by(SavedWord.created_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-        .all()
-    )
-    training_count = (
-        db.query(SavedWord)
-        .filter(SavedWord.user_id == user_id, SavedWord.training.is_(True))
-        .count()
-    )
+    items = q.order_by(SavedWord.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
+    training_count = db.query(SavedWord).filter(SavedWord.user_id == user_id, SavedWord.training.is_(True)).count()
     return {
         "items": [serialize_word(w) for w in items],
         "total": total,
@@ -119,11 +102,7 @@ def list_words(
 
 
 def delete_word(db: Session, *, user_id: int, word_id: int) -> bool:
-    row = (
-        db.query(SavedWord)
-        .filter(SavedWord.id == word_id, SavedWord.user_id == user_id)
-        .first()
-    )
+    row = db.query(SavedWord).filter(SavedWord.id == word_id, SavedWord.user_id == user_id).first()
     if not row:
         return False
     db.delete(row)
@@ -131,14 +110,8 @@ def delete_word(db: Session, *, user_id: int, word_id: int) -> bool:
     return True
 
 
-def set_training(
-    db: Session, *, user_id: int, word_id: int, training: bool
-) -> SavedWord | None:
-    row = (
-        db.query(SavedWord)
-        .filter(SavedWord.id == word_id, SavedWord.user_id == user_id)
-        .first()
-    )
+def set_training(db: Session, *, user_id: int, word_id: int, training: bool) -> SavedWord | None:
+    row = db.query(SavedWord).filter(SavedWord.id == word_id, SavedWord.user_id == user_id).first()
     if not row:
         return None
     row.training = training
@@ -149,27 +122,21 @@ def set_training(
     return row
 
 
-async def enrich_word(
-    db: Session, *, user: User, word_id: int, force: bool = False
-) -> SavedWord | None:
+def enrich_word(db: Session, *, user: User, word_id: int, force: bool = False) -> SavedWord | None:
     """Fill in meaning/synonyms/alternatives/translation via the AI coach, cached
     on the row. Returns the (possibly unchanged) word, or None if not found."""
-    row = (
-        db.query(SavedWord)
-        .filter(SavedWord.id == word_id, SavedWord.user_id == user.id)
-        .first()
-    )
+    row = db.query(SavedWord).filter(SavedWord.id == word_id, SavedWord.user_id == user.id).first()
     if not row:
         return None
     if row.enrichment and not force:
         return row
 
-    with reserve_ai_call(db, user, "vocabulary", resource=f"word:{row.id}") as reservation:
+    with grading_admission(), reserve_ai_call(db, user, "vocabulary", resource=f"word:{row.id}") as reservation:
         db.refresh(row)
         if row.enrichment and not force:
             return row
         coach = get_vocabulary_coach()
-        info = await offload(
+        info = run_graded(
             coach.enrich_word,
             word=row.word,
             context=row.context,
@@ -178,27 +145,32 @@ async def enrich_word(
         reservation.success = not info.error
         if not info.error:
             row.enrichment = info.to_dict()
-            row.enriched_at = datetime.utcnow()
+            row.enriched_at = utcnow()
             db.commit()
             db.refresh(row)
         return row
 
 
-
-async def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWordQuiz:
+def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWordQuiz:
     """Return today's quiz, generating and caching it on first open of the day."""
     existing = (
-        db.query(DailyWordQuiz)
-        .filter(DailyWordQuiz.user_id == user.id, DailyWordQuiz.quiz_date == quiz_date)
-        .first()
+        db.query(DailyWordQuiz).filter(DailyWordQuiz.user_id == user.id, DailyWordQuiz.quiz_date == quiz_date).first()
     )
     if existing:
         return existing
 
-    with reserve_ai_call(db, user, "vocabulary", resource=f"quiz:{user.id}:{quiz_date}") as reservation:
-        existing = db.query(DailyWordQuiz).filter(
-            DailyWordQuiz.user_id == user.id, DailyWordQuiz.quiz_date == quiz_date,
-        ).first()
+    with (
+        grading_admission(),
+        reserve_ai_call(db, user, "vocabulary", resource=f"quiz:{user.id}:{quiz_date}") as reservation,
+    ):
+        existing = (
+            db.query(DailyWordQuiz)
+            .filter(
+                DailyWordQuiz.user_id == user.id,
+                DailyWordQuiz.quiz_date == quiz_date,
+            )
+            .first()
+        )
         if existing:
             return existing
         words = (
@@ -219,10 +191,8 @@ async def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWo
                 .all()
             )
 
-        payload_words = [
-            {"word": w.word, "context": w.context, **(w.enrichment or {})} for w in words
-        ]
-        quiz = await offload(
+        payload_words = [{"word": w.word, "context": w.context, **(w.enrichment or {})} for w in words]
+        quiz = run_graded(
             get_vocabulary_coach().generate_quiz,
             words=payload_words,
             native_language=user.native_language,
@@ -231,9 +201,7 @@ async def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWo
         if quiz.error:
             raise HTTPException(503, "Quiz generation failed. Please try again.")
         payload = {"questions": [q.to_dict() for q in quiz.questions]}
-        row = DailyWordQuiz(
-            user_id=user.id, quiz_date=quiz_date, payload=payload, total=len(quiz.questions)
-        )
+        row = DailyWordQuiz(user_id=user.id, quiz_date=quiz_date, payload=payload, total=len(quiz.questions))
         db.add(row)
         try:
             db.commit()
@@ -244,12 +212,9 @@ async def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWo
             db.rollback()
             return (
                 db.query(DailyWordQuiz)
-                .filter(
-                    DailyWordQuiz.user_id == user.id, DailyWordQuiz.quiz_date == quiz_date
-                )
+                .filter(DailyWordQuiz.user_id == user.id, DailyWordQuiz.quiz_date == quiz_date)
                 .first()
             )
-
 
 
 def public_quiz(quiz: DailyWordQuiz) -> dict:
@@ -272,14 +237,8 @@ def public_quiz(quiz: DailyWordQuiz) -> dict:
     }
 
 
-def grade_daily_quiz(
-    db: Session, *, user_id: int, quiz_date: date, answers: list[int | None]
-) -> dict | None:
-    row = (
-        db.query(DailyWordQuiz)
-        .filter(DailyWordQuiz.user_id == user_id, DailyWordQuiz.quiz_date == quiz_date)
-        .first()
-    )
+def grade_daily_quiz(db: Session, *, user_id: int, quiz_date: date, answers: list[int | None]) -> dict | None:
+    row = db.query(DailyWordQuiz).filter(DailyWordQuiz.user_id == user_id, DailyWordQuiz.quiz_date == quiz_date).first()
     if not row:
         return None
 
@@ -302,11 +261,7 @@ def grade_daily_quiz(
                 "explanation": q.get("explanation", ""),
             }
         )
-        word_row = (
-            db.query(SavedWord)
-            .filter(SavedWord.user_id == user_id, SavedWord.word == q.get("word"))
-            .first()
-        )
+        word_row = db.query(SavedWord).filter(SavedWord.user_id == user_id, SavedWord.word == q.get("word")).first()
         if word_row:
             if is_correct:
                 word_row.status = _ADVANCE.get(word_row.status, "learning")

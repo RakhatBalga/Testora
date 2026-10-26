@@ -50,6 +50,7 @@ def quota_engine(request, tmp_path, monkeypatch):
 @pytest.mark.parametrize("model,kind", [(WritingSubmission, "writing"), (SpeakingSubmission, "speaking")])
 def test_parallel_requests_cannot_exceed_lifetime_budget(quota_engine, model, kind):
     barrier = threading.Barrier(8)
+
     def request(_):
         with Session(quota_engine) as db:
             user = db.get(User, 1)
@@ -60,6 +61,7 @@ def test_parallel_requests_cannot_exceed_lifetime_budget(quota_engine, model, ki
                 return 200
             except HTTPException as error:
                 return error.status_code
+
     with ThreadPoolExecutor(max_workers=8) as pool:
         outcomes = list(pool.map(request, range(8)))
     assert outcomes.count(200) == 2
@@ -81,7 +83,7 @@ def test_failures_refund_reviews_but_cannot_bypass_daily_budget(quota_engine, mo
                 pytest.fail("Exhausted daily budget must never call the provider")
         assert error.value.status_code == 429
         assert error.value.detail["code"] == "ai_daily_limit"
-        assert error.value.detail["resets_at"].endswith("T00:00:00+00:00")
+        assert error.value.detail["resets_at"].endswith("T00:00:00+05:00")
         assert int(error.value.headers["Retry-After"]) > 0
 
 

@@ -5,6 +5,7 @@ installed, initialise it so unhandled exceptions are reported. If either is
 missing it is a silent no-op — local/dev runs need no Sentry, and the app never
 hard-depends on it. Install with `pip install sentry-sdk` to enable.
 """
+
 import logging
 
 from app.infrastructure.config import settings

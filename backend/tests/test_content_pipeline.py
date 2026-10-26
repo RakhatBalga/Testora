@@ -1,13 +1,13 @@
 from types import SimpleNamespace
 
-import import_content
-import validate_listening
-import validate_writing
+from content_tools import importer as import_content
+from content_tools import validate_listening
+from content_tools import validate_writing
 from app.domain.scoring import grade_attempt, question_type_label
 
 
 def test_importer_accepts_expanded_ielts_question_types():
-    question = import_content._build_question(
+    question = import_content.build_question(
         {
             "order": 1,
             "text": "Heading for Paragraph 2",
@@ -25,7 +25,7 @@ def test_importer_accepts_expanded_ielts_question_types():
 
 
 def test_importer_keeps_structured_task1_visual_data():
-    task = import_content._build_writing(
+    task = import_content.build_writing(
         {
             "task_type": 1,
             "title": "Line chart",
@@ -71,7 +71,25 @@ def test_importer_discovers_nested_content_files(tmp_path, monkeypatch):
     path.write_text('{"tests": []}', encoding="utf-8")
     monkeypatch.setattr(import_content, "CONTENT_DIR", tmp_path)
 
-    assert import_content._collect_paths([]) == [path]
+    assert import_content.collect_paths([]) == [path]
+
+
+def test_importer_skips_underscore_prefixed_examples(tmp_path, monkeypatch):
+    examples = tmp_path / "_examples"
+    examples.mkdir()
+    (examples / "example_pack.json").write_text('{"tests": []}', encoding="utf-8")
+    real = tmp_path / "test-01.json"
+    real.write_text('{"tests": []}', encoding="utf-8")
+    monkeypatch.setattr(import_content, "CONTENT_DIR", tmp_path)
+
+    assert import_content.collect_paths([]) == [real]
+
+
+def test_shipped_example_pack_is_not_auto_imported():
+    paths = import_content.collect_paths([])
+
+    assert paths
+    assert all(p.name != "example_pack.json" for p in paths)
 
 
 def test_expanded_question_types_score_and_label():

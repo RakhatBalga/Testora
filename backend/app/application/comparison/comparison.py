@@ -5,6 +5,7 @@ Reading/Listening: band diff + question-type accuracy diff.
 
 Returns a structured comparison dict; never raises on missing data.
 """
+
 from collections import defaultdict
 
 from sqlalchemy import func
@@ -146,8 +147,16 @@ def _compare_rl(skill: str, id_a: str, row_a, id_b: str, row_b) -> dict:
     band_b = round(float(row_b.band), 1) if row_b.band else None
     band_delta = round(band_b - band_a, 1) if band_a is not None and band_b is not None else None
 
-    bd_a = {item["question_type"]: item for item in (row_a.breakdown or []) if isinstance(item, dict) and "question_type" in item}
-    bd_b = {item["question_type"]: item for item in (row_b.breakdown or []) if isinstance(item, dict) and "question_type" in item}
+    bd_a = {
+        item["question_type"]: item
+        for item in (row_a.breakdown or [])
+        if isinstance(item, dict) and "question_type" in item
+    }
+    bd_b = {
+        item["question_type"]: item
+        for item in (row_b.breakdown or [])
+        if isinstance(item, dict) and "question_type" in item
+    }
 
     qt_diff: list[dict] = []
     for qt in set(bd_a) | set(bd_b):
@@ -205,15 +214,31 @@ def compare_history(db: Session, user_id: int, id_a: str, id_b: str) -> dict:
     skill = skill_a
 
     if skill == "writing":
-        row_a = db.query(WritingSubmission).filter(WritingSubmission.id == ref_a, WritingSubmission.user_id == user_id).first()
-        row_b = db.query(WritingSubmission).filter(WritingSubmission.id == ref_b, WritingSubmission.user_id == user_id).first()
+        row_a = (
+            db.query(WritingSubmission)
+            .filter(WritingSubmission.id == ref_a, WritingSubmission.user_id == user_id)
+            .first()
+        )
+        row_b = (
+            db.query(WritingSubmission)
+            .filter(WritingSubmission.id == ref_b, WritingSubmission.user_id == user_id)
+            .first()
+        )
         if not row_a or not row_b:
             return {"error": "not_found", "message": "One or both writing attempts not found"}
         return _compare_ws(db, user_id, skill, id_a, row_a, id_b, row_b)
 
     if skill == "speaking":
-        row_a = db.query(SpeakingSubmission).filter(SpeakingSubmission.id == ref_a, SpeakingSubmission.user_id == user_id).first()
-        row_b = db.query(SpeakingSubmission).filter(SpeakingSubmission.id == ref_b, SpeakingSubmission.user_id == user_id).first()
+        row_a = (
+            db.query(SpeakingSubmission)
+            .filter(SpeakingSubmission.id == ref_a, SpeakingSubmission.user_id == user_id)
+            .first()
+        )
+        row_b = (
+            db.query(SpeakingSubmission)
+            .filter(SpeakingSubmission.id == ref_b, SpeakingSubmission.user_id == user_id)
+            .first()
+        )
         if not row_a or not row_b:
             return {"error": "not_found", "message": "One or both speaking attempts not found"}
         return _compare_ws(db, user_id, skill, id_a, row_a, id_b, row_b)

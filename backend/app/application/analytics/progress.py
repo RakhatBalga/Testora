@@ -7,6 +7,7 @@ feedback JSON, mistake counts come from the `mistakes` table. Powers the
 
 Scoped to Writing/Speaking — the only skills with criteria + extracted mistakes.
 """
+
 from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import Session
 
@@ -33,11 +34,7 @@ def _label(category: str) -> str:
 
 def _get_submission(db: Session, user_id: int, skill: str, submission_id: int):
     model = _MODELS[skill]
-    return (
-        db.query(model)
-        .filter(model.id == submission_id, model.user_id == user_id, model.band.isnot(None))
-        .first()
-    )
+    return db.query(model).filter(model.id == submission_id, model.user_id == user_id, model.band.isnot(None)).first()
 
 
 def _previous_submission(db: Session, user_id: int, skill: str, current):
@@ -150,9 +147,7 @@ def compute_progress_impact(db: Session, user_id: int, skill: str, submission_id
 
     prev_criteria = _criteria(previous)
     band_delta = (
-        round(current.band - previous.band, 1)
-        if current.band is not None and previous.band is not None
-        else None
+        round(current.band - previous.band, 1) if current.band is not None and previous.band is not None else None
     )
     blocker_from = _lowest_criterion(prev_criteria)
     blocker_to = _lowest_criterion(cur_criteria)

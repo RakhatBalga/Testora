@@ -14,7 +14,9 @@ from app.domain.models.speaking import SpeakingTask, SpeakingSubmission  # noqa
 from app.domain.models.mistake import Mistake  # noqa
 from app.domain.models.vocabulary import SavedWord, DailyWordQuiz  # noqa
 from app.domain.models.oauth import OAuthFlow  # noqa
-from app.domain.models.ai_quota import AIQuotaBucket, AIReservation  # noqa
+from app.domain.models.ai_quota import AIGlobalBudget, AIQuotaBucket, AIReservation  # noqa
+from app.domain.models.stored_file import StoredFile  # noqa
+from app.domain.models.learning import DiagnosticSession, StudyPlanItem, MistakeReview  # noqa
 
 config = context.config
 
@@ -47,9 +49,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

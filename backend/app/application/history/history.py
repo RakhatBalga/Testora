@@ -4,10 +4,12 @@ Returns a flat list of HistoryItem dicts with composite IDs
 (e.g. "writing-5", "reading-12") so the router and frontend can
 reference any attempt with a single identifier.
 """
+
 from datetime import datetime
 
 from sqlalchemy.orm import Session
 
+from app.application import frontend_routes as routes
 from app.domain.models.writing import WritingSubmission
 from app.domain.models.speaking import SpeakingSubmission
 from app.domain.models.attempt import Attempt
@@ -57,7 +59,9 @@ def list_history(db: Session, user_id: int, skill: str | None = None) -> list[di
         for r in rows:
             title = r.task.title if r.task else f"Writing Task {r.task_id}"
             items.append(
-                _item("writing", r.id, title, r.band, None, None, r.status, r.created_at, f"/writing/result/{r.id}")
+                _item(
+                    "writing", r.id, title, r.band, None, None, r.status, r.created_at, routes.result("writing", r.id)
+                )
             )
 
     if not skill or skill == "speaking":
@@ -71,7 +75,9 @@ def list_history(db: Session, user_id: int, skill: str | None = None) -> list[di
             title = f"Speaking Part {r.task.part}" if r.task else "Speaking"
             status = "graded" if r.band is not None else "pending"
             items.append(
-                _item("speaking", r.id, title, r.band, None, None, status, r.created_at, f"/speaking/result/{r.id}")
+                _item(
+                    "speaking", r.id, title, r.band, None, None, status, r.created_at, routes.result("speaking", r.id)
+                )
             )
 
     for skill_name in ("reading", "listening"):
@@ -86,10 +92,8 @@ def list_history(db: Session, user_id: int, skill: str | None = None) -> list[di
         )
         for r in rows:
             title = r.test.title if r.test else f"{skill_name.title()} Test"
-            href = f"/listening/result/{r.id}" if skill_name == "listening" else f"/result/{r.id}"
-            items.append(
-                _item(skill_name, r.id, title, r.band, r.score, r.total, "graded", r.created_at, href)
-            )
+            href = routes.result(skill_name, r.id)
+            items.append(_item(skill_name, r.id, title, r.band, r.score, r.total, "graded", r.created_at, href))
 
     items.sort(key=lambda x: x["created_at"] or "", reverse=True)
     return items
@@ -125,7 +129,7 @@ def get_history_item(db: Session, user_id: int, item_id: str) -> dict | None:
             "status": r.status,
             "feedback": r.feedback,
             "created_at": _fmt(r.created_at),
-            "href": f"/writing/result/{ref_id}",
+            "href": routes.result("writing", ref_id),
         }
 
     if skill == "speaking":
@@ -147,7 +151,7 @@ def get_history_item(db: Session, user_id: int, item_id: str) -> dict | None:
             "status": "graded" if r.band is not None else "pending",
             "feedback": r.feedback,
             "created_at": _fmt(r.created_at),
-            "href": f"/speaking/result/{ref_id}",
+            "href": routes.result("speaking", ref_id),
         }
 
     if skill in ("reading", "listening"):
@@ -170,7 +174,7 @@ def get_history_item(db: Session, user_id: int, item_id: str) -> dict | None:
             "status": "graded",
             "breakdown": r.breakdown,
             "created_at": _fmt(r.created_at),
-            "href": f"/listening/result/{ref_id}" if skill == "listening" else f"/result/{ref_id}",
+            "href": routes.result(skill, ref_id),
         }
 
     return None

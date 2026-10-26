@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Column, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Integer, String, false, func
 from app.infrastructure.database import Base
 
 
@@ -11,11 +11,22 @@ class AIQuotaBucket(Base):
     used = Column(Integer, nullable=False)
 
 
+class AIGlobalBudget(Base):
+    """One row per app-timezone day: AI reservations made by ALL users."""
+
+    __tablename__ = "ai_global_budget"
+    __table_args__ = (CheckConstraint("used >= 0", name="ck_ai_global_budget_used"),)
+    period = Column(String(16), primary_key=True)
+    used = Column(Integer, nullable=False, default=0)
+
+
 class AIReservation(Base):
     __tablename__ = "ai_reservations"
     id = Column(String(32), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     kind = Column(String(32), nullable=False)
     active_resource = Column(String(160), nullable=True, unique=True)
-    status = Column(String(16), nullable=False)
+    status = Column(String(16), nullable=False)  # reserved | completed | released | expired
+    # True when this reservation consumed one lifetime review (so it can be refunded).
+    charged = Column(Boolean, nullable=False, default=False, server_default=false())
     created_at = Column(DateTime, nullable=False, server_default=func.now())

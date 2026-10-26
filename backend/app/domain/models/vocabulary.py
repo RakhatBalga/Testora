@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from sqlalchemy import (
     Boolean,
     Column,
@@ -15,6 +13,7 @@ from sqlalchemy import (
 )
 
 from app.infrastructure.database import Base
+from app.infrastructure.time import utcnow
 
 
 class SavedWord(Base):
@@ -31,10 +30,10 @@ class SavedWord(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    word = Column(String, nullable=False)        # display form (trimmed)
-    context = Column(Text, nullable=True)        # sentence/snippet it came from
-    source = Column(String, nullable=True)       # reading | writing | manual | ...
-    source_ref = Column(String, nullable=True)   # free-form origin id (e.g. section/test)
+    word = Column(String, nullable=False)  # display form (trimmed)
+    context = Column(Text, nullable=True)  # sentence/snippet it came from
+    source = Column(String, nullable=True)  # reading | writing | manual | ...
+    source_ref = Column(String, nullable=True)  # free-form origin id (e.g. section/test)
 
     # Cached enrichment produced by the vocabulary coach:
     # {meaning, part_of_speech, synonyms[], alternatives[], translation, example}
@@ -46,7 +45,7 @@ class SavedWord(Base):
     # new | learning | mastered — nudged as the user answers daily quizzes.
     status = Column(String, nullable=False, default="new")
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
 
     __table_args__ = (
         UniqueConstraint("user_id", "word", name="uq_saved_word_user_word"),
@@ -71,13 +70,11 @@ class DailyWordQuiz(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     quiz_date = Column(Date, nullable=False)
 
-    payload = Column(JSON, nullable=False)       # {"questions": [...]}
+    payload = Column(JSON, nullable=False)  # {"questions": [...]}
     completed = Column(Boolean, nullable=False, default=False)
-    score = Column(Integer, nullable=True)       # correct count, once submitted
+    score = Column(Integer, nullable=True)  # correct count, once submitted
     total = Column(Integer, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
 
-    __table_args__ = (
-        UniqueConstraint("user_id", "quiz_date", name="uq_daily_word_quiz_user_date"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "quiz_date", name="uq_daily_word_quiz_user_date"),)

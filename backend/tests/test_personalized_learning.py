@@ -78,13 +78,15 @@ def test_weekly_plan_is_idempotent_and_preserves_completed_items():
             score=1,
             total=2,
             band=5.5,
-            breakdown=[{
-                "question_type": "short_answer",
-                "label": "Short Answer",
-                "correct": 0,
-                "total": 1,
-                "accuracy": 0,
-            }],
+            breakdown=[
+                {
+                    "question_type": "short_answer",
+                    "label": "Short Answer",
+                    "correct": 0,
+                    "total": 1,
+                    "accuracy": 0,
+                }
+            ],
         )
         db.add_all([writing, reading])
         db.commit()
@@ -96,7 +98,9 @@ def test_weekly_plan_is_idempotent_and_preserves_completed_items():
         assert len({item["stable_id"] for item in first["items"]}) == len(first["items"])
         assert {item["skill"] for item in first["items"]} <= {"writing", "reading"}
         assert all(item["minutes"] <= user.daily_study_minutes for item in first["items"])
-        assert all(item["href"] in {f"/writing/{writing_task.id}", f"/reading/{reading_test.id}"} for item in first["items"])
+        assert all(
+            item["href"] in {f"/writing/{writing_task.id}", f"/reading/{reading_test.id}"} for item in first["items"]
+        )
 
         completed_id = first["items"][0]["id"]
         set_plan_status(db, user.id, completed_id, "completed")
@@ -117,21 +121,25 @@ def test_weekly_plan_refreshes_when_a_new_reading_result_arrives():
         db.commit()
         starter = get_weekly_plan(db, user)
         plan_time = max(item.updated_at for item in db.query(StudyPlanItem).all())
-        db.add(Attempt(
-            user_id=user.id,
-            test_id=reading_test.id,
-            score=10,
-            total=40,
-            band=4.5,
-            breakdown=[{
-                "question_type": "matching_headings",
-                "label": "Matching Headings",
-                "correct": 1,
-                "total": 5,
-                "accuracy": 20,
-            }],
-            created_at=plan_time + timedelta(seconds=1),
-        ))
+        db.add(
+            Attempt(
+                user_id=user.id,
+                test_id=reading_test.id,
+                score=10,
+                total=40,
+                band=4.5,
+                breakdown=[
+                    {
+                        "question_type": "matching_headings",
+                        "label": "Matching Headings",
+                        "correct": 1,
+                        "total": 5,
+                        "accuracy": 20,
+                    }
+                ],
+                created_at=plan_time + timedelta(seconds=1),
+            )
+        )
         db.commit()
 
         refreshed = get_weekly_plan(db, user)
@@ -259,14 +267,16 @@ def test_diagnostic_clamps_provisional_level_to_profile_range():
         _, reading_test, _ = _content(db)
         db.commit()
         state = start_diagnostic(db, user.id, ["reading"])
-        db.add(Attempt(
-            user_id=user.id,
-            test_id=reading_test.id,
-            score=1,
-            total=40,
-            band=1.0,
-            created_at=state["started_at"] + timedelta(seconds=1),
-        ))
+        db.add(
+            Attempt(
+                user_id=user.id,
+                test_id=reading_test.id,
+                score=1,
+                total=40,
+                band=1.0,
+                created_at=state["started_at"] + timedelta(seconds=1),
+            )
+        )
         db.commit()
 
         completed = refresh_diagnostic(db, user.id)
@@ -284,14 +294,16 @@ def test_accepting_higher_diagnostic_level_keeps_target_valid():
         _, reading_test, _ = _content(db)
         db.commit()
         state = start_diagnostic(db, user.id, ["reading"])
-        db.add(Attempt(
-            user_id=user.id,
-            test_id=reading_test.id,
-            score=38,
-            total=40,
-            band=8.5,
-            created_at=state["started_at"] + timedelta(seconds=1),
-        ))
+        db.add(
+            Attempt(
+                user_id=user.id,
+                test_id=reading_test.id,
+                score=38,
+                total=40,
+                band=8.5,
+                created_at=state["started_at"] + timedelta(seconds=1),
+            )
+        )
         db.commit()
         refresh_diagnostic(db, user.id)
 

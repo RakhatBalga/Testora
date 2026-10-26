@@ -1,7 +1,7 @@
-from datetime import datetime
 from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, JSON, Float, Index
 from sqlalchemy.orm import relationship
 from app.infrastructure.database import Base
+from app.infrastructure.time import utcnow
 
 
 class WritingTask(Base):
@@ -33,7 +33,10 @@ class WritingSubmission(Base):
     band = Column(Float, nullable=True)
     feedback = Column(JSON, nullable=True)
     improved_text = Column(Text, nullable=True)  # AI "Better Version" rewrite
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    # When the status last changed to "pending"; a pending row older than the
+    # grading timeout belongs to a dead worker and is reconciled to "failed".
+    status_updated_at = Column(DateTime, nullable=True)
 
     task = relationship("WritingTask")
 

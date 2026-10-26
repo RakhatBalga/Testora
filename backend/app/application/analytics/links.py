@@ -1,14 +1,11 @@
 """Frontend route helpers for analytics-generated actions."""
 
-_PRACTICE_HREFS = {
-    "writing": "/writing",
-    "speaking": "/speaking",
-    "reading": "/tests/reading",
-    "listening": "/listening",
-}
+from app.application import frontend_routes as routes
+
+_PRACTICE_HREFS = {skill: routes.library(skill) for skill in routes.SKILLS}
 
 
 def practice_href(skill: str | None) -> str:
     if not skill:
-        return "/practice"
-    return _PRACTICE_HREFS.get(skill.lower(), "/practice")
+        return routes.practice()
+    return _PRACTICE_HREFS.get(skill.lower(), routes.practice())

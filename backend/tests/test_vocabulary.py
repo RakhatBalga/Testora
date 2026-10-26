@@ -3,6 +3,7 @@
 Enrichment degrades honestly; the daily quiz still builds real cloze recall
 questions from the sentence each word was saved from. No DB is touched.
 """
+
 from app.infrastructure.ai.vocab import MockVocabularyCoach
 
 

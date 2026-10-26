@@ -3,14 +3,16 @@
 Derived from real submission/attempt dates (Writing, Speaking, Reading,
 Listening). No mock, no AI. A day counts if any skill was practised on it.
 """
+
 from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
 from app.infrastructure.time import local_today, to_local_date
-from app.domain.models.writing import WritingSubmission
-from app.domain.models.speaking import SpeakingSubmission
+from app.application.analytics.sources import graded_speaking, graded_writing
 from app.domain.models.attempt import Attempt
+from app.domain.models.speaking import SpeakingSubmission
+from app.domain.models.writing import WritingSubmission
 
 
 def _activity_dates(db: Session, user_id: int) -> set:
@@ -20,18 +22,14 @@ def _activity_dates(db: Session, user_id: int) -> set:
     a UTC+5/+6 region counts toward the correct local day.
     """
     dates: set = set()
-    for model in (WritingSubmission, SpeakingSubmission):
-        rows = (
-            db.query(model.created_at)
-            .filter(model.user_id == user_id, model.created_at.isnot(None))
-            .all()
-        )
-        dates.update(to_local_date(r[0]) for r in rows)
-    rows = (
-        db.query(Attempt.created_at)
-        .filter(Attempt.user_id == user_id, Attempt.created_at.isnot(None))
-        .all()
-    )
+    # Failed, pending and Band-0 rejected submissions are not graded activity.
+    for model, query in (
+        (WritingSubmission, graded_writing(db, user_id)),
+        (SpeakingSubmission, graded_speaking(db, user_id)),
+    ):
+        rows = query.with_entities(model.created_at).all()
+        dates.update(to_local_date(r[0]) for r in rows if r[0] is not None)
+    rows = db.query(Attempt.created_at).filter(Attempt.user_id == user_id, Attempt.created_at.isnot(None)).all()
     dates.update(to_local_date(r[0]) for r in rows)
     return dates
 
