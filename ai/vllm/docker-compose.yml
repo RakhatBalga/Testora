@@ -1,0 +1,42 @@
+# vLLM OpenAI-compatible server for a rented NVIDIA GPU (RunPod, Vast.ai,
+# Lambda, a university server...). Requires Docker + NVIDIA Container Toolkit.
+#
+#   export VLLM_API_KEY=$(openssl rand -hex 24)
+#   export QWEN_HF_MODEL=Qwen/Qwen3-14B-AWQ     # see docs/qwen.md for 24/48/80 GB choices
+#   docker compose -f ai/vllm/docker-compose.yml up -d
+#   curl -H "Authorization: Bearer $VLLM_API_KEY" http://localhost:8000/v1/models
+#
+# Backend env: AI_PROVIDER=qwen, QWEN_BASE_URL=https://<public-https-host>/v1,
+# QWEN_MODEL=testora-qwen (the served name below), QWEN_API_KEY=$VLLM_API_KEY.
+# Do not expose port 8000 over plain HTTP on the internet: put it behind the
+# GPU provider's HTTPS proxy or a Cloudflare Tunnel (docs/qwen.md).
+services:
+  vllm:
+    # Pin a tag you have tested; check hub.docker.com/r/vllm/vllm-openai for newer ones.
+    image: vllm/vllm-openai:v0.11.0
+    restart: unless-stopped
+    ipc: host
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    command:
+      - --model=${QWEN_HF_MODEL:-Qwen/Qwen3-14B-AWQ}
+      - --served-model-name=testora-qwen
+      - --api-key=${VLLM_API_KEY:?set VLLM_API_KEY}
+      - --max-model-len=16384
+      - --gpu-memory-utilization=0.90
+      # The examiner system prompt is identical for every essay: cache it.
+      - --enable-prefix-caching
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  hf-cache:
