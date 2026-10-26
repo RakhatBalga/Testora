@@ -21,7 +21,7 @@ afterEach(() => {
 it("releases the button after timeout and allows a successful manual retry", async () => {
   vi.useFakeTimers();
   const fetchMock = vi.fn((_url, options: RequestInit) => new Promise((_, reject) => {
-    options.signal!.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+    options.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
   }));
   vi.stubGlobal("fetch", fetchMock);
   render(<LoginPage />);
@@ -29,14 +29,27 @@ it("releases the button after timeout and allows a successful manual retry", asy
   fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password" } });
   fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
   expect(screen.getByRole("button", { name: "Signing in..." })).toBeDisabled();
-  await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+  await act(async () => { await vi.advanceTimersByTimeAsync(90_000); });
   expect(screen.getByRole("alert")).toHaveTextContent("Sign-in is taking too long.");
   expect(screen.getByRole("button", { name: "Sign in" })).toBeEnabled();
-  expect(fetchMock).toHaveBeenCalledTimes(1);
+  // (the page also fires one warm-up ping to /health/live)
+  expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("/auth/login"))).toHaveLength(1);
   expect(login).not.toHaveBeenCalled();
   fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ access_token: "token", token_type: "bearer" })));
   await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Sign in" })); });
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(login).toHaveBeenCalledWith("token", "user");
   expect(push).toHaveBeenCalledWith("/");
+});
+
+it("tells the user the server is waking up when sign-in is slow", async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+  render(<LoginPage />);
+  fireEvent.change(screen.getByLabelText("Email or username"), { target: { value: "user" } });
+  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "password" } });
+  fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  await act(async () => { await vi.advanceTimersByTimeAsync(6_000); });
+  expect(screen.getByRole("status")).toHaveTextContent("waking up");
 });

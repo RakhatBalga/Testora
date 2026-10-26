@@ -10,7 +10,7 @@ import {
   Target,
 } from "lucide-react";
 import { api, type LearningDashboard } from "@/shared/api";
-import { Card, Skeleton } from "@/shared/ui";
+import { Card, ErrorState, Skeleton } from "@/shared/ui";
 import { formatDisplayName, greeting } from "@/shared/lib";
 
 export function CoachDashboard({ username }: { username: string | null }) {
@@ -18,11 +18,11 @@ export function CoachDashboard({ username }: { username: string | null }) {
   const [error, setError] = useState("");
   const [completing, setCompleting] = useState(false);
 
-  const load = () => api.getLearningDashboard().then(setData).catch((err) => setError(err.message));
+  const load = () => api.getLearningDashboard().then((d) => { setError(""); setData(d); }).catch((err) => setError(err.message));
   useEffect(() => { void load(); }, []);
 
   if (!data) {
-    return error ? <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : <div className="space-y-4"><Skeleton className="h-44 w-full" /><Skeleton className="h-64 w-full" /></div>;
+    return error ? <ErrorState message={error} onRetry={() => { setError(""); void load(); }} /> : <div className="space-y-4"><Skeleton className="h-44 w-full" /><Skeleton className="h-64 w-full" /></div>;
   }
 
   const current = data.profile.current_level;

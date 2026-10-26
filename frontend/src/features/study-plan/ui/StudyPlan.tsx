@@ -5,7 +5,7 @@ import Link from "next/link";
 import { CalendarDays, Check, Clock3, RefreshCw, SkipForward } from "lucide-react";
 import { api, type StudyPlan } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
-import { Button, Card, Skeleton } from "@/shared/ui";
+import { Button, Card, ErrorState, Skeleton } from "@/shared/ui";
 
 export function StudyPlan() {
   const { token, ready } = useRequireAuth();
@@ -13,9 +13,10 @@ export function StudyPlan() {
   const [busy, setBusy] = useState<number | "recalculate" | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => { if (token) api.getStudyPlan().then(setPlan).catch((err) => setError(err.message)); }, [token]);
+  const load = () => api.getStudyPlan().then((p) => { setError(""); setPlan(p); }).catch((err) => setError(err.message));
+  useEffect(() => { if (token) void load(); }, [token]);
   if (!ready || !token) return null;
-  if (!plan) return error ? <ErrorMessage message={error} /> : <Skeleton className="h-96 w-full" />;
+  if (!plan) return error ? <ErrorState message={error} onRetry={() => { setError(""); void load(); }} /> : <Skeleton className="h-96 w-full" />;
 
   const update = async (id: number, status: "completed" | "skipped") => {
     setBusy(id); setError("");
