@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi import HTTPException
-from jose import jwt
+import jwt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 

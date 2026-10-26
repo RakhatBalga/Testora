@@ -1,10 +1,11 @@
 """Seven-day skill signal for the dashboard."""
-from datetime import datetime, timedelta
+from datetime import timedelta
 from statistics import mean
 
 from sqlalchemy.orm import Session
 
 from app.domain.band import round_ielts
+from app.infrastructure.time import utcnow
 from app.domain.models.attempt import Attempt
 from app.domain.models.speaking import SpeakingSubmission
 from app.domain.models.test import Test
@@ -12,7 +13,7 @@ from app.domain.models.writing import WritingSubmission
 
 
 def compute_weekly_weakest(db: Session, user_id: int, days: int = 7) -> dict:
-    since = datetime.utcnow() - timedelta(days=days)
+    since = utcnow() - timedelta(days=days)
     samples: dict[str, list[float]] = {}
 
     for skill, model in (("writing", WritingSubmission), ("speaking", SpeakingSubmission)):

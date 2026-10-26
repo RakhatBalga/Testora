@@ -5,12 +5,12 @@ Pure aggregation over the `mistakes` table. No AI. Recent mistakes weigh more
 attempts could have surfaced the mistake (opportunities).
 """
 from collections import defaultdict
-from datetime import datetime
 
 from sqlalchemy.orm import Session
 
 from app.domain.models.mistake import Mistake
 from app.application.analytics.sources import opportunities, recent_submission_ids
+from app.infrastructure.time import utcnow
 
 HALF_LIFE_DAYS = 14
 RECURRING_MIN_OCCURRENCES = 3
@@ -42,7 +42,11 @@ def compute_weaknesses(db: Session, user_id: int, limit: int = 6) -> list[dict]:
         return []
 
     opp = opportunities(db, user_id)
-    now = datetime.utcnow()
+    now = utcnow()
+    recent_ids = {
+        skill: set(recent_submission_ids(db, user_id, skill, RECURRING_WINDOW))
+        for skill in _ATTEMPT_NOUN
+    }
 
     groups: dict[tuple, list[Mistake]] = defaultdict(list)
     for m in mistakes:
@@ -59,6 +63,12 @@ def compute_weaknesses(db: Session, user_id: int, limit: int = 6) -> list[dict]:
         # squash to [0, 1): intensity 1 -> 0.50, 2 -> 0.75, 3 -> 0.875
         score = round(1 - 0.5 ** intensity, 2)
         frequency = len({i.submission_id for i in items if i.submission_id is not None})
+        # FR-8: "recurring" means seen in >= 3 of the user's RECENT attempts, the same
+        # window /recurring-mistakes uses, so old fixed habits stop being flagged.
+        recent_frequency = len({
+            i.submission_id for i in items
+            if i.submission_id is not None and i.submission_id in recent_ids.get(skill, ())
+        })
 
         results.append(
             {
@@ -69,7 +79,9 @@ def compute_weaknesses(db: Session, user_id: int, limit: int = 6) -> list[dict]:
                 "score": score,
                 "frequency": frequency or len(items),
                 "avg_severity": round(sum(i.severity for i in items) / len(items), 1),
-                "recurring": frequency >= RECURRING_MIN_OCCURRENCES,
+                "recent_frequency": recent_frequency,
+                "window": RECURRING_WINDOW,
+                "recurring": recent_frequency >= RECURRING_MIN_OCCURRENCES,
             }
         )
 

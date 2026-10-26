@@ -1,8 +1,26 @@
-def _normalize(value: str) -> str:
-    return value.strip().lower() if value else ""
+import re
+import unicodedata
+
+_QUOTES = str.maketrans({"\u2018": "'", "\u2019": "'", "\u201a": "'", "\u201b": "'",
+                         "\u201c": '"', "\u201d": '"', "\u201e": '"', "\u2013": "-", "\u2014": "-"})
+_EDGE_PUNCT = " .,;:!?\"'`()[]"
+_SPACES_RE = re.compile(r"\s+")
+_WORD_RE = re.compile(r"[\w]+(?:[-'][\w]+)*", re.UNICODE)
 
 
-def _as_list(value) -> list[str]:
+def normalize_answer(value: str) -> str:
+    """Canonical form for comparing answers.
+
+    Case, surrounding whitespace/punctuation, repeated spaces and curly vs
+    straight quotes never decide whether an answer is right.
+    """
+    if not value:
+        return ""
+    text = unicodedata.normalize("NFKC", str(value)).translate(_QUOTES).lower()
+    return _SPACES_RE.sub(" ", text).strip(_EDGE_PUNCT).strip()
+
+
+def as_list(value) -> list[str]:
     """Coerce a stored/submitted answer into a list of strings."""
     if value is None:
         return []
@@ -11,22 +29,31 @@ def _as_list(value) -> list[str]:
     return [str(value)]
 
 
-def _display(value) -> str:
-    return ", ".join(_as_list(value))
+def display_answer(value) -> str:
+    return ", ".join(as_list(value))
 
 
-def _check(question, user_answer) -> bool:
-    correct = _as_list(question.correct_answer)
-    user = _as_list(user_answer)
+def answer_word_count(value: str) -> int:
+    """Count lexical tokens; hyphenated compounds count as one IELTS answer word."""
+    return len(_WORD_RE.findall(value or ""))
+
+
+def is_correct(question, user_answer) -> bool:
+    """Shared answer check for Reading and Listening questions."""
+    correct = as_list(question.correct_answer)
+    user = as_list(user_answer)
 
     if question.question_type == "multiple_choice":
-        return {_normalize(u) for u in user} == {_normalize(c) for c in correct}
+        return {normalize_answer(u) for u in user} == {normalize_answer(c) for c in correct}
 
     # single answer types (choice / tf-ng / yn-ng / matching / completion):
     # the user's single answer must match one of the acceptable answers.
     if not user:
         return False
-    return _normalize(user[0]) in {_normalize(c) for c in correct}
+    word_limit = (getattr(question, "question_metadata", None) or {}).get("word_limit")
+    if word_limit and answer_word_count(user[0]) > int(word_limit):
+        return False
+    return normalize_answer(user[0]) in {normalize_answer(c) for c in correct}
 
 
 # Human labels for the per-question-type result breakdown.
@@ -91,17 +118,17 @@ def grade_attempt(questions, answers_map):
     score = 0
     for question in questions:
         user_answer = answers_map.get(question.id)
-        is_correct = _check(question, user_answer)
-        if is_correct:
+        correct_now = is_correct(question, user_answer)
+        if correct_now:
             score += 1
         graded.append(
             {
                 "question_id": question.id,
                 "text": question.text,
                 "question_type": question.question_type,
-                "user_answer": _display(user_answer) or None,
-                "correct_answer": _display(question.correct_answer),
-                "is_correct": is_correct,
+                "user_answer": display_answer(user_answer) or None,
+                "correct_answer": display_answer(question.correct_answer),
+                "is_correct": correct_now,
                 "explanation": getattr(question, "explanation", None),
             }
         )

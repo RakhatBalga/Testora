@@ -2,20 +2,21 @@
 synonyms / better alternatives / native translation), opt words into training,
 and generate + grade a daily practice quiz.
 
-AI-backed operations (enrich, quiz generation) offload the blocking model call to
-the threadpool and cache the result (enrichment on the word row, quiz by date),
+AI-backed operations (enrich, quiz generation) run the blocking model call under the
+grading gate (see ai_gate) from sync handlers, and cache the result (enrichment on the word row, quiz by date),
 so repeat opens never re-call the model. There is no scheduler — "daily" means
 on-demand, date-keyed generation, mirroring the weekly study plan.
 """
-from datetime import date, datetime
+from datetime import date
 from fastapi import HTTPException
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.infrastructure.time import utcnow
 from app.domain.models.user import User
 from app.domain.models.vocabulary import DailyWordQuiz, SavedWord
-from app.infrastructure.ai.concurrency import offload
+from app.application.ai_gate import grading_admission, run_graded
 from app.infrastructure.ai.factory import get_vocabulary_coach
 from app.application.quota import reserve_ai_call
 
@@ -149,7 +150,7 @@ def set_training(
     return row
 
 
-async def enrich_word(
+def enrich_word(
     db: Session, *, user: User, word_id: int, force: bool = False
 ) -> SavedWord | None:
     """Fill in meaning/synonyms/alternatives/translation via the AI coach, cached
@@ -164,12 +165,12 @@ async def enrich_word(
     if row.enrichment and not force:
         return row
 
-    with reserve_ai_call(db, user, "vocabulary", resource=f"word:{row.id}") as reservation:
+    with grading_admission(), reserve_ai_call(db, user, "vocabulary", resource=f"word:{row.id}") as reservation:
         db.refresh(row)
         if row.enrichment and not force:
             return row
         coach = get_vocabulary_coach()
-        info = await offload(
+        info = run_graded(
             coach.enrich_word,
             word=row.word,
             context=row.context,
@@ -178,14 +179,14 @@ async def enrich_word(
         reservation.success = not info.error
         if not info.error:
             row.enrichment = info.to_dict()
-            row.enriched_at = datetime.utcnow()
+            row.enriched_at = utcnow()
             db.commit()
             db.refresh(row)
         return row
 
 
 
-async def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWordQuiz:
+def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWordQuiz:
     """Return today's quiz, generating and caching it on first open of the day."""
     existing = (
         db.query(DailyWordQuiz)
@@ -195,7 +196,7 @@ async def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWo
     if existing:
         return existing
 
-    with reserve_ai_call(db, user, "vocabulary", resource=f"quiz:{user.id}:{quiz_date}") as reservation:
+    with grading_admission(), reserve_ai_call(db, user, "vocabulary", resource=f"quiz:{user.id}:{quiz_date}") as reservation:
         existing = db.query(DailyWordQuiz).filter(
             DailyWordQuiz.user_id == user.id, DailyWordQuiz.quiz_date == quiz_date,
         ).first()
@@ -222,7 +223,7 @@ async def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWo
         payload_words = [
             {"word": w.word, "context": w.context, **(w.enrichment or {})} for w in words
         ]
-        quiz = await offload(
+        quiz = run_graded(
             get_vocabulary_coach().generate_quiz,
             words=payload_words,
             native_language=user.native_language,

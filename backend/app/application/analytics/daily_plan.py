@@ -135,7 +135,12 @@ def compute_daily_plan(db: Session, user_id: int, target: float = DEFAULT_TARGET
             _task(
                 f"review-{recurring['skill']}-{recurring['subskill']}",
                 f"Review your {recurring['label']} mistakes",
-                f"Recurring in {recurring['skill'].title()} — appeared across {recurring['frequency']} recent attempts.",
+                (
+                    f"Recurring in {recurring['skill'].title()} — appeared in {recurring['recent_frequency']} "
+                    f"of your last {recurring['window']} attempts."
+                    if recurring.get("recurring")
+                    else f"Your top weakness in {recurring['skill'].title()} — seen in {recurring['frequency']} attempts so far."
+                ),
                 recurring["skill"],
                 "/analytics",
                 "weakness",

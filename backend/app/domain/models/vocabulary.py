@@ -1,4 +1,3 @@
-from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
@@ -15,6 +14,7 @@ from sqlalchemy import (
 )
 
 from app.infrastructure.database import Base
+from app.infrastructure.time import utcnow
 
 
 class SavedWord(Base):
@@ -46,7 +46,7 @@ class SavedWord(Base):
     # new | learning | mastered — nudged as the user answers daily quizzes.
     status = Column(String, nullable=False, default="new")
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
 
     __table_args__ = (
         UniqueConstraint("user_id", "word", name="uq_saved_word_user_word"),
@@ -76,7 +76,7 @@ class DailyWordQuiz(Base):
     score = Column(Integer, nullable=True)       # correct count, once submitted
     total = Column(Integer, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
 
     __table_args__ = (
         UniqueConstraint("user_id", "quiz_date", name="uq_daily_word_quiz_user_date"),

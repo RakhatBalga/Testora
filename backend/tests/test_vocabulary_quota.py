@@ -1,4 +1,3 @@
-import asyncio
 from datetime import date
 
 import pytest
@@ -21,9 +20,6 @@ def db(monkeypatch):
     Base.metadata.create_all(engine)
     monkeypatch.setattr(settings, "AI_DAILY_ATTEMPTS", 1)
     monkeypatch.setattr(vocabulary, "get_vocabulary_coach", MockVocabularyCoach)
-    async def immediate(func, **kwargs):
-        return func(**kwargs)
-    monkeypatch.setattr(vocabulary, "offload", immediate)
     with Session(engine) as session:
         session.add(User(id=1, username="student", password="hash"))
         session.add(SavedWord(id=1, user_id=1, word="alpha", context="The alpha value is high."))
@@ -34,20 +30,20 @@ def db(monkeypatch):
 
 def test_cached_enrichment_is_free_but_force_uses_daily_budget(db):
     user = db.get(User, 1)
-    first = asyncio.run(vocabulary.enrich_word(db, user=user, word_id=1))
+    first = vocabulary.enrich_word(db, user=user, word_id=1)
     assert first.enrichment
-    assert asyncio.run(vocabulary.enrich_word(db, user=user, word_id=1)).enrichment == first.enrichment
+    assert vocabulary.enrich_word(db, user=user, word_id=1).enrichment == first.enrichment
     with pytest.raises(HTTPException) as error:
-        asyncio.run(vocabulary.enrich_word(db, user=user, word_id=1, force=True))
+        vocabulary.enrich_word(db, user=user, word_id=1, force=True)
     assert error.value.status_code == 429
     assert db.query(AIQuotaBucket).one().used == 1
 
 
 def test_quiz_cache_does_not_call_provider_again(db, monkeypatch):
     user = db.get(User, 1)
-    first = asyncio.run(vocabulary.get_daily_quiz(db, user=user, quiz_date=date.today()))
+    first = vocabulary.get_daily_quiz(db, user=user, quiz_date=date.today())
     monkeypatch.setattr(vocabulary, "get_vocabulary_coach", lambda: pytest.fail("Cached quiz called provider"))
-    second = asyncio.run(vocabulary.get_daily_quiz(db, user=user, quiz_date=date.today()))
+    second = vocabulary.get_daily_quiz(db, user=user, quiz_date=date.today())
     assert first.id == second.id
 
 
@@ -59,6 +55,6 @@ def test_failed_quiz_is_not_cached_and_cannot_retry_forever(db, monkeypatch):
     user = db.get(User, 1)
     for expected in [503, 429]:
         with pytest.raises(HTTPException) as error:
-            asyncio.run(vocabulary.get_daily_quiz(db, user=user, quiz_date=date.today()))
+            vocabulary.get_daily_quiz(db, user=user, quiz_date=date.today())
         assert error.value.status_code == expected
     assert db.query(DailyWordQuiz).count() == 0

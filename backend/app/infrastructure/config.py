@@ -20,6 +20,9 @@ class Settings(BaseSettings):
 
     # Comma-separated proxy IPs/CIDRs whose X-Forwarded-For may be trusted.
     # Empty = ignore X-Forwarded-For and rate-limit by the direct peer address.
+    # The client IP is the right-most X-Forwarded-For hop that is NOT in this
+    # list, so list every proxy hop between the internet and the app (on Render:
+    # the private range of its load balancer, see the first-request INFO log).
     TRUSTED_PROXY_CIDRS: str = ""
 
     # IANA timezone used for day-boundary logic (streaks, "today's plan").
@@ -30,6 +33,22 @@ class Settings(BaseSettings):
     MAX_AUDIO_UPLOAD_MB: int = 15
     MAX_AVATAR_UPLOAD_MB: int = 5
     MAX_WRITING_CHARS: int = 20000
+    # Hard cap for any non-upload request body, checked before parsing (the
+    # audio/avatar routes get their own cap derived from the limits above).
+    MAX_REQUEST_BODY_BYTES: int = 1024 * 1024
+
+    # Database safety nets: fail fast instead of hanging a worker thread when
+    # Neon is waking up or a query runs away.
+    DB_CONNECT_TIMEOUT_SECONDS: int = 10
+    DB_STATEMENT_TIMEOUT_MS: int = 30000
+    DB_POOL_TIMEOUT_SECONDS: int = 15
+
+    # Where uploaded blobs (avatars, speaking audio) live: "database" keeps them
+    # in Postgres (survives Render restarts), "local" uses the disk (dev only).
+    STORAGE_BACKEND: str = "database"
+    # Speaking can be switched off server-side (the UI gate alone is bypassable).
+    # FREE_SPEAKING_SUBMISSIONS=0 also disables it.
+    SPEAKING_ENABLED: bool = True
 
     # Max grading calls running concurrently. Bounds threadpool usage (so slow
     # AI calls can't starve fast endpoints) and concurrent Gemini calls (cost /
@@ -49,7 +68,7 @@ class Settings(BaseSettings):
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/auth/google/callback"
     FRONTEND_URL: str = "http://localhost:3000"
 
-    AI_PROVIDER: str = "mock"  # mock | claude | gemini
+    AI_PROVIDER: str = "mock"  # mock | claude | gemini | qwen
     ANTHROPIC_API_KEY: str = ""
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"
@@ -58,6 +77,12 @@ class Settings(BaseSettings):
     # these calls only write prose, where flash quality is fine and each Pro
     # call would add 15-25s of latency and most of the per-submission cost.
     GEMINI_FAST_MODEL: str = "gemini-2.5-flash"
+
+    # Locally hosted Qwen behind an OpenAI-compatible API (/v1/chat/completions).
+    QWEN_BASE_URL: str = ""
+    QWEN_MODEL: str = ""
+    QWEN_API_KEY: str = ""
+    QWEN_TIMEOUT_SECONDS: int = 120
 
     # Run the second-stage Writing "coach" call (personalised guidance + roadmap).
     # Disable to halve Writing grading cost/latency (examiner scores still return).
@@ -72,8 +97,18 @@ class Settings(BaseSettings):
     QUOTA_EXEMPT_USERS: str = ""
     # Immutable IDs replace username exemptions; renaming cannot grant free AI.
     QUOTA_EXEMPT_USER_IDS: str = ""
-    # Shared UTC budget includes failed attempts and vocabulary generation.
+    # Shared per-user daily budget (app timezone day) includes failed attempts
+    # and vocabulary generation.
     AI_DAILY_ATTEMPTS: int = Field(default=20, ge=1)
+    # Global daily budget across ALL users (AI reservations per app-timezone
+    # day); protects the provider bill from scripted sign-ups. Negative = off.
+    AI_GLOBAL_DAILY_ATTEMPTS: int = 400
+    # A pending grading older than this is considered dead (worker killed) and
+    # is reconciled: marked failed and its quota refunded. Must exceed the
+    # slowest legitimate grading (3 x 60 s timeout, two stages).
+    GRADING_STALE_MINUTES: int = Field(default=10, ge=1)
+    # Max time a request waits for a free grading slot before getting a 503.
+    GRADING_QUEUE_TIMEOUT_SECONDS: int = 30
 
     @property
     def quota_exempt_user_ids(self) -> set[int]:

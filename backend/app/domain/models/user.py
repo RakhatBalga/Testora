@@ -22,3 +22,5 @@ class User(Base):
     # Native language (e.g. "Russian", "Kazakh") — used to translate saved
     # vocabulary and generate native-language practice. Null until the user picks one.
     native_language = Column(String, nullable=True)
+    # Bumped on logout; access tokens carry the value and stop working when it changes.
+    token_version = Column(Integer, nullable=False, default=0, server_default="0")

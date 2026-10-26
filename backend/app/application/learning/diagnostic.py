@@ -1,8 +1,8 @@
-from datetime import datetime
 from statistics import mean
 
 from sqlalchemy.orm import Session
 
+from app.infrastructure.time import utcnow
 from app.domain.band import round_ielts
 from app.domain.models.attempt import Attempt
 from app.domain.models.learning import DiagnosticSession
@@ -115,7 +115,7 @@ def refresh_diagnostic(db: Session, user_id: int) -> dict | None:
     if completed and bands:
         session.status = "completed"
         session.provisional_level = max(4.0, min(8.5, round_ielts(mean(bands))))
-        session.completed_at = datetime.utcnow()
+        session.completed_at = utcnow()
     db.commit()
     db.refresh(session)
     return _serialize(session, db)

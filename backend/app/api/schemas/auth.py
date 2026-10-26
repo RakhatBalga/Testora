@@ -3,6 +3,11 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.infrastructure.time import local_today
+
+# bcrypt only reads the first 72 BYTES; longer passwords would be silently truncated.
+BCRYPT_MAX_BYTES = 72
+
 
 def _validate_half_band(value: float) -> float:
     if abs((value * 2) - round(value * 2)) > 1e-9:
@@ -12,17 +17,27 @@ def _validate_half_band(value: float) -> float:
 
 class RegisterRequest(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
-    # Max 72 bytes is bcrypt's hard limit — anything beyond is silently ignored,
-    # so we cap here to avoid a misleading "long" password.
-    password: str = Field(..., min_length=8, max_length=72)
+    # Length is checked in bytes below (Cyrillic/Kazakh letters take 2 bytes).
+    password: str = Field(..., min_length=8, max_length=256)
     target_band: float = Field(7.5, ge=5.0, le=9.0)
 
     _target_band_step = field_validator("target_band")(_validate_half_band)
 
+    @field_validator("password")
+    @classmethod
+    def password_fits_bcrypt(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > BCRYPT_MAX_BYTES:
+            raise ValueError(
+                f"Password is too long: at most {BCRYPT_MAX_BYTES} bytes "
+                "(about 36 Cyrillic letters or 72 Latin characters)."
+            )
+        return value
+
 
 class LoginRequest(BaseModel):
     username: str = Field(..., min_length=1, max_length=50)
-    password: str = Field(..., min_length=1, max_length=72)
+    # Lenient on purpose: accounts created before the byte check may hold longer passwords.
+    password: str = Field(..., min_length=1, max_length=256)
 
 
 class GoogleStartRequest(BaseModel):
@@ -91,7 +106,7 @@ class UserProfileUpdate(BaseModel):
     @field_validator("exam_date")
     @classmethod
     def validate_exam_date(cls, value: date | None) -> date | None:
-        if value is not None and value <= date.today():
+        if value is not None and value <= local_today():
             raise ValueError("exam_date must be in the future")
         return value
 
