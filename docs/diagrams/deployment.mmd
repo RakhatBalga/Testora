@@ -13,8 +13,8 @@ flowchart TB
     end
 
     subgraph Render["Render — Docker web service"]
-        API["<b>FastAPI (uvicorn)</b><br/>migrations on start<br/>health check /health/ready"]
-        FS[("Container disk<br/>audio files")]
+        API["<b>FastAPI (uvicorn)</b><br/>migrations on start<br/>health check /health/live"]
+        FS[("Container disk<br/>ephemeral, no user data")]
         API --- FS
     end
 
