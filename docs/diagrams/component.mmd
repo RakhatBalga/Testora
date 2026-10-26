@@ -11,13 +11,13 @@ flowchart TB
         API["<b>api/</b> — REST routers<br/>auth · tests · listening · writing · speaking<br/>analytics · learning · history · vocabulary"]
         APP["<b>application/</b> — use-case services<br/>grading pipeline · mistakes · weakness and band gap<br/>daily plan · study plan · history · vocabulary · OAuth"]
         DOM["<b>domain/</b> — entities and pure rules<br/>models · answer scoring · IELTS band conversion"]
-        INF["<b>infrastructure/</b> — adapters<br/>database · AI provider (mock | claude | gemini)<br/>security (JWT) · rate limiting · config"]
+        INF["<b>infrastructure/</b> — adapters<br/>database · AI provider (mock | claude | gemini; qwen self-hosted)<br/>security (JWT) · rate limiting · config"]
         API --> APP --> DOM
         APP --> INF
     end
 
     ML["<b>backend/ml</b> — research, integration planned<br/>Speaking: Whisper ASR, fluency features, regression<br/>Adaptive: Rasch / IRT, knowledge tracing"]
-    CLI["<b>Content tooling</b> (CLI)<br/>import_content · validate_*"]
+    CLI["<b>Content tooling</b> (CLI)<br/>content_tools.importer · validate_*"]
 
     PG[("<b>PostgreSQL</b><br/>Neon, Alembic migrations")]
     GEM["<b>Google Gemini API</b>"]

@@ -10,16 +10,16 @@ Testora has no separate clickable mock-up. The working product at **https://test
 |------|----------|---------|
 | Public | `/` (landing when logged out), `/login`, `/register`, `/auth/google/callback` | Explain the coach loop and create an account |
 | Dashboard | `/` (when logged in) | Target band, current level, exam countdown, **task for today**, weekly plan, recent practice |
-| Practice hub | `/practice` → `/writing`, `/tests/reading`, `/listening`, `/speaking` | Choose a skill |
+| Practice hub | `/practice` → `/reading`, `/listening`, `/writing`, `/speaking` | Choose a skill |
 | Writing | `/writing` → `/writing/[id]` → `/writing/result/[id]` | Task list → timed editor → AI review |
-| Reading | `/tests/reading` → `/reading/[id]` | Catalogue → timed test → review with evidence |
+| Reading | `/reading` → `/reading/[id]` → `/reading/result/[id]` | Catalogue → timed test → review with evidence |
 | Listening | `/listening` → `/listening/[id]` → `/listening/result/[id]` | Audio test with saved progress → review |
 | Speaking | `/speaking` → `/speaking/[id]` → `/speaking/result/[id]` | **Gated:** shows "temporarily unavailable" (`SPEAKING_AVAILABLE = false`) |
-| Coach views | `/analytics`, `/study-plan`, `/mistakes` (Notebook), `/history`, `/history/compare` | Main limiter, recommendations, trajectory, plan, mistakes, attempt comparison |
+| Coach views | `/analytics`, `/study-plan`, `/mistakes`, `/history`, `/history/compare` | Main limiter, recommendations, trajectory, plan, mistakes, attempt comparison |
 | Vocabulary | `/vocabulary` | Saved words, AI enrichment, training list, daily quiz |
 | Account | `/profile` | Goal, exam date, study days, focus, native language, avatar |
 
-The main navigation (`widgets/app-shell/ui/Nav.tsx`) has **Dashboard · Practice · Analytics · Notebook · Vocabulary · History** and a profile menu. On phones it collapses into a menu button.
+The main navigation (`widgets/app-shell/ui/Nav.tsx`) has **Dashboard · Practice · Study plan · Analytics · Mistakes · Vocabulary · History** and a profile menu. On phones it collapses into a menu button.
 
 ## 8.2 Public entry screens
 
@@ -75,7 +75,7 @@ The main navigation (`widgets/app-shell/ui/Nav.tsx`) has **Dashboard · Practice
 |---|-------------|-----------------|-------------|
 | 1 | Opens **Analytics** | **Main limiter** card: skill, criterion (e.g. *Lexical Resource*), band cap, and an explanation built from the user's own recurring mistakes. Also top weaknesses, **Recommended next**, **Band trajectory** against the target, and streak | `/analytics`, `GET /analytics/band-gap`, `/blockers`, `/weaknesses`, `/recommendations`, `/band-trajectory`, `/streak` |
 | 2 | Clicks the fix link or **Start task** on the dashboard | Opens the practice item chosen for the blocker. The task card shows *why* it was chosen | `fix_href` / `today.href` |
-| 3 | Reviews old mistakes in **Notebook** | Mistake notebook with the user's answer or exact quote, the correction and a "Try:" hint. The user resolves items or reopens them | `/mistakes`, `GET/PATCH /learning/mistakes` |
+| 3 | Reviews old mistakes in **Mistakes** | Mistake notebook with the user's answer or exact quote, the correction and a "Try:" hint. The user resolves items or reopens them | `/mistakes`, `GET/PATCH /learning/mistakes` |
 | 4 | Writes a new essay on a similar prompt (Scenario 2) | New grade. Mistakes are recorded and weakness scores are recomputed (recent mistakes weigh more, half-life 14 days) | `POST /writing/submit` |
 | 5 | Opens **History → Compare** | Comparison of two attempts of the same skill: band change, per-criterion change, which mistake categories were fixed or are new, and whether the blocker changed | `/history/compare`, `GET /history/compare` |
 | 6 | Marks today's task complete, or recalculates the plan | Weekly plan progress updates and the next task appears | `PATCH /learning/study-plan/{id}`, `POST /learning/study-plan/recalculate` |
@@ -86,7 +86,7 @@ The main navigation (`widgets/app-shell/ui/Nav.tsx`) has **Dashboard · Practice
 
 | # | User action | System response | Route / API |
 |---|-------------|-----------------|-------------|
-| 1 | Practice → **Reading** | Catalogue of Reading tests (10 packs) with difficulty, and a "continue" card for an unfinished test | `/tests/reading`, `GET /tests` |
+| 1 | Practice → **Reading** | Catalogue of Reading tests (10 packs) with difficulty, and a "continue" card for an unfinished test | `/reading`, `GET /tests` |
 | 2 | Starts a test | Split screen: passage on the left, questions on the right, timer, passage navigation and progress indicator. Answers are autosaved in the browser | `/reading/[id]`, `GET /tests/{id}` |
 | 3 | Highlights text and saves an unknown word | The passage annotator highlights text and offers **Save word**, which adds it to Vocabulary with the sentence as context | `PassageAnnotator`, `POST /vocabulary/words` |
 | 4 | Submits | Score, IELTS band and a breakdown by question type, weakest type first | `POST /results/submit` |
