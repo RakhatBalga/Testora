@@ -55,7 +55,9 @@ jobs:
           pip install -r requirements-dev.txt -r requirements-ml.txt
 
       - name: Lint (ruff)
-        run: ruff check .
+        run: |
+          ruff check .
+          ruff format --check .
 
       - name: Alembic single-head check
         run: python -m scripts.dev.check_migration_heads

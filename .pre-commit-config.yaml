@@ -16,9 +16,8 @@ repos:
     hooks:
       - id: ruff
         files: ^backend/
-      # Formatting is introduced in a separate commit; enable then:
-      # - id: ruff-format
-      #   files: ^backend/
+      - id: ruff-format
+        files: ^backend/
   - repo: local
     hooks:
       - id: frontend-eslint
