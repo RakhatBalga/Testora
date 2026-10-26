@@ -1,11 +1,14 @@
 # Pinned for reproducible production builds. Bump deliberately, then re-run the
 # test suite. Versions reflect the set the app is developed and tested against.
 fastapi==0.138.0
+# Transitive via FastAPI, pinned so builds are reproducible (fastapi needs >=0.46).
+starlette==1.10.0
 uvicorn[standard]==0.49.0
 sqlalchemy==2.0.51
 alembic==1.18.4
 psycopg2-binary==2.9.12
-python-jose[cryptography]==3.5.0
+# PyJWT replaces python-jose (unmaintained, CVE-2026-85394); HS256 only.
+PyJWT==2.15.1
 # Password hashing. auth.py imports `bcrypt` directly (passlib is unused), so it
 # is a first-class dependency rather than a transitive extra.
 bcrypt==4.0.1
@@ -14,3 +17,5 @@ pydantic==2.13.4
 pydantic-settings==2.14.2
 python-multipart==0.0.32
 google-genai==2.9.0
+# IANA timezone database for APP_TIMEZONE (slim images ship none; without it day boundaries fall back to UTC).
+tzdata==2025.2

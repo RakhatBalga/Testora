@@ -2,7 +2,8 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Response, status
+from fastapi import FastAPI, Request, Response, status
+from fastapi.responses import JSONResponse
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -11,7 +12,10 @@ from sqlalchemy import text
 from app.infrastructure.config import settings
 from app.infrastructure.logging import configure_logging
 from app.infrastructure.errortracking import init_error_tracking
-from app.infrastructure.database import engine
+from app.infrastructure.database import SessionLocal, engine
+from app.api.middleware import BodySizeLimitMiddleware, RequestContextMiddleware
+from app.application.quota import reconcile_stale_reservations
+from app.application.writing import reconcile_stale_writing
 from app.infrastructure.ai.factory import effective_provider
 from app.api.routers import auth, tests, results, writing, speaking, analytics, learning, listening
 from app.api.routers import history, vocabulary
@@ -74,12 +78,26 @@ def _validate_ai_configuration() -> None:
         logger.info("AI grading provider: %s", provider)
 
 
+def _reconcile_on_startup() -> None:
+    """A killed worker leaves gradings pending and reservations charged: undo both."""
+    try:
+        with SessionLocal() as db:
+            writing = reconcile_stale_writing(db)
+            reservations = reconcile_stale_reservations(db)
+        if writing or reservations:
+            logger.warning("Startup reconciliation: %s stale writing submission(s) marked failed, "
+                           "%s stale AI reservation(s) released", writing, reservations)
+    except Exception:  # noqa: BLE001 - a DB blip must not stop the app from booting
+        logger.exception("Startup reconciliation failed; it will run lazily per user instead")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Validate configuration before serving any traffic; either guard raising
     # here aborts startup (fail fast) rather than degrading silently.
     _validate_security_configuration()
     _validate_ai_configuration()
+    await run_in_threadpool(_reconcile_on_startup)
     yield
 
 
@@ -102,7 +120,23 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID"],
 )
+# Added after CORS so they wrap it: oversized bodies are rejected before any
+# parsing, and every response (even CORS preflights) carries a request id.
+app.add_middleware(BodySizeLimitMiddleware)
+app.add_middleware(RequestContextMiddleware)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Log the real error with the request id; tell the user only that it failed."""
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    rid = getattr(request.state, "request_id", "-")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Something went wrong on our side. Please try again.", "request_id": rid},
+    )
 
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(tests.router, prefix="/tests", tags=["Tests"])

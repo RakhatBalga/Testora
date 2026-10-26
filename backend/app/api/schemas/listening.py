@@ -1,9 +1,15 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.api.schemas.result import AnswerIn, BreakdownItem
+from app.api.schemas.result import (
+    MAX_ANSWER_CHARS,
+    MAX_ANSWER_ITEMS,
+    MAX_ANSWERS_PER_SUBMIT,
+    AnswerIn,
+    BreakdownItem,
+)
 
 
 Mode = Literal["exam", "practice"]
@@ -49,12 +55,27 @@ class ListeningTestPublic(ListeningCatalogItem):
 
 
 class ListeningProgressIn(BaseModel):
-    content_version: str
+    content_version: str = Field(max_length=40)
     mode: Mode
     answers: dict[str, str | list[str] | None] = Field(default_factory=dict)
     current_section: int = Field(0, ge=0, le=3)
-    audio_position: float = Field(0, ge=0)
-    max_audio_position: float = Field(0, ge=0)
+    audio_position: float = Field(0, ge=0, le=86400)
+    max_audio_position: float = Field(0, ge=0, le=86400)
+
+    @field_validator("answers")
+    @classmethod
+    def bound_answers(cls, value):
+        if len(value) > MAX_ANSWERS_PER_SUBMIT:
+            raise ValueError("Too many answers")
+        for key, answer in value.items():
+            if len(key) > 20:
+                raise ValueError("Invalid question key")
+            items = answer if isinstance(answer, list) else [answer]
+            if len(items) > MAX_ANSWER_ITEMS or any(
+                item is not None and len(item) > MAX_ANSWER_CHARS for item in items
+            ):
+                raise ValueError("Answer is too long")
+        return value
 
 
 class ListeningProgressOut(ListeningProgressIn):
@@ -65,10 +86,10 @@ class ListeningProgressOut(ListeningProgressIn):
 
 
 class ListeningSubmitIn(BaseModel):
-    content_version: str
+    content_version: str = Field(max_length=40)
     mode: Mode
     submission_key: str = Field(min_length=8, max_length=80, pattern=r"^[A-Za-z0-9._:-]+$")
-    answers: list[AnswerIn]
+    answers: list[AnswerIn] = Field(max_length=MAX_ANSWERS_PER_SUBMIT)
     duration_seconds: int | None = Field(None, ge=0, le=10800)
 
 
