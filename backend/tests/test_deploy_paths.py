@@ -2,15 +2,16 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from app.api.routers import speaking
+from app.infrastructure import storage
 from app.main import STATIC_DIR, app
 
 
 def test_speaking_upload_dir_matches_backend_root_volume():
-    backend_root = Path(speaking.__file__).resolve().parents[3]
+    backend_root = Path(storage.__file__).resolve().parents[3]
 
-    assert speaking.UPLOAD_DIR == backend_root / "private" / "audio_submissions"
-    assert speaking._LEGACY_DIR == backend_root / "static" / "audio_submissions"
+    assert storage.PRIVATE_AUDIO_DIR == backend_root / "private" / "audio_submissions"
+    # Recordings are never served from the public /static mount.
+    assert STATIC_DIR not in storage.PRIVATE_AUDIO_DIR.parents
 
 
 def test_listening_audio_is_packaged_under_mounted_static_directory():
