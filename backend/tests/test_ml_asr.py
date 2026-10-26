@@ -11,9 +11,11 @@ def test_whisper_is_local_by_default_and_consumes_lazy_segments(tmp_path):
 
         def transcribe(self, path, **kwargs):
             captured.update(kwargs)
+
             def segments():
                 captured["consumed"] = True
                 yield NS(text=" Hello", words=[NS(word="Hello", start=0, end=1, probability=0.9)])
+
             return segments(), NS(duration=2)
 
     audio = tmp_path / "synthetic.wav"

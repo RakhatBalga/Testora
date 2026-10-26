@@ -1,4 +1,5 @@
 """Compare baseline, linear regression and gradient boosting on held-out speakers."""
+
 import argparse
 import hashlib
 import json
@@ -21,12 +22,14 @@ class FeatureSample(Record):
 
 
 def score_summary(actual, predicted):
-    return {"mae": mae(actual, predicted),
-            "qwk": qwk(actual, [half_band(v) for v in predicted]),
-            "within_half_band": band_agreement(actual, predicted),
-            "within_one_band": band_agreement(actual, predicted, 1.0),
-            "mean_signed_error": sum(p - a for a, p in zip(actual, predicted)) / len(actual),
-            "rmse": math.sqrt(sum((p - a) ** 2 for a, p in zip(actual, predicted)) / len(actual))}
+    return {
+        "mae": mae(actual, predicted),
+        "qwk": qwk(actual, [half_band(v) for v in predicted]),
+        "within_half_band": band_agreement(actual, predicted),
+        "within_one_band": band_agreement(actual, predicted, 1.0),
+        "mean_signed_error": sum(p - a for a, p in zip(actual, predicted)) / len(actual),
+        "rmse": math.sqrt(sum((p - a) ** 2 for a, p in zip(actual, predicted)) / len(actual)),
+    }
 
 
 def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path | None = None):
@@ -54,7 +57,9 @@ def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path 
         raise ValueError("test_size must be between zero and one")
     if any(set(r.features) != set(FEATURE_NAMES) for r in samples):
         raise ValueError("Feature schema differs from fluency.v1")
-    x = np.array([[r.features[name] if r.features[name] is not None else np.nan for name in FEATURE_NAMES] for r in samples])
+    x = np.array(
+        [[r.features[name] if r.features[name] is not None else np.nan for name in FEATURE_NAMES] for r in samples]
+    )
     y = np.array([r.expert_band for r in samples])
     groups = [r.speaker_id for r in samples]
     splitter = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=seed)
@@ -69,47 +74,71 @@ def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path 
         artifacts.mkdir(parents=True, exist_ok=False)
     for name, estimator in models.items():
         # All preprocessing is fit only on training speakers.
-        pipeline = make_pipeline(SimpleImputer(strategy="median", add_indicator=True, keep_empty_features=True),
-                                 StandardScaler(), estimator)
+        pipeline = make_pipeline(
+            SimpleImputer(strategy="median", add_indicator=True, keep_empty_features=True), StandardScaler(), estimator
+        )
         pipeline.fit(x[train], y[train])
         predicted = np.clip(pipeline.predict(x[test]), 0, 9).tolist()
         scores[name] = {
             **score_summary(y[test].tolist(), predicted),
-            "predictions": [{"sample_id": samples[i].sample_id, "predicted_band": p,
-                             "expert_band": samples[i].expert_band} for i, p in zip(test, predicted)],
+            "predictions": [
+                {"sample_id": samples[i].sample_id, "predicted_band": p, "expert_band": samples[i].expert_band}
+                for i, p in zip(test, predicted)
+            ],
         }
         if artifacts:
-            joblib.dump({"pipeline": pipeline, "feature_names": FEATURE_NAMES,
-                         "feature_version": FEATURE_VERSION, "sklearn_version": sklearn.__version__},
-                        artifacts / f"{name}.joblib")
+            joblib.dump(
+                {
+                    "pipeline": pipeline,
+                    "feature_names": FEATURE_NAMES,
+                    "feature_version": FEATURE_VERSION,
+                    "sklearn_version": sklearn.__version__,
+                },
+                artifacts / f"{name}.joblib",
+            )
     # Compare only on exactly the same held-out recordings, never a convenient subset.
     llm = [samples[i].llm_band for i in test]
     scores["llm_transcript"] = (
         score_summary(y[test].tolist(), llm)
-        if all(v is not None for v in llm) else {"status": "missing_held_out_scores"}
+        if all(v is not None for v in llm)
+        else {"status": "missing_held_out_scores"}
     )
-    scores["llm_transcript"]["coverage"] = {
-        "available": sum(v is not None for v in llm), "required": len(llm)}
+    scores["llm_transcript"]["coverage"] = {"available": sum(v is not None for v in llm), "required": len(llm)}
     if all(v is not None for v in llm):
         scores["llm_transcript"]["predictions"] = [
-            {"sample_id": samples[i].sample_id, "expert_band": samples[i].expert_band,
-             "predicted_band": p} for i, p in zip(test, llm)]
+            {"sample_id": samples[i].sample_id, "expert_band": samples[i].expert_band, "predicted_band": p}
+            for i, p in zip(test, llm)
+        ]
     return {
-        "schema_version": "speaking-experiment.v1", "feature_version": FEATURE_VERSION,
-        "seed": seed, "test_size": test_size, "sklearn_version": sklearn.__version__,
-        "train_speakers": sorted({groups[i] for i in train}), "test_speakers": sorted({groups[i] for i in test}),
-        "train_count": len(train), "test_count": len(test), "models": scores,
-        "split_samples": {split: [samples[i].sample_id for i in indices]
-                          for split, indices in (("train", train), ("holdout", test))},
-        "band_distribution": {split: dict(sorted(Counter(str(samples[i].expert_band) for i in indices).items()))
-                              for split, indices in (("train", train), ("holdout", test))},
+        "schema_version": "speaking-experiment.v1",
+        "feature_version": FEATURE_VERSION,
+        "seed": seed,
+        "test_size": test_size,
+        "sklearn_version": sklearn.__version__,
+        "train_speakers": sorted({groups[i] for i in train}),
+        "test_speakers": sorted({groups[i] for i in test}),
+        "train_count": len(train),
+        "test_count": len(test),
+        "models": scores,
+        "split_samples": {
+            split: [samples[i].sample_id for i in indices] for split, indices in (("train", train), ("holdout", test))
+        },
+        "band_distribution": {
+            split: dict(sorted(Counter(str(samples[i].expert_band) for i in indices).items()))
+            for split, indices in (("train", train), ("holdout", test))
+        },
         "feature_missingness": {
-            split: {name: {"missing": sum(samples[i].features[name] is None for i in indices),
-                           "total": len(indices)} for name in FEATURE_NAMES}
-            for split, indices in (("train", train), ("holdout", test))},
-        "limitations": ["Single pilot split; no confidence intervals or tuning.",
-                        "ASR fluency proxies do not establish pronunciation or IELTS validity.",
-                        "QWK is null if chance disagreement is zero."],
+            split: {
+                name: {"missing": sum(samples[i].features[name] is None for i in indices), "total": len(indices)}
+                for name in FEATURE_NAMES
+            }
+            for split, indices in (("train", train), ("holdout", test))
+        },
+        "limitations": [
+            "Single pilot split; no confidence intervals or tuning.",
+            "ASR fluency proxies do not establish pronunciation or IELTS validity.",
+            "QWK is null if chance disagreement is zero.",
+        ],
     }
 
 

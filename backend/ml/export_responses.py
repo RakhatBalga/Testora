@@ -10,6 +10,7 @@ attempts and unanswered questions are retained; evaluate_adaptive excludes
 repeats itself. answered_at is submission time, not per-question response time.
 Legacy versions are preserved, never inferred from today's content version.
 """
+
 import argparse
 from collections import Counter
 from datetime import datetime, timezone
@@ -27,9 +28,16 @@ def utc(value: datetime) -> datetime:
     return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
 
 
-def export_records(db, *, secret: str, skill: str | None = None,
-                   since: datetime | None = None, until: datetime | None = None,
-                   mode: str | None = None, exclude_legacy: bool = False):
+def export_records(
+    db,
+    *,
+    secret: str,
+    skill: str | None = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    mode: str | None = None,
+    exclude_legacy: bool = False,
+):
     """Read only. Return validated response.v1 rows plus aggregate provenance."""
     from sqlalchemy import select
     from app.domain.models.attempt import AnswerRecord, Attempt
@@ -47,16 +55,27 @@ def export_records(db, *, secret: str, skill: str | None = None,
     def pseudonym(kind, identifier):
         return hmac.new(secret.encode("utf-8"), f"{kind}:{identifier}".encode(), hashlib.sha256).hexdigest()
 
-    query = (select(AnswerRecord.id, Attempt.user_id, Attempt.test_id,
-                    AnswerRecord.question_id, Attempt.content_version,
-                    Test.test_type, Question.question_type, AnswerRecord.is_correct,
-                    Attempt.created_at, Attempt.mode, Section.test_id.label("question_test_id"))
-             .join(Attempt, AnswerRecord.attempt_id == Attempt.id)
-             .join(Test, Attempt.test_id == Test.id)
-             .join(Question, AnswerRecord.question_id == Question.id)
-             .join(Section, Question.section_id == Section.id)
-             .where(Test.test_type.in_(["reading", "listening"]))
-             .order_by(Attempt.created_at, Attempt.id, AnswerRecord.id))
+    query = (
+        select(
+            AnswerRecord.id,
+            Attempt.user_id,
+            Attempt.test_id,
+            AnswerRecord.question_id,
+            Attempt.content_version,
+            Test.test_type,
+            Question.question_type,
+            AnswerRecord.is_correct,
+            Attempt.created_at,
+            Attempt.mode,
+            Section.test_id.label("question_test_id"),
+        )
+        .join(Attempt, AnswerRecord.attempt_id == Attempt.id)
+        .join(Test, Attempt.test_id == Test.id)
+        .join(Question, AnswerRecord.question_id == Question.id)
+        .join(Section, Question.section_id == Section.id)
+        .where(Test.test_type.in_(["reading", "listening"]))
+        .order_by(Attempt.created_at, Attempt.id, AnswerRecord.id)
+    )
     if skill:
         query = query.where(Test.test_type == skill)
     if mode:
@@ -74,26 +93,36 @@ def export_records(db, *, secret: str, skill: str | None = None,
             raise ValueError("An answer references a question from another test; export stopped")
         if row.created_at is None:
             raise ValueError("A submission has no timestamp; export stopped")
-        records.append(ResponseRecord(
-            response_id=pseudonym("response", row.id),
-            learner_id=pseudonym("learner", row.user_id),
-            item_id=f"test:{row.test_id}:question:{row.question_id}",
-            content_version=row.content_version, skill=row.test_type,
-            question_type=row.question_type, correct=row.is_correct,
-            answered_at=utc(row.created_at),
-        ))
+        records.append(
+            ResponseRecord(
+                response_id=pseudonym("response", row.id),
+                learner_id=pseudonym("learner", row.user_id),
+                item_id=f"test:{row.test_id}:question:{row.question_id}",
+                content_version=row.content_version,
+                skill=row.test_type,
+                question_type=row.question_type,
+                correct=row.is_correct,
+                answered_at=utc(row.created_at),
+            )
+        )
         skills[row.test_type] += 1
         modes[row.mode] += 1
         legacy += int(row.content_version == "legacy")
     metadata = {
-        "schema_version": "response-export.v1", "record_count": len(records),
+        "schema_version": "response-export.v1",
+        "record_count": len(records),
         "learner_count": len({r.learner_id for r in records}),
         "item_count": len({r.item_key for r in records}),
-        "records_by_skill": dict(skills), "records_by_mode": dict(modes),
+        "records_by_skill": dict(skills),
+        "records_by_mode": dict(modes),
         "legacy_record_count": legacy,
-        "filters": {"skill": skill, "mode": mode, "exclude_legacy": exclude_legacy,
-                    "since_inclusive": since.isoformat() if since else None,
-                    "until_exclusive": until.isoformat() if until else None},
+        "filters": {
+            "skill": skill,
+            "mode": mode,
+            "exclude_legacy": exclude_legacy,
+            "since_inclusive": since.isoformat() if since else None,
+            "until_exclusive": until.isoformat() if until else None,
+        },
         "limitations": [
             "answered_at is submission time; question-level response times are unavailable.",
             "Repeated attempts and unanswered questions (scored incorrect) are retained.",
@@ -112,8 +141,11 @@ def write_export(output: Path, records: list[ResponseRecord], metadata: dict):
     if output.exists() or report_path.exists():
         raise FileExistsError("Export or metadata file already exists; choose a new output path")
     payload = "".join(record.model_dump_json() + "\n" for record in records).encode("utf-8")
-    report = {**metadata, "dataset_sha256": hashlib.sha256(payload).hexdigest(),
-              "exported_at": datetime.now(timezone.utc).isoformat()}
+    report = {
+        **metadata,
+        "dataset_sha256": hashlib.sha256(payload).hexdigest(),
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+    }
     output.parent.mkdir(parents=True, exist_ok=True)
     created = []
     try:
@@ -155,16 +187,28 @@ def main():
         parser.error("Set ML_EXPORT_KEY to a private secret of at least 32 UTF-8 bytes")
     from sqlalchemy import text
     from app.infrastructure.database import SessionLocal
+
     try:
         with SessionLocal() as db:
             if db.get_bind().dialect.name == "postgresql":
                 db.execute(text("SET TRANSACTION READ ONLY"))
-            records, metadata = export_records(db, secret=secret, skill=args.skill,
-                mode=args.mode, since=args.since, until=args.until, exclude_legacy=args.exclude_legacy)
+            records, metadata = export_records(
+                db,
+                secret=secret,
+                skill=args.skill,
+                mode=args.mode,
+                since=args.since,
+                until=args.until,
+                exclude_legacy=args.exclude_legacy,
+            )
         report = write_export(args.output, records, metadata)
     except (ValueError, FileExistsError) as exc:
         parser.error(str(exc))
-    print(json.dumps({key: report[key] for key in ("record_count", "learner_count", "legacy_record_count", "dataset_sha256")}))
+    print(
+        json.dumps(
+            {key: report[key] for key in ("record_count", "learner_count", "legacy_record_count", "dataset_sha256")}
+        )
+    )
 
 
 if __name__ == "__main__":

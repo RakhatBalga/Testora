@@ -1,4 +1,5 @@
 """Run with: python -m ml.benchmark_asr manifest.jsonl --audio-root DIR --output FILE."""
+
 import argparse
 import hashlib
 import importlib.metadata
@@ -43,22 +44,32 @@ def benchmark(samples, paths, engine, *, warmup=True) -> dict:
         references.append(sample.reference_text)
         hypotheses.append(transcript.text)
         edits, reference_words = word_errors(sample.reference_text, transcript.text)
-        rows.append({
-            "sample_id": sample.sample_id, "speaker_id": sample.speaker_id,
-            "expert_band": sample.expert_band, "llm_band": sample.llm_band,
-            "audio_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-            "duration_seconds": transcript.duration_seconds, "inference_seconds": elapsed,
-            "word_errors": edits, "reference_words": reference_words,
-            "features": extract_features(transcript),
-        })
+        rows.append(
+            {
+                "sample_id": sample.sample_id,
+                "speaker_id": sample.speaker_id,
+                "expert_band": sample.expert_band,
+                "llm_band": sample.llm_band,
+                "audio_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "duration_seconds": transcript.duration_seconds,
+                "inference_seconds": elapsed,
+                "word_errors": edits,
+                "reference_words": reference_words,
+                "features": extract_features(transcript),
+            }
+        )
     duration = sum(row["duration_seconds"] for row in rows)
     elapsed = sum(row["inference_seconds"] for row in rows)
     return {
-        "schema_version": "asr-benchmark.v1", "feature_version": FEATURE_VERSION,
-        "sample_count": len(rows), "warmup_recordings": int(warmup),
+        "schema_version": "asr-benchmark.v1",
+        "feature_version": FEATURE_VERSION,
+        "sample_count": len(rows),
+        "warmup_recordings": int(warmup),
         "corpus_wer": corpus_wer(references, hypotheses),
-        "inference_seconds": elapsed, "audio_seconds": duration,
-        "real_time_factor": elapsed / duration, "samples": rows,
+        "inference_seconds": elapsed,
+        "audio_seconds": duration,
+        "real_time_factor": elapsed / duration,
+        "samples": rows,
     }
 
 
@@ -76,20 +87,26 @@ def main():
     paths = audio_paths(samples, args.audio_root)
     reports = []
     for model in args.models:
-        config = WhisperConfig(model=model, device=args.device, compute_type=args.compute_type,
-                               allow_download=args.allow_download)
+        config = WhisperConfig(
+            model=model, device=args.device, compute_type=args.compute_type, allow_download=args.allow_download
+        )
         engine = FasterWhisperTranscriber(config)
         report = benchmark(samples, paths, engine)
         report.update(config=asdict(config), load_seconds=engine.load_seconds)
         reports.append(report)
         del engine
-    write_report(args.output, {
-        "schema_version": "asr-comparison.v1", "python": platform.python_version(),
-        "platform": platform.system(), "processor": platform.processor(),
-        "faster_whisper": importlib.metadata.version("faster-whisper"),
-        "manifest_sha256": hashlib.sha256(args.manifest.read_bytes()).hexdigest(),
-        "runs": reports,
-    })
+    write_report(
+        args.output,
+        {
+            "schema_version": "asr-comparison.v1",
+            "python": platform.python_version(),
+            "platform": platform.system(),
+            "processor": platform.processor(),
+            "faster_whisper": importlib.metadata.version("faster-whisper"),
+            "manifest_sha256": hashlib.sha256(args.manifest.read_bytes()).hexdigest(),
+            "runs": reports,
+        },
+    )
 
 
 if __name__ == "__main__":

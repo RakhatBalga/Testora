@@ -1,4 +1,5 @@
 """Chronological, predict-before-update comparison on private response JSONL."""
+
 import argparse
 import hashlib
 from collections import defaultdict
@@ -17,12 +18,20 @@ def summarize(predictions: list[dict]) -> dict:
     if not predictions:
         return {"count": 0, "correct": 0, "incorrect": 0, "auc_status": "empty", "metrics": {}}
     labels = [r["correct"] for r in predictions]
-    return {"count": len(predictions), "correct": sum(labels), "incorrect": len(labels) - sum(labels),
-            "auc_status": "available" if len(set(labels)) == 2 else "single_class", "metrics": {
-        model: {"auc": auc(labels, [r[model] for r in predictions]),
+    return {
+        "count": len(predictions),
+        "correct": sum(labels),
+        "incorrect": len(labels) - sum(labels),
+        "auc_status": "available" if len(set(labels)) == 2 else "single_class",
+        "metrics": {
+            model: {
+                "auc": auc(labels, [r[model] for r in predictions]),
                 "brier": brier(labels, [r[model] for r in predictions]),
-                "log_loss": log_loss(labels, [r[model] for r in predictions])}
-        for model in ("error_rate_baseline", "irt", "bkt", "blend")}}
+                "log_loss": log_loss(labels, [r[model] for r in predictions]),
+            }
+            for model in ("error_rate_baseline", "irt", "bkt", "blend")
+        },
+    }
 
 
 def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
@@ -43,14 +52,19 @@ def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
             irt_p = irt.probability(row.learner_id, row.skill, row.item_key)
             bkt_p = bkt.probability(row.learner_id, row.skill_key)
             supported = irt.item_support.get(row.item_key, 0) >= 10
-            predictions.append({
-                "response_id": row.response_id, "correct": int(row.correct), "skill": row.skill,
-                "new_learner": row.learner_id not in train_learners,
-                "new_item": row.item_key not in train_items,
-                "error_rate_baseline": (successes + 1) / (total + 2),
-                "irt": irt_p, "bkt": bkt_p,
-                "blend": ((irt_p if supported else 0.5) + bkt_p) / 2,
-            })
+            predictions.append(
+                {
+                    "response_id": row.response_id,
+                    "correct": int(row.correct),
+                    "skill": row.skill,
+                    "new_learner": row.learner_id not in train_learners,
+                    "new_item": row.item_key not in train_items,
+                    "error_rate_baseline": (successes + 1) / (total + 2),
+                    "irt": irt_p,
+                    "bkt": bkt_p,
+                    "blend": ((irt_p if supported else 0.5) + bkt_p) / 2,
+                }
+            )
         for row in bucket:
             irt.observe(row)
             bkt.observe(row)
@@ -60,29 +74,44 @@ def evaluate(records: list[ResponseRecord], train_fraction=0.75) -> dict:
     metrics = {}
     for model in ("error_rate_baseline", "irt", "bkt", "blend"):
         probabilities = [r[model] for r in predictions]
-        metrics[model] = {"auc": auc(labels, probabilities),
-                          "brier": brier(labels, probabilities),
-                          "log_loss": log_loss(labels, probabilities),
-                          "reliability_bins": reliability_bins(labels, probabilities)}
+        metrics[model] = {
+            "auc": auc(labels, probabilities),
+            "brier": brier(labels, probabilities),
+            "log_loss": log_loss(labels, probabilities),
+            "reliability_bins": reliability_bins(labels, probabilities),
+        }
     return {
-        "schema_version": "adaptive-experiment.v1", "cutoff": cutoff.isoformat(),
-        "train_count": len(train), "test_count": len(test),
+        "schema_version": "adaptive-experiment.v1",
+        "cutoff": cutoff.isoformat(),
+        "train_count": len(train),
+        "test_count": len(test),
         "holdout": summarize(predictions),
         "excluded_repeated_responses": len(records) - len(train) - len(test),
-        "metrics": metrics, "predictions": predictions,
-        "by_skill": {skill: summarize([r for r in predictions if r["skill"] == skill])
-                     for skill in ("reading", "listening")},
-        "cold_start": {field: {
-            "unseen_at_cutoff": summarize([r for r in predictions if r[field]]),
-            "seen_in_training": summarize([r for r in predictions if not r[field]])}
-            for field in ("new_learner", "new_item")},
-        "settings": {"train_fraction": train_fraction, "irt_regularization": irt.regularization,
-                     "irt_online_learning_rate": 0.2, "blend_min_item_support": 10,
-                     "bkt_parameters": {k: asdict(v) for k, v in bkt.parameters.items()},
-                     "bkt_fitted_skills": sorted(bkt.fitted_skills)},
-        "limitations": ["Single temporal holdout; null AUC means only one outcome class.",
-                        "Blend weights and support cutoff are pilot heuristics.",
-                        "Prediction quality does not establish learning gains; a user pilot is required."],
+        "metrics": metrics,
+        "predictions": predictions,
+        "by_skill": {
+            skill: summarize([r for r in predictions if r["skill"] == skill]) for skill in ("reading", "listening")
+        },
+        "cold_start": {
+            field: {
+                "unseen_at_cutoff": summarize([r for r in predictions if r[field]]),
+                "seen_in_training": summarize([r for r in predictions if not r[field]]),
+            }
+            for field in ("new_learner", "new_item")
+        },
+        "settings": {
+            "train_fraction": train_fraction,
+            "irt_regularization": irt.regularization,
+            "irt_online_learning_rate": 0.2,
+            "blend_min_item_support": 10,
+            "bkt_parameters": {k: asdict(v) for k, v in bkt.parameters.items()},
+            "bkt_fitted_skills": sorted(bkt.fitted_skills),
+        },
+        "limitations": [
+            "Single temporal holdout; null AUC means only one outcome class.",
+            "Blend weights and support cutoff are pilot heuristics.",
+            "Prediction quality does not establish learning gains; a user pilot is required.",
+        ],
     }
 
 

@@ -1,4 +1,5 @@
 """Small dependency-free metrics with explicit undefined-result handling."""
+
 import math
 import re
 from collections import Counter
@@ -96,8 +97,7 @@ def log_loss(labels: list[int], probabilities: list[float]) -> float:
     brier(labels, probabilities)  # Shared validation, including finite values.
     epsilon = 1e-15
     clipped = [min(1 - epsilon, max(epsilon, p)) for p in probabilities]
-    return -sum(y * math.log(p) + (1 - y) * math.log1p(-p)
-                for y, p in zip(labels, clipped)) / len(labels)
+    return -sum(y * math.log(p) + (1 - y) * math.log1p(-p) for y, p in zip(labels, clipped)) / len(labels)
 
 
 def reliability_bins(labels: list[int], probabilities: list[float], bins: int = 10) -> list[dict]:
@@ -107,10 +107,16 @@ def reliability_bins(labels: list[int], probabilities: list[float], bins: int = 
     groups = [[] for _ in range(bins)]
     for y, p in zip(labels, probabilities):
         groups[min(bins - 1, int(p * bins))].append((y, p))
-    return [{"lower": i / bins, "upper": (i + 1) / bins, "count": len(group),
-             "mean_probability": sum(p for _, p in group) / len(group) if group else None,
-             "observed_correct": sum(y for y, _ in group) / len(group) if group else None}
-            for i, group in enumerate(groups)]
+    return [
+        {
+            "lower": i / bins,
+            "upper": (i + 1) / bins,
+            "count": len(group),
+            "mean_probability": sum(p for _, p in group) / len(group) if group else None,
+            "observed_correct": sum(y for y, _ in group) / len(group) if group else None,
+        }
+        for i, group in enumerate(groups)
+    ]
 
 
 def band_agreement(actual: list[float], predicted: list[float], tolerance: float = 0.5) -> float:
