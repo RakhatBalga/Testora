@@ -1,13 +1,37 @@
-"""Populate the database with sample Reading and Listening tests.
+"""Populate a LOCAL database with demo Reading, Listening, Writing and Speaking content.
 
-Run from the backend/ folder:  python seed.py
-Safe to re-run: it clears existing tests/sections/questions first.
+Run from the backend/ folder:  python -m scripts.seed.seed_demo
+
+DESTRUCTIVE: it wipes all tests, attempts, answers, writing and speaking tasks
+and submissions, then inserts the demo set, in a single transaction (all or
+nothing). It refuses to run when APP_ENV=production or when DATABASE_URL points
+to a non-local host, unless you pass --force-i-know. For real content use
+`python -m content_tools.importer` instead.
 """
+import argparse
+import sys
+from urllib.parse import urlparse
+
+from app.infrastructure.config import settings
 from app.infrastructure.database import SessionLocal
 from app.domain.models.test import Test, Section, Question
 from app.domain.models.attempt import AnswerRecord, Attempt
 from app.domain.models.writing import WritingTask, WritingSubmission
 from app.domain.models.speaking import SpeakingTask, SpeakingSubmission
+
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", "db", "postgres", ""}
+
+
+def _refusal_reason() -> str | None:
+    if settings.is_production:
+        return "APP_ENV=production"
+    url = settings.DATABASE_URL
+    if url.startswith("sqlite"):
+        return None
+    host = (urlparse(url).hostname or "").lower()
+    if host not in LOCAL_HOSTS:
+        return f"DATABASE_URL host '{host}' is not local"
+    return None
 
 
 def run():
@@ -23,7 +47,7 @@ def run():
         db.query(WritingTask).delete()
         db.query(SpeakingSubmission).delete()
         db.query(SpeakingTask).delete()
-        db.commit()
+        # No commit here: the wipe and the inserts below are one transaction.
 
         reading = Test(
             title="Academic Reading Practice 1",
@@ -202,9 +226,28 @@ def run():
             f"{writing_t1.title}, {writing_t2.title}, "
             "Speaking Parts 1-3"
         )
+    except BaseException:
+        db.rollback()
+        raise
     finally:
         db.close()
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument(
+        "--force-i-know",
+        action="store_true",
+        help="Run even against production or a non-local database (wipes data!)",
+    )
+    args = parser.parse_args(argv)
+    reason = _refusal_reason()
+    if reason and not args.force_i_know:
+        print(f"Refusing to wipe and seed: {reason}. Pass --force-i-know to override.", file=sys.stderr)
+        return 2
     run()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

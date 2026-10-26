@@ -4,7 +4,7 @@ Idempotent for this title — deletes any existing test named the same (and its
 sections/questions/attempts via cascade), then inserts a fresh copy. Does NOT
 touch listening/writing/speaking data.
 
-Run from backend/:  venv/bin/python seed_reading.py
+Run from backend/:  python -m scripts.seed.seed_reading
 """
 from app.infrastructure.database import SessionLocal
 from app.domain.models.test import Test, Section, Question

@@ -14,7 +14,7 @@ Scans content/reading/*.json and enforces the production quality bar:
 
 Exit code 0 = all checks passed; 1 = one or more failures.
 
-Run from backend/:  venv/bin/python validate_reading.py
+Run from backend/:  python -m content_tools.validate_reading
 """
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ import re
 import sys
 from pathlib import Path
 
-CONTENT_DIR = Path(__file__).resolve().parent / "content" / "reading"
+CONTENT_DIR = Path(__file__).resolve().parents[1] / "content" / "reading"
 EXPECTED_TESTS = 10
 QCOUNTS = [13, 13, 14]
 WORD_RANGES = [(800, 900), (900, 1000), (950, 1100)]

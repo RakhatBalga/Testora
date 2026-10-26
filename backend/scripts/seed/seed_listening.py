@@ -1,6 +1,6 @@
 """Seed the canonical versioned Testora Listening benchmark.
 
-Run from backend/: .venv/bin/python seed_listening.py
+Run from backend/: python -m scripts.seed.seed_listening
 """
 import argparse
 import json
@@ -12,11 +12,11 @@ from sqlalchemy.orm import Session
 
 from app.domain.models.test import Test
 from app.infrastructure.database import SessionLocal
-from import_content import _build_test
-from validate_listening import Report, validate_test
+from content_tools.importer import build_test
+from content_tools.validate_listening import Report, validate_test
 
 
-CONTENT_PATH = Path(__file__).resolve().parent / "content/listening/testora-studio-02.json"
+CONTENT_PATH = Path(__file__).resolve().parents[2] / "content/listening/testora-studio-02.json"
 
 
 def _version(value: str) -> tuple[int, ...]:
@@ -34,7 +34,7 @@ def seed_package(db: Session, data: dict, *, update_existing: bool = False) -> t
     slug = (data.get("metadata") or {}).get("slug")
     if data.get("test_type") != "listening" or not slug or report.errors:
         raise ValueError("Invalid Listening package: " + "; ".join(report.errors or ["type or slug missing"]))
-    incoming = _build_test(data)
+    incoming = build_test(data)
     if incoming.content_version == "legacy" or not (incoming.content_metadata or {}).get("published"):
         raise ValueError("A published package with an explicit content_version is required")
     version = _version(incoming.content_version)

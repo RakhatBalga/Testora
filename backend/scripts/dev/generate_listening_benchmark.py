@@ -1,6 +1,6 @@
 """Build the Testora Studio Listening 01 content pack and reproducible master audio.
 
-Run from backend/: python scripts/generate_listening_benchmark.py
+Run from backend/: python -m scripts.dev.generate_listening_benchmark
 Use --content-only when macOS `say` or ffmpeg is unavailable.
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 BLUEPRINT_PATH = ROOT / "content/listening/testora-studio-02-blueprint.json"
 CONTENT_PATH = ROOT / "content/listening/testora-studio-02.json"
 MANIFEST_PATH = ROOT / "content/listening/testora-studio-02-audio-manifest.json"
