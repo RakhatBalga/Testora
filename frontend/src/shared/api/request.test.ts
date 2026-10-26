@@ -1,0 +1,117 @@
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { api } from "./api";
+import { NetworkError, isNetworkError } from "./errors";
+import { WRITING_GRADING_TIMEOUT_MS } from "./endpoints/writing";
+import { AI_TIMEOUT_MS, IN_PROGRESS_RETRY_DELAY_MS, REQUEST_TIMEOUT_MS } from "./http";
+
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+  sessionStorage.clear();
+});
+
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
+
+it("times out a stalled request with a friendly NetworkError", async () => {
+  vi.stubGlobal("fetch", vi.fn((_u, o: RequestInit) => new Promise((_, reject) => {
+    o.signal!.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+  })));
+  // POST: not retried, so the timeout surfaces after one attempt.
+  const result = expect(api.submitDailyQuiz([1])).rejects.toSatisfy(
+    (e) => isNetworkError(e) && e.kind === "timeout",
+  );
+  await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+  await result;
+  expect(fetch).toHaveBeenCalledTimes(1);
+});
+
+it("retries an idempotent GET after a network error", async () => {
+  const fetchMock = vi.fn()
+    .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+    .mockResolvedValueOnce(json([{ id: 1 }]));
+  vi.stubGlobal("fetch", fetchMock);
+  const result = api.listTests();
+  await vi.advanceTimersByTimeAsync(1_000);
+  await expect(result).resolves.toEqual([{ id: 1 }]);
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+});
+
+it("retries gateway errors and gives up with a waking-up message", async () => {
+  const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(new Response("bad gateway", { status: 502 })));
+  vi.stubGlobal("fetch", fetchMock);
+  const result = expect(api.listTests()).rejects.toBeInstanceOf(NetworkError);
+  await vi.advanceTimersByTimeAsync(3_000);
+  await result;
+  expect(fetchMock).toHaveBeenCalledTimes(3);
+});
+
+it("does not retry non-idempotent requests", async () => {
+  const fetchMock = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
+  vi.stubGlobal("fetch", fetchMock);
+  await expect(api.submitDailyQuiz([1])).rejects.toBeInstanceOf(NetworkError);
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+it("does not retry application errors", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(json({ detail: "Not found" }, 404));
+  vi.stubGlobal("fetch", fetchMock);
+  await expect(api.getTest(1)).rejects.toThrow("Not found");
+  expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+
+it("lets the caller cancel without it being reported as a timeout", async () => {
+  vi.stubGlobal("fetch", vi.fn((_u, o: RequestInit) => new Promise((_, reject) => {
+    o.signal!.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+  })));
+  const controller = new AbortController();
+  const result = expect(
+    api.saveListeningProgress(1, {} as never, controller.signal),
+  ).rejects.toMatchObject({ name: "AbortError" });
+  controller.abort();
+  await result;
+});
+
+it("gives Writing grading enough time for a slow local model (and still times out)", async () => {
+  vi.stubGlobal("fetch", vi.fn((_u, o: RequestInit) => new Promise((_, reject) => {
+    o.signal!.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+  })));
+  const result = expect(api.submitWriting(1, "essay")).rejects.toSatisfy(
+    (e) => isNetworkError(e) && e.kind === "timeout",
+  );
+  await vi.advanceTimersByTimeAsync(WRITING_GRADING_TIMEOUT_MS - 1);
+  expect(fetch).toHaveBeenCalledTimes(1); // still waiting after the default 60 s
+  await vi.advanceTimersByTimeAsync(1);
+  await result;
+});
+
+it("gives vocabulary AI calls a long timeout and no GET retry", async () => {
+  const fetchMock = vi.fn((_u, o: RequestInit) => new Promise((_, reject) => {
+    o.signal!.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+  }));
+  vi.stubGlobal("fetch", fetchMock);
+  const result = expect(api.getDailyQuiz()).rejects.toBeInstanceOf(NetworkError);
+  await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS + 1_000);
+  expect(fetchMock).toHaveBeenCalledTimes(1); // still waiting after 60 s
+  await vi.advanceTimersByTimeAsync(AI_TIMEOUT_MS);
+  await result;
+  expect(fetchMock).toHaveBeenCalledTimes(1); // and no retry that would hit 409
+});
+
+it("retries once after a 409 already-in-progress, with a friendly final message", async () => {
+  const inProgress = () => new Response(JSON.stringify({ detail: "This AI request is already in progress." }), { status: 409 });
+  const ok = new Response(JSON.stringify({ id: 1 }), { status: 200 });
+  const fetchMock = vi.fn().mockResolvedValueOnce(inProgress()).mockResolvedValueOnce(ok);
+  vi.stubGlobal("fetch", fetchMock);
+  const first = api.enrichWord(1);
+  await vi.advanceTimersByTimeAsync(IN_PROGRESS_RETRY_DELAY_MS);
+  await expect(first).resolves.toEqual({ id: 1 });
+  expect(fetchMock).toHaveBeenCalledTimes(2);
+
+  const always = vi.fn().mockImplementation(() => Promise.resolve(inProgress()));
+  vi.stubGlobal("fetch", always);
+  const second = expect(api.enrichWord(1)).rejects.toThrow("still working on your previous request");
+  await vi.advanceTimersByTimeAsync(IN_PROGRESS_RETRY_DELAY_MS);
+  await second;
+  expect(always).toHaveBeenCalledTimes(2);
+});

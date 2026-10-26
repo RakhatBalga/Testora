@@ -26,11 +26,11 @@ import {
   type Streak,
   type Weakness,
 } from "@/shared/api";
-import { SKILLS, skillMeta, toneClasses, type Skill } from "@/entities/dashboard";
-import { BandTrajectory } from "@/shared/ui/dashboard";
-import { PageHeader, ProgressBar, StatTile, skillIcons } from "@/shared/ui/dashboard";
+import { SKILLS, skillMeta, toneClasses, type Skill, BandTrajectory, PageHeader, ProgressBar, StatTile, skillIcons } from "@/entities/dashboard";
 import { LinkButton } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
+import { formatDate } from "@/shared/lib";
+import { routes } from "@/shared/config";
 
 const FALLBACK_TARGET_BAND = 7.5;
 
@@ -115,7 +115,7 @@ export default function AnalyticsPage() {
         title="Analytics"
         subtitle="Your evidence-based view of band progress, blockers, and next actions."
         action={
-          <LinkButton href="/practice">
+          <LinkButton href={routes.practice()}>
             Practice
             <ArrowRight className="h-4 w-4" />
           </LinkButton>
@@ -322,7 +322,7 @@ export default function AnalyticsPage() {
             <BarChart3 className="h-5 w-5 text-[var(--brand)]" />
             <h2 className="text-base font-semibold text-[var(--text-primary)]">Recent activity</h2>
           </div>
-          <Link href="/practice" className="text-sm font-semibold text-[var(--brand)]">
+          <Link href={routes.practice()} className="text-sm font-semibold text-[var(--brand)]">
             Practice more
           </Link>
         </div>
@@ -435,15 +435,10 @@ function HistoryRow({ item }: { item: HistoryItem }) {
 function EmptyAnalyticsState({ icon, text }: { icon: ReactNode; text: string }) {
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] bg-slate-50/60 p-6 text-sm text-[var(--text-secondary)]">
-      <span className="text-slate-400">{icon}</span>
+      <span className="text-slate-500">{icon}</span>
       {text}
     </div>
   );
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "No date";
-  return new Date(value).toLocaleDateString();
 }
 
 function sourceLabel(source: DailyPlanTask["source"]): string {

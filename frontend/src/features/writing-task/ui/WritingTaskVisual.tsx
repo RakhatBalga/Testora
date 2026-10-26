@@ -140,7 +140,7 @@ function ProcessDiagram({ steps }: { steps: string[] }) {
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">{index + 1}</span>
             <span className="text-sm leading-5 text-slate-700">{step}</span>
           </div>
-          {index < steps.length - 1 && <ArrowRight className="mx-auto mt-2 h-5 w-5 rotate-90 text-slate-400" aria-hidden="true" />}
+          {index < steps.length - 1 && <ArrowRight className="mx-auto mt-2 h-5 w-5 rotate-90 text-slate-500" aria-hidden="true" />}
         </li>
       ))}
     </ol>

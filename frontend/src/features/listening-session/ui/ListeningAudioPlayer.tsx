@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Pause, Play, RotateCcw, Volume2 } from "lucide-react";
 import { mediaUrl, type ListeningMode } from "@/shared/api";
+import { formatClockSeconds } from "@/shared/lib";
 
 type Props = {
   src: string | null;
@@ -14,11 +15,6 @@ type Props = {
   onTimeChange: (position: number) => void;
   onEnded: () => void;
 };
-
-function clock(seconds: number): string {
-  const safe = Math.max(0, Math.floor(seconds));
-  return `${Math.floor(safe / 60).toString().padStart(2, "0")}:${(safe % 60).toString().padStart(2, "0")}`;
-}
 
 export function ListeningAudioPlayer({
   src,
@@ -34,6 +30,7 @@ export function ListeningAudioPlayer({
   const initialized = useRef(false);
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(initialPosition);
+  const [audioError, setAudioError] = useState("");
   const resolvedSrc = mediaUrl(src);
 
   useEffect(() => {
@@ -52,8 +49,13 @@ export function ListeningAudioPlayer({
   const play = async () => {
     const audio = audioRef.current;
     if (!audio) return;
-    await audio.play();
-    setPlaying(true);
+    setAudioError("");
+    try {
+      await audio.play();
+      setPlaying(true);
+    } catch {
+      setAudioError("Could not play the audio. Check your connection and press play again.");
+    }
   };
 
   const pause = () => {
@@ -100,13 +102,14 @@ export function ListeningAudioPlayer({
   const displayDuration = mode === "practice" ? sectionEnd - sectionStart : sliderMax;
 
   return (
-    <div className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-slate-700">
+    <div className="flex min-h-14 flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-slate-700">
       <audio
         ref={audioRef}
         src={resolvedSrc}
         preload="auto"
         onTimeUpdate={timeChanged}
         onEnded={onEnded}
+        onError={() => setAudioError("The audio failed to load. Check your connection and reload the page.")}
         onPause={() => setPlaying(false)}
         onPlay={() => setPlaying(true)}
       />
@@ -125,11 +128,11 @@ export function ListeningAudioPlayer({
           <RotateCcw className="h-4 w-4" />
         </button>
       )}
-      <Volume2 className="hidden h-4 w-4 shrink-0 text-slate-400 sm:block" />
+      <Volume2 className="hidden h-4 w-4 shrink-0 text-slate-500 sm:block" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-3 text-xs">
           <span className="truncate font-semibold text-slate-800">{sectionTitle}</span>
-          <span className="shrink-0 tabular-nums text-slate-500">{clock(displayPosition)} / {clock(displayDuration)}</span>
+          <span className="shrink-0 tabular-nums text-slate-500">{formatClockSeconds(displayPosition)} / {formatClockSeconds(displayDuration)}</span>
         </div>
         <input
           aria-label="Audio position"
@@ -144,6 +147,7 @@ export function ListeningAudioPlayer({
         />
       </div>
       <span className="hidden rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-semibold uppercase text-slate-500 sm:block">{mode}</span>
+      {audioError && <p role="alert" className="basis-full text-xs font-medium text-red-700">{audioError}</p>}
     </div>
   );
 }

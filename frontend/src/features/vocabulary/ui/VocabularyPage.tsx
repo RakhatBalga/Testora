@@ -7,6 +7,7 @@ import { api, type SavedWord } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { Button, Card, Skeleton } from "@/shared/ui";
 import { DailyQuiz } from "./DailyQuiz";
+import { routes } from "@/shared/config";
 
 export function VocabularyPage() {
   const { token, ready } = useRequireAuth();
@@ -115,7 +116,7 @@ export function VocabularyPage() {
           <p className="mt-3 font-semibold text-slate-800">No saved words yet</p>
           <p className="mt-1 text-sm text-slate-500">
             Open a{" "}
-            <Link href="/tests/reading" className="font-semibold text-[var(--brand)]">
+            <Link href={routes.reading.library()} className="font-semibold text-[var(--brand)]">
               Reading test
             </Link>{" "}
             and select any word in the passage to save it.
@@ -180,7 +181,7 @@ function WordCard({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-lg font-bold text-slate-900">{word.word}</span>
             {e?.part_of_speech && (
-              <span className="text-xs italic text-slate-400">{e.part_of_speech}</span>
+              <span className="text-xs italic text-slate-500">{e.part_of_speech}</span>
             )}
             <span className={`rounded-md px-2 py-0.5 text-xs font-semibold capitalize ${statusTone}`}>
               {word.status}

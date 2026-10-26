@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Clouds from "./Clouds";
+import { routes } from "@/shared/config";
 
 export default function Hero() {
   return (
@@ -25,7 +26,7 @@ export default function Hero() {
 
           <div className="animate-fade-up mt-10 [animation-delay:240ms]">
             <Link
-              href="/register"
+              href={routes.register()}
               className="inline-flex h-14 items-center justify-center rounded-2xl bg-white px-10 text-base font-bold text-[var(--brand)] shadow-xl shadow-blue-950/25 ring-1 ring-white/60 transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-2xl"
             >
               Try it for free

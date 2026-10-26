@@ -1,4 +1,5 @@
 import type { AttemptSummary, Test } from "@/shared/api";
+import { examStorageKey } from "./storage";
 
 export type TestStatus = "completed" | "in_progress" | "not_started";
 
@@ -34,15 +35,11 @@ export function accentFor(type: string): Accent {
   return ACCENTS[type] ?? ACCENTS.reading;
 }
 
-/** localStorage key prefix used by the exam pages (reading-/listening-). */
-function storeKey(type: string, id: number): string {
-  return `${type}-${id}`;
-}
 
 /** Count answered questions saved for an in-progress attempt. */
-function answeredFromStorage(type: string, id: number): number {
+function answeredFromStorage(type: string, username: string | null | undefined, id: number): number {
   try {
-    const raw = localStorage.getItem(`${storeKey(type, id)}-answers`);
+    const raw = localStorage.getItem(`${examStorageKey(type, username, id)}-answers`);
     if (!raw) return 0;
     const map = JSON.parse(raw) as Record<string, unknown>;
     return Object.values(map).filter((v) =>
@@ -70,7 +67,8 @@ export type TestProgress = {
  */
 export function deriveProgress(
   test: Test,
-  attempts: AttemptSummary[]
+  attempts: AttemptSummary[],
+  username?: string | null
 ): TestProgress {
   const mine = attempts.filter((a) => a.test_id === test.id);
   const total = test.question_count ?? 0;
@@ -89,10 +87,10 @@ export function deriveProgress(
     };
   }
 
-  const answered = answeredFromStorage(test.test_type, test.id);
+  const answered = answeredFromStorage(test.test_type, username, test.id);
   if (answered > 0) {
     let updatedAt: number | null = null;
-    const u = localStorage.getItem(`${storeKey(test.test_type, test.id)}-updated`);
+    const u = localStorage.getItem(`${examStorageKey(test.test_type, username, test.id)}-updated`);
     if (u) updatedAt = Number(u) || null;
     return {
       status: "in_progress",
@@ -120,6 +118,4 @@ export function relativeTime(iso: string | number): string {
   return new Date(then).toLocaleDateString();
 }
 
-export function roundHalf(n: number): number {
-  return Math.round(n * 2) / 2;
-}
+export { roundHalf } from "@/shared/lib";

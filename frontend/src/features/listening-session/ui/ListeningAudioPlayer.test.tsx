@@ -11,3 +11,9 @@ it.each([0, 1])("restores the saved position when metadata is %s (loading/ready)
   expect(screen.getByRole("slider", { name: "Audio position" })).toHaveValue("145");
   ready.mockRestore();
 });
+
+it("shows an error when the audio fails to load", () => {
+  const { container } = render(<ListeningAudioPlayer src="/audio.m4a" mode="practice" sectionTitle="Section 1" sectionStart={0} sectionEnd={100} initialPosition={0} onTimeChange={vi.fn()} onEnded={vi.fn()} />);
+  fireEvent.error(container.querySelector("audio")!);
+  expect(screen.getByRole("alert")).toHaveTextContent("audio failed to load");
+});

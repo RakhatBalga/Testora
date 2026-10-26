@@ -7,7 +7,8 @@ import { Skeleton } from "@/shared/ui";
 import { ContinueCard, RecentActivity, TestCard } from "@/entities/test";
 import { accentFor, deriveProgress, type TestProgress } from "@/entities/test";
 
-import { listeningSessionKey, restoreProgress } from "@/features/listening-session/progress";
+import { listeningSessionKey, restoreProgress } from "@/features/listening-session";
+import { routes } from "@/shared/config";
 
 export default function ListeningLibraryPage() {
   const { token, ready } = useRequireAuth();
@@ -105,7 +106,7 @@ export default function ListeningLibraryPage() {
               <TestCard
                 key={test.id}
                 test={test}
-                href={`/listening/${test.id}`}
+                href={routes.listening.exam(test.id)}
                 progress={progressById.get(test.id)!}
               />
             ))}

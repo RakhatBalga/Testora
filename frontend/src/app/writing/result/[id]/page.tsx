@@ -9,11 +9,12 @@ import {
 } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
 import { FeedbackCard, EssayComparison } from "@/features/feedback";
-import { ReviewStatusNotice, reviewState } from "@/features/feedback/ui/ReviewStatusNotice";
+import { ReviewStatusNotice, reviewState } from "@/features/feedback";
 import { Badge } from "@/shared/ui";
 import { Button, Card } from "@/shared/ui";
 import { LinkButton } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
+import { routes } from "@/shared/config";
 
 export default function WritingResultPage() {
   const { token, ready } = useRequireAuth();
@@ -129,8 +130,8 @@ export default function WritingResultPage() {
       />
 
       <div className="flex flex-wrap gap-3">
-        <LinkButton href="/writing">Back to writing</LinkButton>
-        <LinkButton href="/profile" variant="secondary">
+        <LinkButton href={routes.writing.library()}>Back to writing</LinkButton>
+        <LinkButton href={routes.profile()} variant="secondary">
           My results
         </LinkButton>
       </div>

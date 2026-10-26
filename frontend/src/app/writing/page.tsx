@@ -8,15 +8,16 @@ import { useRequireAuth } from "@/shared/auth";
 import { Badge } from "@/shared/ui";
 import { Card } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
+import { routes } from "@/shared/config";
 
 function taskTone(taskType: number) {
   return taskType === 1 ? "blue" : "violet";
 }
 
 const TASK_FILTERS = [
-  { label: "All", href: "/writing", taskType: null },
-  { label: "Task 1", href: "/writing?task=1", taskType: 1 },
-  { label: "Task 2", href: "/writing?task=2", taskType: 2 },
+  { label: "All", href: routes.writing.library(), taskType: null },
+  { label: "Task 1", href: routes.writing.library(1), taskType: 1 },
+  { label: "Task 2", href: routes.writing.library(2), taskType: 2 },
 ];
 
 // Human-readable labels for the essay-type slugs stored on each task. Unknown
@@ -117,7 +118,7 @@ export default function WritingPage() {
     <div className="space-y-8">
       <div className="animate-fade-up">
         <Link
-          href="/"
+          href={routes.dashboard()}
           className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-slate-900"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -167,7 +168,7 @@ export default function WritingPage() {
 
       {essayTypeOptions.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <span className="mr-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
             Essay type
           </span>
           <Link
@@ -231,7 +232,7 @@ export default function WritingPage() {
           {visibleTasks.map((task, i) => (
             <Link
               key={task.id}
-              href={`/writing/${task.id}`}
+              href={routes.writing.exam(task.id)}
               className="group animate-fade-up"
               style={{ animationDelay: `${i * 80}ms` }}
             >

@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import { api } from "@/shared/api";
-import { beginGoogleFlow } from "../googleFlow";
+import { routes } from "@/shared/config";
+import { beginGoogleFlow } from "../model/googleFlow";
 
 /** sessionStorage key carrying register-flow choices across the OAuth redirect. */
 export const GOOGLE_SIGNUP_KEY = "testora.google.signup";
@@ -47,7 +48,7 @@ export default function GoogleSignInButton({
       } else {
         sessionStorage.removeItem(GOOGLE_SIGNUP_KEY);
       }
-      const redirectUri = `${window.location.origin}/auth/google/callback`;
+      const redirectUri = `${window.location.origin}${routes.googleCallback()}`;
       const state = beginGoogleFlow();
       const result = await api.googleStart(state, redirectUri);
       window.location.href = result.authorization_url;

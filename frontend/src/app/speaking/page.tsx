@@ -5,14 +5,10 @@ import Link from "next/link";
 import { Clock } from "lucide-react";
 import { api, SpeakingTask } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
+import { SPEAKING_AVAILABLE, routes } from "@/shared/config";
 import { Badge } from "@/shared/ui";
 import { Card } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
-
-// Speaking grading is not live yet (mock grader returns Band 0), so the whole
-// section is gated off to avoid disappointing recordings. Flip to true once
-// real Speaking grading ships.
-const SPEAKING_AVAILABLE = false;
 
 const PARTS = [
   { part: 1, label: "Part 1", detail: "Introduction" },
@@ -48,7 +44,7 @@ export default function SpeakingPage() {
     <div className="space-y-8">
       <div className="animate-fade-up">
         <Link
-          href="/"
+          href={routes.dashboard()}
           className="inline-flex items-center gap-1 text-sm text-slate-500 transition hover:text-slate-900"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -77,11 +73,11 @@ export default function SpeakingPage() {
             <p className="mt-1 text-sm leading-relaxed text-amber-800">
               We&apos;re finishing AI grading for Speaking so your recordings get real band
               feedback — not a placeholder score. In the meantime, keep building your band with{" "}
-              <Link href="/writing" className="font-semibold underline underline-offset-2 hover:text-amber-900">
+              <Link href={routes.writing.library()} className="font-semibold underline underline-offset-2 hover:text-amber-900">
                 Writing
               </Link>{" "}
               and{" "}
-              <Link href="/reading" className="font-semibold underline underline-offset-2 hover:text-amber-900">
+              <Link href={routes.reading.library()} className="font-semibold underline underline-offset-2 hover:text-amber-900">
                 Reading
               </Link>
               . We&apos;ll turn Speaking on soon.
@@ -137,7 +133,7 @@ export default function SpeakingPage() {
           {tasks.filter((task) => task.part === activePart).map((task, i) => (
             <Link
               key={task.id}
-              href={`/speaking/${task.id}`}
+              href={routes.speaking.exam(task.id)}
               className="group animate-fade-up"
               style={{ animationDelay: `${i * 80}ms` }}
             >

@@ -17,7 +17,9 @@ import {
 } from "lucide-react";
 import { useRequireAuth } from "@/shared/auth";
 import { api, type CompareResult, type CriteriaDiffItem, type QTypeDiffItem, type MistakeDiffItem } from "@/shared/api";
-import { PageHeader } from "@/shared/ui/dashboard";
+import { PageHeader } from "@/entities/dashboard";
+import { formatShortDate } from "@/shared/lib";
+import { routes } from "@/shared/config";
 
 const SKILL_COLORS: Record<string, string> = {
   writing: "bg-blue-50 text-blue-700",
@@ -25,11 +27,6 @@ const SKILL_COLORS: Record<string, string> = {
   reading: "bg-amber-50 text-amber-700",
   listening: "bg-violet-50 text-violet-700",
 };
-
-function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
 
 function DeltaBadge({ delta }: { delta: number | null }) {
   if (delta === null) return null;
@@ -50,7 +47,7 @@ function DeltaBadge({ delta }: { delta: number | null }) {
 function BandCard({ label, band, date }: { label: string; band: number | null; date: string | null }) {
   const tone =
     band === null
-      ? "text-slate-400"
+      ? "text-slate-500"
       : band >= 7
         ? "text-emerald-600"
         : band >= 5.5
@@ -60,7 +57,7 @@ function BandCard({ label, band, date }: { label: string; band: number | null; d
     <div className="flex-1 rounded-2xl border border-[var(--border)] bg-white p-5 text-center shadow-sm">
       <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{label}</p>
       <p className={`mt-1 text-5xl font-extrabold ${tone}`}>{band != null ? band.toFixed(1) : "—"}</p>
-      <p className="mt-1 text-xs text-[var(--text-secondary)]">{fmtDate(date)}</p>
+      <p className="mt-1 text-xs text-[var(--text-secondary)]">{formatShortDate(date)}</p>
     </div>
   );
 }
@@ -237,7 +234,7 @@ export default function CompareContent() {
         <PageHeader title="Compare Attempts" />
         <p className="rounded-2xl border border-[var(--border)] bg-white p-6 text-sm text-[var(--text-secondary)]">
           No attempts selected. Go to{" "}
-          <Link href="/history" className="font-semibold text-[var(--brand)]">
+          <Link href={routes.history()} className="font-semibold text-[var(--brand)]">
             History
           </Link>{" "}
           and select two attempts of the same skill to compare.
@@ -255,7 +252,7 @@ export default function CompareContent() {
         subtitle="Side-by-side diff of two same-skill attempts."
         action={
           <Link
-            href="/history"
+            href={routes.history()}
             className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--brand)] hover:underline"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -276,7 +273,7 @@ export default function CompareContent() {
             <p className="font-semibold text-red-700">Cannot compare these attempts</p>
             <p className="mt-1 text-sm text-red-600">{error}</p>
             <Link
-              href="/history"
+              href={routes.history()}
               className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-red-700 hover:underline"
             >
               <ArrowLeft className="h-4 w-4" /> Back to history
@@ -290,7 +287,7 @@ export default function CompareContent() {
             <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold capitalize ${skillClass}`}>
               {result.skill}
             </span>
-            <GitCompare className="h-4 w-4 text-slate-400" />
+            <GitCompare className="h-4 w-4 text-slate-500" />
             <span className="text-sm text-[var(--text-secondary)]">Band change</span>
             <DeltaBadge delta={result.band_delta} />
             {result.blocker?.changed && (
@@ -333,7 +330,7 @@ export default function CompareContent() {
           {result.question_type_diff && <QTypeDiff diff={result.question_type_diff} />}
 
           <Link
-            href="/history"
+            href={routes.history()}
             className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--brand)] hover:underline"
           >
             <ArrowLeft className="h-4 w-4" /> Back to history

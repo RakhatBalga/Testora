@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { fadeUp, viewport } from "@/shared/lib/motion";
 import Clouds from "./Clouds";
+import { routes } from "@/shared/config";
 
 export default function CloudCTA() {
   return (
@@ -29,7 +30,7 @@ export default function CloudCTA() {
 
           <motion.div variants={fadeUp} className="mt-9">
             <Link
-              href="/register"
+              href={routes.register()}
               className="inline-flex h-14 items-center justify-center rounded-2xl bg-white px-10 text-base font-semibold text-slate-900 shadow-lg shadow-blue-900/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
             >
               Try it

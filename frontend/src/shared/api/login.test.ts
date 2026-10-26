@@ -18,7 +18,7 @@ it("reports invalid credentials without clearing an existing session", async () 
   }));
 });
 
-it.each(["headers", "body"])("aborts a login stalled on response %s after 30 seconds", async (stage) => {
+it.each(["headers", "body"])("aborts a login stalled on response %s after 90 seconds", async (stage) => {
   vi.useFakeTimers();
   let signal!: AbortSignal;
   vi.stubGlobal("fetch", vi.fn((_url, options: RequestInit) => {
@@ -29,7 +29,7 @@ it.each(["headers", "body"])("aborts a login stalled on response %s after 30 sec
     return stage === "headers" ? pending : Promise.resolve({ ok: true, json: () => pending });
   }));
   const result = expect(api.login("user", "password")).rejects.toThrow("Sign-in is taking too long.");
-  await vi.advanceTimersByTimeAsync(29_999);
+  await vi.advanceTimersByTimeAsync(89_999);
   expect(signal.aborted).toBe(false);
   await vi.advanceTimersByTimeAsync(1);
   await result;
