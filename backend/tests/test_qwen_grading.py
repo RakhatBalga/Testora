@@ -277,6 +277,17 @@ def test_ping_qwen_reports_model_availability():
     assert result["ok"] is False and result["error"] == "ConnectError"
 
 
+def test_qwen_v1_prompt_is_selectable_and_recorded(monkeypatch):
+    from app.infrastructure.ai import qwen
+
+    monkeypatch.setattr(qwen.settings, "EXAMINER_PROMPT_VERSION", "v1")
+    server = _Server(_reply(_examiner()))
+    fb = _grade(server)
+    assert fb.prompt_version == prompts.PROMPT_VERSIONS["v1"]
+    assert server.bodies[0]["messages"][0]["content"] == prompts.examiner_system(2, "v1")
+    assert "award 7.0 rather" in server.bodies[0]["messages"][0]["content"]
+
+
 def test_ping_qwen_accepts_ollama_latest_tag():
     from app.infrastructure.ai.qwen import model_listed
 

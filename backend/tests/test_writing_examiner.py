@@ -874,3 +874,19 @@ def test_mock_speaking_is_an_error_not_a_band_zero():
 )
 def test_injection_patterns_are_detected(essay):
     assert grading.injection_suspected(essay) is True
+
+
+def test_examiner_prompt_versions_are_selectable_and_distinct(monkeypatch):
+    from app.infrastructure.config import settings
+
+    v1, v2 = prompts.examiner_system(2, "v1"), prompts.examiner_system(2, "v2")
+    assert "award 7.0 rather" in v1 and "round UP" in v1
+    assert "award 7.0 rather" not in v2
+    assert v2 == prompts.TASK2_EXAMINER_SYSTEM
+    assert prompts.PROMPT_VERSIONS["v1"].startswith("examiner-v1+")
+    assert prompts.PROMPT_VERSIONS["v1"] != prompts.PROMPT_VERSIONS["v2"]
+    monkeypatch.setattr(settings, "EXAMINER_PROMPT_VERSION", "v1")
+    assert prompts.prompt_version() == prompts.PROMPT_VERSIONS["v1"]
+    assert prompts.examiner_system(1) == prompts.examiner_system(1, "v1")
+    with pytest.raises(ValueError):
+        prompts.active_examiner_version("v9")

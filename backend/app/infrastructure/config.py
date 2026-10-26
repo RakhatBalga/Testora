@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
@@ -141,6 +143,10 @@ class Settings(BaseSettings):
     QWEN_TIMEOUT_SECONDS: float = Field(default=180.0, gt=0)
     # Grading runs with Qwen3 "thinking" off: faster and stable JSON.
     QWEN_DISABLE_THINKING: bool = True
+
+    # Examiner prompt calibration text: "v2" (best-fit, default) or "v1" (the
+    # pre-audit production text). Pin "v1" until v2 is recalibrated with E1.
+    EXAMINER_PROMPT_VERSION: Literal["v1", "v2"] = "v2"
 
 
 settings = Settings()
