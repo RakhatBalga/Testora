@@ -38,9 +38,9 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -72,7 +72,7 @@ jobs:
         run: alembic check
 
       - name: Install media validator (ffprobe)
-        uses: awalsh128/cache-apt-pkgs-action@v1.4.3
+        uses: awalsh128/cache-apt-pkgs-action@v1.6.3
         with:
           packages: ffmpeg
           version: 1.0
@@ -96,9 +96,9 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "20"
           cache: npm
@@ -125,12 +125,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       - name: Build backend image (no push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: backend
           file: backend/Dockerfile
@@ -142,7 +142,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Validate compose config (defaults)
         run: docker compose config >/dev/null
