@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from app.domain.scoring import display_answer
 from app.domain.models.attempt import AnswerRecord, Attempt
 from app.domain.models.learning import MistakeReview
 from app.domain.models.mistake import Mistake
@@ -53,11 +54,6 @@ def _writing_items(db: Session, user_id: int, statuses: dict) -> list[dict]:
     return items
 
 
-def _display_answer(value) -> str:
-    values = value if isinstance(value, list) else [value]
-    return ", ".join(str(item) for item in values if item is not None)
-
-
 def _reading_items(db: Session, user_id: int, statuses: dict) -> list[dict]:
     rows = (
         db.query(AnswerRecord, Attempt, Question, Section, Test)
@@ -79,7 +75,7 @@ def _reading_items(db: Session, user_id: int, statuses: dict) -> list[dict]:
             "label": question.question_type.replace("_", " ").title(),
             "quote": None,
             "user_answer": record.user_answer,
-            "correct_answer": _display_answer(question.correct_answer),
+            "correct_answer": display_answer(question.correct_answer),
             "explanation": question.explanation,
             "evidence": [
                 span
@@ -117,7 +113,7 @@ def _listening_items(db: Session, user_id: int, statuses: dict) -> list[dict]:
             "label": (question.question_metadata or {}).get("target_skill", question.question_type).replace("_", " ").title(),
             "quote": None,
             "user_answer": record.user_answer,
-            "correct_answer": _display_answer(question.correct_answer),
+            "correct_answer": display_answer(question.correct_answer),
             "explanation": question.explanation,
             "evidence": [
                 span for span in (question.evidence or [])

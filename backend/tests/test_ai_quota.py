@@ -81,7 +81,7 @@ def test_failures_refund_reviews_but_cannot_bypass_daily_budget(quota_engine, mo
                 pytest.fail("Exhausted daily budget must never call the provider")
         assert error.value.status_code == 429
         assert error.value.detail["code"] == "ai_daily_limit"
-        assert error.value.detail["resets_at"].endswith("T00:00:00+00:00")
+        assert error.value.detail["resets_at"].endswith("T00:00:00+05:00")
         assert int(error.value.headers["Retry-After"]) > 0
 
 

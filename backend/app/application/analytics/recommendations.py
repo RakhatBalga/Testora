@@ -22,6 +22,7 @@ from app.domain.models.writing import WritingSubmission
 from app.domain.models.speaking import SpeakingSubmission
 from app.application.analytics.band_gap import compute_band_gap, generate_blockers, DEFAULT_TARGET
 from app.application.analytics.links import practice_href
+from app.infrastructure.time import local_today, to_local_date
 from app.application.analytics.weakness import compute_recurring_mistakes
 
 _SKILL_MINUTES = {"writing": 40, "speaking": 15, "reading": 20, "listening": 30}
@@ -263,13 +264,13 @@ def compute_recommendations(
     # ── 5. Longest inactive skill ─────────────────────────────────────────────
     if len(recs) < limit:
         last = _last_activity(db, user_id)
-        today = datetime.utcnow().date()
+        today = local_today()
         stale: list[tuple[int, str]] = []
         for skill in ("writing", "speaking", "reading", "listening"):
             if skill in seen_skills:
                 continue
             ts = last.get(skill)
-            age = (today - ts.date()).days if ts else 999
+            age = (today - to_local_date(ts)).days if ts else 999
             stale.append((age, skill))
         stale.sort(reverse=True)
         for age, skill in stale:

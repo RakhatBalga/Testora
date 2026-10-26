@@ -1,7 +1,7 @@
-from datetime import datetime
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Float, Index
 from sqlalchemy.orm import relationship
 from app.infrastructure.database import Base
+from app.infrastructure.time import utcnow
 
 
 class SpeakingTask(Base):
@@ -24,7 +24,7 @@ class SpeakingSubmission(Base):
     transcript = Column(String, nullable=True)
     band = Column(Float, nullable=True)
     feedback = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     task = relationship("SpeakingTask")
 

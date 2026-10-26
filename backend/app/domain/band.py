@@ -33,7 +33,8 @@ _LISTENING = [
 def band_from_raw(score: int, total: int, test_type: str) -> float:
     if total <= 0:
         return 0.0
-    raw40 = round(score / total * 40)
+    # Half-up, not Python's banker's round(): 22.5/40 is 23, not 22.
+    raw40 = math.floor(score / total * 40 + 0.5)
     table = _LISTENING if test_type == "listening" else _READING
     for threshold, band in table:
         if raw40 >= threshold:

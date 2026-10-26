@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.domain.scoring import _check, build_breakdown, grade_attempt
+from app.domain.scoring import is_correct as _check, build_breakdown, grade_attempt
 
 
 def question(question_type: str, correct_answer, question_id: int = 1):

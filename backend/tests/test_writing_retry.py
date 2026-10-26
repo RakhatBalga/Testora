@@ -1,11 +1,10 @@
-import asyncio
-
 import pytest
 from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.api.routers import writing
+from app.application import writing as writing_service
 from app.domain.models.mistake import Mistake
 from app.domain.models.user import User
 from app.domain.models.writing import WritingSubmission, WritingTask
@@ -112,19 +111,12 @@ def retry_fixture(db):
     return user, task, submission
 
 
-async def _immediate_grading(grade, /, **kwargs):
-    return grade(**kwargs)
-
-
 def test_retry_updates_existing_failed_submission(monkeypatch, db, retry_fixture):
     user, _task, submission = retry_fixture
     submission_id = submission.id
-    monkeypatch.setattr(writing, "get_writing_grader", lambda: _SuccessfulGrader())
-    monkeypatch.setattr(writing, "run_grading", _immediate_grading)
+    monkeypatch.setattr(writing_service, "get_writing_grader", lambda: _SuccessfulGrader())
 
-    out = asyncio.run(
-        writing.retry_submission(submission_id, db=db, current_user=user)
-    )
+    out = writing.retry_submission(submission_id, db=db, current_user=user)
 
     assert out["id"] == submission_id
     assert out["status"] == "graded"
@@ -141,17 +133,15 @@ def test_retry_updates_existing_failed_submission(monkeypatch, db, retry_fixture
 
 def test_retry_keeps_submission_failed_when_grading_fails(monkeypatch, db, retry_fixture):
     user, _task, submission = retry_fixture
-    monkeypatch.setattr(writing, "get_writing_grader", lambda: _ErrorGrader())
-    monkeypatch.setattr(writing, "run_grading", _immediate_grading)
+    monkeypatch.setattr(writing_service, "get_writing_grader", lambda: _ErrorGrader())
 
-    out = asyncio.run(
-        writing.retry_submission(submission.id, db=db, current_user=user)
-    )
+    out = writing.retry_submission(submission.id, db=db, current_user=user)
 
     assert out["id"] == submission.id
     assert out["status"] == "failed"
     assert out["band"] is None
     assert out["feedback"]["summary"].startswith("Automatic grading could not be completed")
+    assert "timeout" not in out["feedback"]["summary"]  # provider text is never shown
     assert db.query(Mistake).filter(Mistake.submission_id == submission.id).count() == 0
 
 
@@ -162,17 +152,17 @@ def test_retry_rejects_non_failed_submission(monkeypatch, db, retry_fixture):
     db.commit()
 
     with pytest.raises(HTTPException) as exc:
-        asyncio.run(writing.retry_submission(submission.id, db=db, current_user=user))
+        writing.retry_submission(submission.id, db=db, current_user=user)
 
     assert exc.value.status_code == 409
 
 
 def test_retry_cannot_bypass_exhausted_quota(monkeypatch, db, retry_fixture):
     user, _task, submission = retry_fixture
-    monkeypatch.setattr(writing.settings, "FREE_WRITING_SUBMISSIONS", 0)
-    monkeypatch.setattr(writing, "get_writing_grader", lambda: pytest.fail("Provider must not be called"))
+    monkeypatch.setattr(writing_service.settings, "FREE_WRITING_SUBMISSIONS", 0)
+    monkeypatch.setattr(writing_service, "get_writing_grader", lambda: pytest.fail("Provider must not be called"))
     with pytest.raises(HTTPException) as error:
-        asyncio.run(writing.retry_submission(submission.id, db=db, current_user=user))
+        writing.retry_submission(submission.id, db=db, current_user=user)
     assert error.value.status_code == 403
     db.refresh(submission)
     assert submission.status == "failed"

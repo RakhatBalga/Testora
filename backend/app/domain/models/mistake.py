@@ -1,8 +1,8 @@
-from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Index
 
 from app.infrastructure.database import Base
+from app.infrastructure.time import utcnow
 
 
 class Mistake(Base):
@@ -29,7 +29,7 @@ class Mistake(Base):
     correction = Column(Text, nullable=True)
     explanation = Column(Text, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     __table_args__ = (
         Index("ix_mistakes_user_category", "user_id", "category"),
