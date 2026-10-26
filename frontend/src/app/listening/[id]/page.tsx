@@ -13,14 +13,14 @@ import {
   type TestDetail,
 } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
-import { Button, Card, Skeleton } from "@/shared/ui";
+import { useExamTimer } from "@/shared/lib";
+import { Button, Card, ErrorState, Skeleton } from "@/shared/ui";
 import {
   buildGroups,
   flattenQuestions,
   isAnswered,
   type AnswerMap,
 } from "@/features/reading-session";
-import { useReadingTimer } from "@/features/reading-session";
 import {
   ListeningAudioPlayer,
   ListeningQuestions,
@@ -113,7 +113,9 @@ function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: Lis
     }
   }, [answers, flat, mode, router, sessionKey, test, writer]);
 
-  const { remaining, paused, pause, resume } = useReadingTimer(sessionKey, test.duration_minutes * 60, handleSubmit);
+  const { remaining, paused, pause, resume } = useExamTimer(sessionKey, test.duration_minutes * 60, handleSubmit, {
+    shouldSubmitStale: () => Object.keys(initial?.answers ?? {}).length > 0,
+  });
 
   useEffect(() => { timerRef.current = remaining; }, [remaining]);
   useEffect(() => {
@@ -226,7 +228,7 @@ export default function ListeningPage() {
   }, [testId, token]);
 
   if (!ready || !token) return null;
-  if (error) return <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
+  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   if (loading || !ready2) return <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-72 w-full" /></div>;
   if (!test) return <Card className="p-8 text-center text-slate-500">Listening test is unavailable.</Card>;
   return <ActiveSession test={test} mode="practice" initial={progress} />;

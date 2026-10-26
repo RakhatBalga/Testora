@@ -9,17 +9,16 @@ import {
   type AttemptResult,
   type TestDetail,
 } from "@/shared/api";
-import { useRequireAuth } from "@/shared/auth";
-import { Card } from "@/shared/ui";
-import { Button } from "@/shared/ui";
-import { Skeleton } from "@/shared/ui";
+import { useAuth, useRequireAuth } from "@/shared/auth";
+import { useExamTimer } from "@/shared/lib";
+import { Card, ErrorState, Skeleton, Button } from "@/shared/ui";
+import { examStorageKey } from "@/entities/test";
 import { ReadingPassage } from "@/features/reading-session";
 import { PassageAnnotator } from "@/features/reading-session";
 import { ReadingPassageNav } from "@/features/reading-session";
 import { ReadingQuestions } from "@/features/reading-session";
 import { ReadingTimer } from "@/features/reading-session";
 import { ReadingReviewSplit } from "@/features/reading-session";
-import { useReadingTimer } from "@/features/reading-session";
 import {
   buildGroups,
   flattenQuestions,
@@ -31,9 +30,10 @@ type Tab = "passage" | "questions";
 
 export default function ReadingPage() {
   const { token, ready } = useRequireAuth();
+  const { username } = useAuth();
   const params = useParams();
   const testId = Number(params?.id);
-  const storeKey = `reading-${testId}`;
+  const storeKey = examStorageKey("reading", username, testId);
 
   const [test, setTest] = useState<TestDetail | null>(null);
   const [answers, setAnswers] = useState<AnswerMap>({});
@@ -44,6 +44,7 @@ export default function ReadingPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [submitError, setSubmitError] = useState("");
 
   const passageScrollRef = useRef<HTMLDivElement>(null);
   const questionsScrollRef = useRef<HTMLDivElement>(null);
@@ -63,12 +64,13 @@ export default function ReadingPage() {
     if (!test || submittedRef.current) return;
     submittedRef.current = true;
     setSubmitting(true);
+    setSubmitError("");
     try {
       const payload = flat.map((q) => ({
         question_id: q.id,
         answer: answers[q.id] ?? null,
       }));
-      const elapsed = Math.max(0, test.duration_minutes * 60 - (remainingRef.current ?? 0));
+      const elapsed = Math.max(0, test.duration_minutes * 60 - (remainingRef.current ?? test.duration_minutes * 60));
       const res = await api.submit(test.id, payload, elapsed);
       localStorage.setItem(`${storeKey}-result`, String(res.id));
       localStorage.removeItem(`${storeKey}-answers`);
@@ -77,17 +79,30 @@ export default function ReadingPage() {
       setResult(res);
       window.scrollTo({ top: 0 });
     } catch (err) {
+      // Keep the exam on screen (answers intact) and let the student retry.
       submittedRef.current = false;
-      setError(err instanceof Error ? err.message : "Submit failed");
+      setSubmitError(err instanceof Error ? err.message : "Submit failed");
     } finally {
       setSubmitting(false);
     }
   }, [test, flat, answers, storeKey]);
 
-  const { remaining, paused, pause, resume, clear: clearTimer } = useReadingTimer(
+  // The clock starts only once the real duration is known and no result is
+  // being reviewed. A deadline that passed while away submits the saved
+  // answers; with nothing saved it restarts instead of filing an empty attempt.
+  const { remaining, paused, pause, resume, clear: clearTimer } = useExamTimer(
     storeKey,
-    (test?.duration_minutes ?? 60) * 60,
-    handleSubmit
+    test && !result ? test.duration_minutes * 60 : null,
+    handleSubmit,
+    {
+      shouldSubmitStale: () => {
+        try {
+          return Object.keys(JSON.parse(localStorage.getItem(`${storeKey}-answers`) ?? "{}")).length > 0;
+        } catch {
+          return false;
+        }
+      },
+    }
   );
 
   useEffect(() => {
@@ -121,7 +136,10 @@ export default function ReadingPage() {
         if (savedResult) {
           try {
             const attempt = await api.getAttempt(Number(savedResult));
-            if (!cancelled && attempt.test_id === data.id && attempt.test_type === "reading") setResult(attempt);
+            if (!cancelled && attempt.test_id === data.id && attempt.test_type === "reading") {
+              setResult(attempt);
+              clearTimerRef.current?.();
+            }
           } catch {
             if (!requestedResult) localStorage.removeItem(`${storeKey}-result`);
           }
@@ -194,7 +212,7 @@ export default function ReadingPage() {
     );
   }
   if (error) {
-    return <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>;
+    return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   }
   if (!test || flat.length === 0 || !group) {
     return <Card className="p-8 text-center text-slate-500">This test has no questions yet.</Card>;
@@ -208,7 +226,7 @@ export default function ReadingPage() {
   // ---- Exam mode: full-bleed 95vw breakout, bounded to the viewport so only
   // the passage/question panels scroll (the exam chrome stays fixed). ----
   return (
-    <div className="relative left-1/2 flex h-[calc(100vh-8rem)] min-h-[480px] w-[95vw] max-w-[1600px] -translate-x-1/2 flex-col overflow-hidden">
+    <div className="relative left-1/2 flex h-[calc(100dvh-8rem)] min-h-[480px] w-[95vw] max-w-[1600px] -translate-x-1/2 flex-col overflow-hidden">
       {/* Single compact exam header — title · passage tabs · progress · timer ·
           Submit on ONE row, so chrome above the passage stays ~48px. */}
       <div className="flex flex-shrink-0 items-center gap-3 pb-2">
@@ -237,6 +255,15 @@ export default function ReadingPage() {
         </Button>
       </div>
 
+      {submitError && (
+        <div role="alert" className="mb-2 flex flex-shrink-0 flex-wrap items-center justify-between gap-2 rounded-xl bg-red-50 px-4 py-2 text-sm text-red-700">
+          <span>{submitError} Your answers are saved on this device.</span>
+          <Button size="sm" onClick={() => void handleSubmit()} disabled={submitting}>
+            Retry submit
+          </Button>
+        </div>
+      )}
+
       {/* Mobile/tablet tab switch */}
       <div className="mb-3 flex flex-shrink-0 gap-1 rounded-xl border border-[var(--border)] bg-slate-50 p-1 lg:hidden">
         {(["passage", "questions"] as Tab[]).map((t) => (
@@ -257,13 +284,18 @@ export default function ReadingPage() {
       {/* Split: 60/40 on laptops (lg), 65/35 only on very large screens (2xl).
           Each column scrolls independently — grid-rows minmax(0,1fr) + min-h-0
           caps the row so children scroll internally instead of stretching. */}
+      {paused && (
+        <p role="status" className="mb-2 flex-shrink-0 rounded-xl bg-slate-100 px-4 py-2 text-center text-sm font-medium text-slate-600">
+          Timer paused. The passage and questions are hidden until you resume.
+        </p>
+      )}
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] gap-4 lg:grid-cols-[60fr_40fr] lg:gap-5 2xl:grid-cols-[65fr_35fr]">
         <div
           ref={passageScrollRef}
           data-vocab-selectable
           className={`min-h-0 overflow-y-auto rounded-xl bg-white px-7 py-5 shadow-sm ring-1 ring-slate-100 sm:px-10 ${
             tab === "passage" ? "block" : "hidden"
-          } lg:block`}
+          } lg:block ${paused ? "invisible" : ""}`}
         >
           <ReadingPassage section={group.section} />
         </div>
@@ -277,7 +309,7 @@ export default function ReadingPage() {
           ref={questionsScrollRef}
           className={`min-h-0 overflow-y-auto rounded-xl bg-white p-3.5 shadow-sm ring-1 ring-slate-100 sm:p-4 ${
             tab === "questions" ? "block" : "hidden"
-          } lg:block`}
+          } lg:block ${paused ? "invisible" : ""}`}
         >
           <ReadingQuestions
             group={group}

@@ -5,9 +5,8 @@ import { useParams } from "next/navigation";
 import { CheckCircle2, XCircle, Target, Clock, Percent, Flag } from "lucide-react";
 import { api, AttemptResult } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
-import { Card } from "@/shared/ui";
-import { LinkButton } from "@/shared/ui";
-import { Skeleton } from "@/shared/ui";
+import { Card, ErrorState, LinkButton, Skeleton } from "@/shared/ui";
+import { examHref } from "@/entities/test";
 import { ResultBreakdown } from "@/features/test-session";
 
 function formatDuration(seconds: number | null): string | null {
@@ -46,7 +45,7 @@ export default function ResultPage() {
     );
   }
   if (error) {
-    return <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>;
+    return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   }
   if (!result) return null;
 
@@ -143,7 +142,7 @@ export default function ResultPage() {
 
       <div className="flex flex-wrap gap-3">
         <LinkButton href="/">Back to dashboard</LinkButton>
-        <LinkButton href={`/test/${result.test_id}`} variant="secondary">
+        <LinkButton href={examHref(result.test_type, result.test_id)} variant="secondary">
           Retake test
         </LinkButton>
       </div>

@@ -11,7 +11,7 @@ type Props = {
 
 function RadioRow({ question, value, onChange }: Omit<Props, "active" | "onFocus">) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5" role="radiogroup" aria-label={`Question ${question.number}`}>
       {question.options!.map((option, i) => {
         const selected = value === option;
         const letter = String.fromCharCode(65 + i);
@@ -91,6 +91,7 @@ function Field({ question, value, active, onChange, onFocus }: Props) {
   ) {
     return (
       <select
+        aria-label={`Question ${question.number}`}
         value={typeof value === "string" ? value : ""}
         onChange={(e) => onChange(e.target.value)}
         onFocus={onFocus}
@@ -107,6 +108,12 @@ function Field({ question, value, active, onChange, onFocus }: Props) {
   return (
     <input
       type="text"
+      aria-label={`Question ${question.number}`}
+      // Exam answers must not be fixed by the browser or the phone keyboard.
+      spellCheck={false}
+      autoCorrect="off"
+      autoCapitalize="off"
+      autoComplete="off"
       value={typeof value === "string" ? value : ""}
       onChange={(e) => onChange(e.target.value)}
       onFocus={onFocus}

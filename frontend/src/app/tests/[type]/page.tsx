@@ -3,12 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, notFound } from "next/navigation";
 import { api, type AttemptSummary, type Test } from "@/shared/api";
-import { useRequireAuth } from "@/shared/auth";
+import { useAuth, useRequireAuth } from "@/shared/auth";
 import { Skeleton } from "@/shared/ui";
 import { ContinueCard } from "@/entities/test";
 import { TestCard } from "@/entities/test";
 import { RecentActivity } from "@/entities/test";
-import { accentFor, deriveProgress, type TestProgress } from "@/entities/test";
+import { accentFor, deriveProgress, examHref, type TestProgress } from "@/entities/test";
 
 const META: Record<string, { eyebrow: string; title: string; description: string }> = {
   reading: {
@@ -23,14 +23,9 @@ const META: Record<string, { eyebrow: string; title: string; description: string
   },
 };
 
-function examHref(test: Test): string {
-  if (test.test_type === "reading") return `/reading/${test.id}`;
-  if (test.test_type === "listening") return `/listening/${test.id}`;
-  return `/test/${test.id}`;
-}
-
 export default function TestLibraryPage() {
   const { token, ready } = useRequireAuth();
+  const { username } = useAuth();
   const params = useParams();
   const type = String(params?.type ?? "");
   const meta = META[type];
@@ -55,9 +50,9 @@ export default function TestLibraryPage() {
   // Derive per-test progress once (reads localStorage), keyed by test id.
   const progressById = useMemo(() => {
     const map = new Map<number, TestProgress>();
-    for (const t of tests) map.set(t.id, deriveProgress(t, attempts));
+    for (const t of tests) map.set(t.id, deriveProgress(t, attempts, username));
     return map;
-  }, [tests, attempts]);
+  }, [tests, attempts, username]);
 
   // Most recent in-progress test → "Continue last session".
   const continueTest = useMemo(() => {
@@ -91,7 +86,7 @@ export default function TestLibraryPage() {
         <div className="animate-fade-up">
           <ContinueCard
             test={continueTest.test}
-            href={examHref(continueTest.test)}
+            href={examHref(continueTest.test.test_type, continueTest.test.id)}
             progress={continueTest.p}
           />
         </div>
@@ -117,7 +112,7 @@ export default function TestLibraryPage() {
               <TestCard
                 key={t.id}
                 test={t}
-                href={examHref(t)}
+                href={examHref(t.test_type, t.id)}
                 progress={progressById.get(t.id)!}
               />
             ))}

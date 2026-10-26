@@ -10,7 +10,6 @@ export {
   type NumberedQuestion,
   type ReadingGroup,
 } from "./model/types";
-export { useReadingTimer } from "./model/useReadingTimer";
 export { EvidencePassage } from "./ui/EvidencePassage";
 export { ReadingPassage, parsePassage, type Para } from "./ui/ReadingPassage";
 export { PassageAnnotator } from "./ui/PassageAnnotator";

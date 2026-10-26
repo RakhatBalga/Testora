@@ -5,14 +5,10 @@ import Link from "next/link";
 import { Clock } from "lucide-react";
 import { api, SpeakingTask } from "@/shared/api";
 import { useRequireAuth } from "@/shared/auth";
+import { SPEAKING_AVAILABLE } from "@/shared/config";
 import { Badge } from "@/shared/ui";
 import { Card } from "@/shared/ui";
 import { Skeleton } from "@/shared/ui";
-
-// Speaking grading is not live yet (mock grader returns Band 0), so the whole
-// section is gated off to avoid disappointing recordings. Flip to true once
-// real Speaking grading ships.
-const SPEAKING_AVAILABLE = false;
 
 const PARTS = [
   { part: 1, label: "Part 1", detail: "Introduction" },

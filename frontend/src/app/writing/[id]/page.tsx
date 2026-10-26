@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, Lock, Sparkles, Trash2 } from "lucide-react";
 import { api, FreeQuota, WritingTask } from "@/shared/api";
 import { useAuth, useRequireAuth } from "@/shared/auth";
-import { Badge } from "@/shared/ui";
-import { Button } from "@/shared/ui";
-import { Card } from "@/shared/ui";
-import { Skeleton } from "@/shared/ui";
+import { useExamTimer } from "@/shared/lib";
+import { Badge, Button, Card, ErrorState, Skeleton } from "@/shared/ui";
 import { WritingTaskVisual } from "@/features/writing-task/ui/WritingTaskVisual";
 
 // Count words the way an IELTS examiner does, matching the backend's
@@ -35,6 +33,8 @@ function taskTone(taskType: number) {
   return taskType === 1 ? "blue" : "violet";
 }
 
+const noop = () => {};
+
 const REVIEW_STEPS = [
   "Reading essay",
   "Checking criteria",
@@ -51,11 +51,11 @@ export default function WritingTaskPage() {
 
   const [task, setTask] = useState<WritingTask | null>(null);
   const [answer, setAnswer] = useState("");
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [draftRecovered, setDraftRecovered] = useState(false);
+  const submitLock = useRef(false);
   const [quota, setQuota] = useState<FreeQuota | null>(null);
   const draftKey = `testora.writing.draft.${username ?? "anonymous"}.${taskId}`;
 
@@ -65,7 +65,6 @@ export default function WritingTaskPage() {
       .getWritingTask(taskId)
       .then((data) => {
         setTask(data);
-        setTimeLeft(data.duration_minutes * 60);
         const saved = localStorage.getItem(draftKey);
         if (saved) {
           setAnswer(saved);
@@ -88,13 +87,13 @@ export default function WritingTaskPage() {
     return () => window.clearTimeout(timer);
   }, [answer, draftKey, submitting, task]);
 
-  useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0 || submitting) return;
-    const timer = setTimeout(() => {
-      setTimeLeft((seconds) => (seconds === null ? null : Math.max(seconds - 1, 0)));
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [timeLeft, submitting]);
+  // Deadline-based and persisted per user+task, so a refresh or a background
+  // tab never changes the real time left. Advisory: nothing happens at zero.
+  const { remaining: timeLeft, clear: clearTimer } = useExamTimer(
+    `testora.writing.${username ?? "anonymous"}.${taskId}`,
+    task ? task.duration_minutes * 60 : null,
+    noop,
+  );
 
   const wordCount = countWords(answer);
   const meetsMinimum = task ? wordCount >= task.min_words : false;
@@ -103,13 +102,15 @@ export default function WritingTaskPage() {
   const lastFreeReview = quota !== null && !quota.exempt && quota.remaining === 1;
 
   const handleSubmit = async () => {
-    if (!task || submitting || answer.trim() === "") return;
+    if (!task || submitting || submitLock.current || answer.trim() === "") return;
+    submitLock.current = true;
     setSubmitting(true);
     setError("");
     try {
       const startedAt = Date.now();
       const submission = await api.submitWriting(task.id, answer.trim());
       localStorage.removeItem(draftKey);
+      clearTimer();
       const elapsed = Date.now() - startedAt;
       if (elapsed < MIN_REVIEW_DISPLAY_MS) {
         await new Promise((resolve) => {
@@ -119,6 +120,7 @@ export default function WritingTaskPage() {
       router.push(`/writing/result/${submission.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Submit failed");
+      submitLock.current = false;
       setSubmitting(false);
     }
   };
@@ -134,9 +136,7 @@ export default function WritingTaskPage() {
     );
   }
   if (!task && error) {
-    return (
-      <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
-    );
+    return <ErrorState message={error} onRetry={() => window.location.reload()} />;
   }
   if (!task) return null;
 
@@ -262,6 +262,11 @@ export default function WritingTaskPage() {
         </div>
         <textarea
           id="writing-answer"
+          // Real IELTS has no spellcheck: don't flatter the student's band.
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="off"
+          autoComplete="off"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
           placeholder="Write your response here..."

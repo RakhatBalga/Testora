@@ -34,6 +34,7 @@ export function ListeningAudioPlayer({
   const initialized = useRef(false);
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(initialPosition);
+  const [audioError, setAudioError] = useState("");
   const resolvedSrc = mediaUrl(src);
 
   useEffect(() => {
@@ -52,8 +53,13 @@ export function ListeningAudioPlayer({
   const play = async () => {
     const audio = audioRef.current;
     if (!audio) return;
-    await audio.play();
-    setPlaying(true);
+    setAudioError("");
+    try {
+      await audio.play();
+      setPlaying(true);
+    } catch {
+      setAudioError("Could not play the audio. Check your connection and press play again.");
+    }
   };
 
   const pause = () => {
@@ -100,13 +106,14 @@ export function ListeningAudioPlayer({
   const displayDuration = mode === "practice" ? sectionEnd - sectionStart : sliderMax;
 
   return (
-    <div className="flex min-h-14 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-slate-700">
+    <div className="flex min-h-14 flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-slate-700">
       <audio
         ref={audioRef}
         src={resolvedSrc}
         preload="auto"
         onTimeUpdate={timeChanged}
         onEnded={onEnded}
+        onError={() => setAudioError("The audio failed to load. Check your connection and reload the page.")}
         onPause={() => setPlaying(false)}
         onPlay={() => setPlaying(true)}
       />
@@ -144,6 +151,7 @@ export function ListeningAudioPlayer({
         />
       </div>
       <span className="hidden rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-semibold uppercase text-slate-500 sm:block">{mode}</span>
+      {audioError && <p role="alert" className="basis-full text-xs font-medium text-red-700">{audioError}</p>}
     </div>
   );
 }
