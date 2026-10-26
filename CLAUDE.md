@@ -14,10 +14,11 @@ aggregation over stored data; the LLM is called only at grading time.
   free plan: sleeps when idle, cold start about a minute). Migrations run on boot (`start-render.sh`).
 - **Database:** PostgreSQL on Neon. No Supabase.
 - **AI:** Gemini in production (`AI_PROVIDER=gemini`), behind `backend/app/infrastructure/ai/`
-  (`mock | claude | gemini`, `qwen` planned; see `factory.py`). `mock` is for development and CI only;
-  the API refuses to start in production on the mock grader. A locally hosted Qwen model
-  (OpenAI-compatible server) is planned as the replacement once experiment E1 (docs/09) shows
-  comparable accuracy.
+  (`mock | claude | gemini | qwen`, see `factory.py`). `mock` is for development and CI only;
+  the API refuses to start in production on the mock grader. A self-hosted Qwen model
+  (OpenAI-compatible server, `AI_PROVIDER=qwen`, guide: `docs/qwen.md`, serving configs in `ai/`) is implemented
+  and selectable by env, but not used in production and not yet measured: it replaces Gemini only if
+  experiment E1 (docs/09) shows comparable accuracy.
 - CI is `.github/workflows/ci.yml`; Render deploys `main` after the checks pass. Details: `docs/operations.md`.
 
 ## How to run locally

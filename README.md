@@ -55,7 +55,7 @@ The report sections below live on `main`. The submission tag will be re-cut on t
 - `backend/` — FastAPI app (Clean Architecture), Alembic migrations, content packs (`content/`), content importer and validators (`content_tools/`), seed and dev scripts (`scripts/`), tests (`tests/`), ML research and evaluation code (`ml/`, `calibration/`)
 - `docs/` — diploma documentation and the operations runbook ([docs/operations.md](docs/operations.md)); `docs/diagrams/` — editable diagram sources (`.mmd`, `.puml`) with PNG/SVG exports
 - `scripts/` — database backup and restore helpers
-- `ai/` — serving configuration for a locally hosted model (planned Qwen replacement)
+- `ai/` — serving configs for a self-hosted Qwen model (Ollama, vLLM), see [docs/qwen.md](docs/qwen.md)
 - `.github/workflows/` — CI and the manual database-backup workflow; `render.yaml` — Render service definition; `docker-compose.yml` — local full stack
 - `.env.example`, `backend/.env.example`, `frontend/.env.example` — configuration examples (no real secrets in the repo)
 
@@ -66,7 +66,7 @@ YouTrack task `TST-<id>` → branch `TST-<id>-short-name` → commits `TST-<id>:
 - **Frontend:** Next.js 16 (App Router) + TypeScript + Tailwind v4 — `frontend/`, hosted on Vercel
 - **Backend:** FastAPI + SQLAlchemy + Alembic — `backend/`, Docker image on Render (free plan)
 - **DB:** PostgreSQL on Neon
-- **AI:** Gemini behind `backend/app/infrastructure/ai/` (`AI_PROVIDER=mock | claude | gemini`; production uses Gemini). A locally hosted Qwen model behind an OpenAI-compatible API is planned as a replacement once experiment E1 shows comparable accuracy; it is selected with `AI_PROVIDER=qwen`.
+- **AI:** Gemini behind `backend/app/infrastructure/ai/` (`AI_PROVIDER=mock | claude | gemini`; production uses Gemini). A self-hosted Qwen model behind an OpenAI-compatible API is implemented as a provider (`AI_PROVIDER=qwen`, guide: [docs/qwen.md](docs/qwen.md)) but is not used in production and has not been measured yet; it is meant to replace Gemini only if experiment E1 shows comparable accuracy.
 
 ## Local development
 
@@ -105,7 +105,7 @@ Main variables (full list: `backend/.env.example`, `render.yaml`, [docs/operatio
 | `APP_ENV` | backend | `production` enables the startup safety checks (no mock grader, strong secret) |
 | `CORS_ORIGINS`, `FRONTEND_URL` | backend | Allowed browser origins and the public frontend URL |
 | `TRUSTED_PROXY_CIDRS` | backend | Proxies whose `X-Forwarded-For` is trusted for rate limiting |
-| `AI_PROVIDER` | backend | `mock`, `claude`, `gemini` (or `qwen`, planned) |
+| `AI_PROVIDER` | backend | `mock`, `claude`, `gemini` or `qwen` (self-hosted, `QWEN_*` variables, see [docs/qwen.md](docs/qwen.md)) |
 | `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FAST_MODEL` | backend | Gemini key; examiner model; cheaper model for coach text and rewrites |
 | `FREE_WRITING_SUBMISSIONS`, `FREE_SPEAKING_SUBMISSIONS`, `AI_DAILY_ATTEMPTS`, `AI_GLOBAL_DAILY_ATTEMPTS` | backend | Free-tier quota, per-user and global daily AI budget |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | backend | Google sign-in (the button also needs `NEXT_PUBLIC_GOOGLE_CLIENT_ID` in the frontend build) |

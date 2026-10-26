@@ -55,7 +55,7 @@ Test a server with one real grading: `cd backend && venv/bin/python ../ai/smoke_
 
 ## 1. On the Mac (development and demo)
 
-The owner's Mac is an M4 with 16 GB unified memory. Roughly 10–11 GB of that is
+The development Mac is reported to be an M4 with 16 GB unified memory (unverified). Roughly 10–11 GB of that is
 usable by the GPU, so **`qwen3:8b` (Q4, ~5 GB)** is the realistic model;
 `qwen3:14b` (~9 GB) loads but leaves little room for the 16k context.
 
@@ -127,8 +127,9 @@ URL plus an API key**:
   and stop the tunnel after the demo. The Mac must stay awake and online.
 
 On Render set `AI_PROVIDER=qwen`, `QWEN_BASE_URL=https://…/v1`, `QWEN_MODEL`,
-`QWEN_API_KEY`, `QWEN_TIMEOUT_SECONDS`. `ping_qwen()` in
-`app/infrastructure/ai/qwen.py` can be wired into `/health/ready`.
+`QWEN_API_KEY`, `QWEN_TIMEOUT_SECONDS`. With `AI_PROVIDER=qwen`, `/health/ready` calls `ping_qwen()`
+(`app/infrastructure/ai/qwen.py`) and returns 503 if the server or the model is
+unavailable. Set `MAX_CONCURRENT_GRADINGS` to 1-2 for a single local model.
 
 ## Latency and cost (estimates, measure before relying on them)
 
@@ -146,4 +147,4 @@ GPU prices vary by provider and week. A rented GPU only pays off for a batch
 (e.g. an evaluation run of 500 essays in an hour) or steady traffic; for a
 few essays a day Gemini is cheaper. Self-hosting is about **data control**
 (student essays never leave our servers) and independence from one vendor.
-The frontend's submit timeout must exceed the slowest grading time above.
+The frontend's Writing submit timeout is 420 s, which must exceed the slowest grading time above.

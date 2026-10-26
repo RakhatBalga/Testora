@@ -39,14 +39,14 @@ Render (backend), as set in `render.yaml`; secrets are `sync: false` and must be
 | `GEMINI_API_KEY` (secret) | Required for `gemini` |
 | `GEMINI_MODEL` | Examiner model, `gemini-2.5-flash` |
 | `GEMINI_FAST_MODEL` | Cheaper model for coach text and rewrites, `gemini-2.5-flash-lite` |
-| `QWEN_BASE_URL`, `QWEN_MODEL`, `QWEN_API_KEY`, `QWEN_TIMEOUT_SECONDS` | Planned local Qwen provider (OpenAI-compatible API, e.g. `http://host:11434/v1`). Not set in production; used only with `AI_PROVIDER=qwen` |
+| `QWEN_BASE_URL`, `QWEN_MODEL`, `QWEN_API_KEY`, `QWEN_TIMEOUT_SECONDS` | Self-hosted Qwen provider (OpenAI-compatible API, e.g. `http://host:11434/v1`; also `QWEN_DISABLE_THINKING`). Not set in production; used only with `AI_PROVIDER=qwen`. Render cannot reach `localhost`, so the model needs a public HTTPS URL plus an API key. Use `MAX_CONCURRENT_GRADINGS` 1-2 for a single local model. Guide: [qwen.md](qwen.md) |
 | `FREE_WRITING_SUBMISSIONS`, `FREE_SPEAKING_SUBMISSIONS` | Lifetime free reviews per user (2 and 2) |
 | `AI_DAILY_ATTEMPTS`, `AI_GLOBAL_DAILY_ATTEMPTS` | Daily AI calls per user (20) and for the whole service (400) |
 | `MAX_CONCURRENT_GRADINGS` | Simultaneous model calls (default 8) |
 | `SPEAKING_ENABLED` | `false`: Speaking is closed on the server until it launches |
 | `STORAGE_BACKEND` | `database`: avatars and audio are stored in PostgreSQL (`stored_files`), because the container disk is ephemeral |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` (secrets) | Google sign-in. `GOOGLE_REDIRECT_URI` must equal the callback registered in Google Cloud |
-| `SENTRY_DSN` (secret) | Optional error tracking; see Monitoring |
+| `SENTRY_DSN` (secret) | Optional error tracking; inactive until `sentry-sdk` is installed, see Monitoring |
 | `LOG_LEVEL` | `INFO` |
 
 Vercel (frontend): `NEXT_PUBLIC_API_URL` (public API origin; it is also the origin allowed by the
@@ -65,7 +65,7 @@ Render; without it the Google button is not rendered).
 | `/health` | Back-compat liveness alias | `200 {"status":"ok"}` |
 
 `/health/ready` returns `503` if the database is unreachable, or in production if the effective grader
-is mock. Render deliberately uses the liveness path: readiness queries the database and would keep the
+is mock; with `AI_PROVIDER=qwen` it also pings the Qwen server and fails if the server or the model is unavailable. Render deliberately uses the liveness path: readiness queries the database and would keep the
 Neon compute awake around the clock. Point an external monitor at `/health/ready` only at a low
 frequency. The frontend pings `/health/live` on the landing and login pages to wake the backend.
 
@@ -135,8 +135,7 @@ Logs are structured and carry a request id (`X-Request-ID` response header). Key
 | Budget exhausted | `503` from the global daily AI budget | any |
 | Readiness | `/health/ready` non-200 | any (low-frequency external monitor) |
 
-Error tracking: set `SENTRY_DSN` **and** add `sentry-sdk` to `backend/requirements.txt`; the package is
-not installed in the production image today, so the variable alone does nothing.
+Error tracking is not wired yet: the code supports `SENTRY_DSN`, but `sentry-sdk` is not in `backend/requirements.txt`, so the variable does nothing in the production image until the package is added.
 
 ## Cost and abuse protection
 

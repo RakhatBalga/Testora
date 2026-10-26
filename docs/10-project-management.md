@@ -42,7 +42,7 @@ Supervision: weekly meeting with the supervisor; a demo of the working version e
 |---|---|---|---|---|
 | R1 | Not enough expert-scored essays/recordings for a reliable accuracy experiment | Medium | High | Combine public scored datasets with essays scored by certified teachers; start collection in November; report confidence intervals |
 | R2 | LLM grading is unstable across runs or drifts after provider model updates | Medium | High | Fixed model version and temperature, schema-validated output, repeated-run stability test, provider-independent layer to switch models (Gemini, and later Qwen, are compared with the same E1 protocol) |
-| R3 | LLM API cost or rate limits exceed the budget | Medium | Medium | Free-tier quota per user, atomic quota reservation, global daily AI budget, cheaper model (`gemini-2.5-flash-lite`) for secondary tasks, caching; longer term a locally hosted Qwen model |
+| R3 | LLM API cost or rate limits exceed the budget | Medium | Medium | Free-tier quota per user, atomic quota reservation, global daily AI budget, cheaper model (`gemini-2.5-flash-lite`) for secondary tasks, caching; longer term a self-hosted Qwen model (implemented, not yet measured) |
 | R4 | Whisper errors on accented speech reduce Speaking score quality | Medium | Medium | Compare model sizes by WER on our recordings; use ASR confidence as a feature; report error by accent where possible |
 | R5 | Cold start: adaptive models have too few responses per item/user | High | Medium | Regularized Rasch model, explicit cold-start rules, error-rate baseline as fallback |
 | R6 | Free hosting limits (sleep after inactivity, database limits, non-commercial frontend plan) affect the pilot | Medium | Medium | Warm-up before demos/pilot (the frontend also pings the backend); manual database backups (`scripts/backup_prod.sh`, no scheduled backup yet); move to a paid plan or a single VPS if needed (section 5) |
@@ -53,7 +53,7 @@ Supervision: weekly meeting with the supervisor; a demo of the working version e
 ## 10.5 Dependencies
 | Dependency | Type | Used for | Fallback |
 |---|---|---|---|
-| Google Gemini API | External service | Writing/Speaking assessment | Claude via the same provider interface; deterministic mock grader for development. Planned replacement: a locally hosted Qwen model (OpenAI-compatible server on the team's machine or rented GPUs), switched by `AI_PROVIDER=qwen` once E1 shows comparable accuracy |
+| Google Gemini API | External service | Writing/Speaking assessment | Claude via the same provider interface; deterministic mock grader for development. Alternative provider implemented: a self-hosted Qwen model (OpenAI-compatible server on the team's machine or rented GPUs, `AI_PROVIDER=qwen`, see `docs/qwen.md`); not used in production and not yet measured, to be adopted only if E1 shows comparable accuracy |
 | Google OAuth | External service | Sign-in | Username + password login |
 | Vercel, Render, Neon | Hosting | Frontend, backend, PostgreSQL | Docker Compose deployment on a single VPS (`docker-compose.yml`) |
 | OpenAI Whisper (open-source) | Library/model | Speaking transcription (research) | Cloud speech-to-text |
