@@ -1,9 +1,9 @@
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.api.dependencies import get_current_user, get_db
+from app.infrastructure.time import utcnow
+from app.api.dependencies import get_current_user, get_db, user_rate_limit
+from app.api.schemas.analytics import Payload
 from app.api.schemas.learning import DiagnosticStartIn, MistakeStatusIn, PlanStatusIn
 from app.application.learning import (
     accept_diagnostic_level,
@@ -23,7 +23,7 @@ from app.application.learning.study_plan import week_start
 router = APIRouter()
 
 
-@router.get("/dashboard")
+@router.get("/dashboard", response_model=Payload)
 def dashboard(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -31,7 +31,7 @@ def dashboard(
     return dashboard_summary(db, current_user)
 
 
-@router.get("/diagnostic")
+@router.get("/diagnostic", response_model=Payload)
 def get_diagnostic(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -39,7 +39,8 @@ def get_diagnostic(
     return diagnostic_state(db, current_user.id)
 
 
-@router.post("/diagnostic/start", status_code=status.HTTP_201_CREATED)
+@router.post("/diagnostic/start", status_code=status.HTTP_201_CREATED, response_model=Payload,
+             dependencies=[Depends(user_rate_limit("learning-write", 30))])
 def begin_diagnostic(
     payload: DiagnosticStartIn,
     db: Session = Depends(get_db),
@@ -48,7 +49,7 @@ def begin_diagnostic(
     return start_diagnostic(db, current_user.id, payload.skills)
 
 
-@router.post("/diagnostic/refresh")
+@router.post("/diagnostic/refresh", response_model=Payload)
 def check_diagnostic(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -59,7 +60,7 @@ def check_diagnostic(
     return result
 
 
-@router.post("/diagnostic/accept-level")
+@router.post("/diagnostic/accept-level", response_model=Payload)
 def accept_level(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -70,7 +71,7 @@ def accept_level(
     return result
 
 
-@router.post("/diagnostic/skip")
+@router.post("/diagnostic/skip", response_model=Payload)
 def skip_diagnostic(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -79,7 +80,7 @@ def skip_diagnostic(
         user_id=current_user.id,
         status="skipped",
         skills=[],
-        completed_at=datetime.utcnow(),
+        completed_at=utcnow(),
     )
     db.add(session)
     db.commit()
@@ -87,7 +88,7 @@ def skip_diagnostic(
     return diagnostic_state(db, current_user.id)
 
 
-@router.get("/study-plan")
+@router.get("/study-plan", response_model=Payload)
 def study_plan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -95,7 +96,7 @@ def study_plan(
     return get_weekly_plan(db, current_user)
 
 
-@router.post("/study-plan/recalculate")
+@router.post("/study-plan/recalculate", response_model=Payload, dependencies=[Depends(user_rate_limit("learning-write", 30))])
 def recalculate_study_plan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -103,7 +104,7 @@ def recalculate_study_plan(
     return get_weekly_plan(db, current_user, recalculate=True)
 
 
-@router.post("/study-plan/reset")
+@router.post("/study-plan/reset", response_model=Payload)
 def reset_study_plan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -116,7 +117,7 @@ def reset_study_plan(
     return get_weekly_plan(db, current_user, recalculate=True)
 
 
-@router.patch("/study-plan/{item_id}")
+@router.patch("/study-plan/{item_id}", response_model=Payload)
 def update_plan_item(
     item_id: int,
     payload: PlanStatusIn,
@@ -129,7 +130,7 @@ def update_plan_item(
     return item
 
 
-@router.get("/study-plan/{item_id}/explain")
+@router.get("/study-plan/{item_id}/explain", response_model=Payload)
 def explain_plan_item(
     item_id: int,
     db: Session = Depends(get_db),
@@ -141,7 +142,7 @@ def explain_plan_item(
     return {"id": item.id, "title": item.title, "reason": item.reason, "source": {"type": item.source_type, "ref": item.source_ref}}
 
 
-@router.get("/mistakes")
+@router.get("/mistakes", response_model=Payload)
 def mistakes(
     skill: str | None = Query(None, pattern="^(writing|reading|listening)$"),
     review_status: str | None = Query(None, alias="status", pattern="^(new|reviewing|mastered)$"),
@@ -153,7 +154,7 @@ def mistakes(
     return list_notebook(db, current_user.id, skill, review_status, page, page_size)
 
 
-@router.patch("/mistakes/{skill}/{source_id}")
+@router.patch("/mistakes/{skill}/{source_id}", response_model=Payload)
 def update_mistake(
     skill: str,
     source_id: int,

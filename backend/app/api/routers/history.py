@@ -11,11 +11,12 @@ from app.api.dependencies import get_db, get_current_user
 from app.domain.models.user import User
 from app.application.history import list_history, get_history_item
 from app.application.comparison import compare_history
+from app.api.schemas.analytics import HistoryPageOut, Payload
 
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", response_model=HistoryPageOut)
 def history_list(
     skill: str | None = Query(None, pattern="^(writing|speaking|reading|listening)$"),
     sort: str = Query("newest", pattern="^(newest|oldest|highest|lowest)$"),
@@ -39,7 +40,7 @@ def history_list(
     return {"items": items[start : start + page_size], "total": total, "page": page, "page_size": page_size}
 
 
-@router.get("/compare")
+@router.get("/compare", response_model=Payload)
 def history_compare(
     a: str = Query(...),
     b: str = Query(...),
@@ -52,7 +53,7 @@ def history_compare(
     return result
 
 
-@router.get("/{item_id}")
+@router.get("/{item_id}", response_model=Payload)
 def history_detail(
     item_id: str,
     db: Session = Depends(get_db),
