@@ -1,4 +1,5 @@
 """Validate the versioned Testora Listening benchmark and its media assembly."""
+
 from __future__ import annotations
 
 import argparse
@@ -10,20 +11,35 @@ import sys
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[1]
 CONTENT_DIR = ROOT / "content/listening"
 FRONTEND_PUBLIC = ROOT.parent / "frontend/public"
 REPORT_PATH = CONTENT_DIR / "testora-studio-02-assembly-report.json"
 EXPECTED_INTRO = "This is a Testora Studio Listening Practice Test. The test will begin in five seconds."
 AUTHORSHIP = "Original IELTS-style practice test created by Testora."
 QUESTION_TYPES = {
-    "single_choice", "multiple_choice", "matching", "matching_information",
-    "sentence_completion", "summary_completion", "fill_blank", "short_answer",
+    "single_choice",
+    "multiple_choice",
+    "matching",
+    "matching_information",
+    "sentence_completion",
+    "summary_completion",
+    "fill_blank",
+    "short_answer",
 }
 BLUEPRINT_FIELDS = {
-    "section", "type", "target_skill", "information_type", "difficulty",
-    "answer_location", "evidence_segment", "distractor_mechanism",
-    "linguistic_feature", "dependency", "cultural_accessibility", "reviewer_status",
+    "section",
+    "type",
+    "target_skill",
+    "information_type",
+    "difficulty",
+    "answer_location",
+    "evidence_segment",
+    "distractor_mechanism",
+    "linguistic_feature",
+    "dependency",
+    "cultural_accessibility",
+    "reviewer_status",
 }
 CALIBRATION_STATUSES = {"draft", "provisional", "reviewed", "calibrated", "retired"}
 
@@ -53,11 +69,20 @@ def _audio_path(url: str) -> Path:
 
 
 def _probe(path: Path) -> dict:
-    output = subprocess.check_output([
-        "ffprobe", "-v", "error", "-show_entries",
-        "format=duration:stream=codec_name,sample_rate,channels",
-        "-of", "json", str(path),
-    ], text=True, timeout=30)
+    output = subprocess.check_output(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration:stream=codec_name,sample_rate,channels",
+            "-of",
+            "json",
+            str(path),
+        ],
+        text=True,
+        timeout=30,
+    )
     raw = json.loads(output)
     stream = raw["streams"][0]
     return {
@@ -177,7 +202,12 @@ def validate_test(data: dict, where: str, rep: Report, blueprint: dict[int, dict
                 rep.err(f"{qlabel}: unsupported question type")
             if not question.get("correct_answer") or not question.get("explanation"):
                 rep.err(f"{qlabel}: answer and explanation are required")
-            if question.get("question_type") in {"single_choice", "multiple_choice", "matching", "matching_information"} and not question.get("options"):
+            if question.get("question_type") in {
+                "single_choice",
+                "multiple_choice",
+                "matching",
+                "matching_information",
+            } and not question.get("options"):
                 rep.err(f"{qlabel}: options are required")
             qmeta = question.get("metadata", {})
             expected = (blueprint or {}).get(order)
@@ -185,7 +215,12 @@ def validate_test(data: dict, where: str, rep: Report, blueprint: dict[int, dict
                 for field in BLUEPRINT_FIELDS:
                     if qmeta.get(field) != expected.get(field):
                         rep.err(f"{qlabel}: metadata field {field} differs from blueprint")
-            if strict and question.get("question_type") in {"fill_blank", "sentence_completion", "summary_completion", "short_answer"}:
+            if strict and question.get("question_type") in {
+                "fill_blank",
+                "sentence_completion",
+                "summary_completion",
+                "short_answer",
+            }:
                 limit = qmeta.get("word_limit")
                 if not isinstance(limit, int) or not 1 <= limit <= 3:
                     rep.err(f"{qlabel}: completion requires a 1-3 word limit")
@@ -247,9 +282,15 @@ def validate_current_package(data: dict, manifest: dict, rep: Report) -> None:
     seen = set()
     for event in events:
         start, end = event.get("start"), event.get("end")
-        if (not isinstance(start, (int, float)) or not isinstance(end, (int, float))
-                or not math.isfinite(start) or not math.isfinite(end)
-                or start < 0 or end <= start or abs(start - previous_end) > 0.01):
+        if (
+            not isinstance(start, (int, float))
+            or not isinstance(end, (int, float))
+            or not math.isfinite(start)
+            or not math.isfinite(end)
+            or start < 0
+            or end <= start
+            or abs(start - previous_end) > 0.01
+        ):
             rep.err(f"manifest: invalid or discontinuous timing for {event.get('id')}")
             continue
         previous_end = end
@@ -281,10 +322,18 @@ def validate_current_package(data: dict, manifest: dict, rep: Report) -> None:
     if (media["codec"], media["sample_rate"], media["channels"]) != ("aac", 44100, 1):
         rep.err("audio: expected AAC mono at 44.1 kHz")
     encoding = manifest.get("encoding", {})
-    if (str(encoding.get("codec", "")).lower(), encoding.get("sample_rate"), encoding.get("channels")) != (media["codec"], media["sample_rate"], media["channels"]):
+    if (str(encoding.get("codec", "")).lower(), encoding.get("sample_rate"), encoding.get("channels")) != (
+        media["codec"],
+        media["sample_rate"],
+        media["channels"],
+    ):
         rep.err("audio: manifest encoding differs from ffprobe")
     duration = media["duration_seconds"]
-    for label, value in (("content", meta.get("audio_duration")), ("manifest", manifest.get("duration_seconds")), ("timeline", previous_end)):
+    for label, value in (
+        ("content", meta.get("audio_duration")),
+        ("manifest", manifest.get("duration_seconds")),
+        ("timeline", previous_end),
+    ):
         if not isinstance(value, (int, float)) or not math.isfinite(value) or abs(duration - value) > 0.12:
             rep.err(f"audio: {label} duration differs from ffprobe")
     for section in data.get("sections", []):
@@ -309,8 +358,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--files", nargs="+")
     parser.add_argument("--no-write-report", action="store_true")
-    parser.add_argument("--require-editorial", action="store_true",
-                        help="Also require the original blueprint and completed editorial review")
+    parser.add_argument(
+        "--require-editorial",
+        action="store_true",
+        help="Also require the original blueprint and completed editorial review",
+    )
     args = parser.parse_args()
     rep = Report()
     blueprint_path = CONTENT_DIR / "testora-studio-02-blueprint.json"
@@ -374,7 +426,9 @@ def main() -> int:
     print(f"  tests/questions : {rep.tests}/{rep.questions}")
     print(f"  editorial review: {editorial_status}")
     if rep.media:
-        print(f"  audio           : {rep.media['duration_seconds']}s {rep.media['codec']} {rep.media['sample_rate']}Hz mono")
+        print(
+            f"  audio           : {rep.media['duration_seconds']}s {rep.media['codec']} {rep.media['sample_rate']}Hz mono"
+        )
     for warning in rep.warnings:
         print(f"  warning: {warning}")
     for error in rep.errors:

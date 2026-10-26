@@ -1,15 +1,15 @@
 """Import IELTS practice materials from JSON files into the database.
 
 This is the recommended way to add practice content sourced from elsewhere
-(Cambridge IELTS books, your own authored material, etc.). Unlike seed.py,
+(Cambridge IELTS books, your own authored material, etc.). Unlike scripts/seed/seed_demo.py,
 which hard-codes a couple of demo tests, this reads every *.json file in the
 content/ folder so you can grow the question bank just by dropping in files.
 
 Usage (run from the backend/ folder, venv active):
 
-    python import_content.py                 # import everything in content/**/
-    python import_content.py content/foo.json  # import specific file(s)
-    python import_content.py --replace       # overwrite items with the same key
+    python -m content_tools.importer                 # import everything in content/**/
+    python -m content_tools.importer content/foo.json  # import specific file(s)
+    python -m content_tools.importer --replace       # overwrite items with the same key
 
 Safety:
     * By default existing items are SKIPPED (matched by a natural key), so the
@@ -67,6 +67,7 @@ JSON shape (any of the three arrays may be present per file):
       ]
     }
 """
+
 import json
 import sys
 from pathlib import Path
@@ -77,7 +78,7 @@ from app.domain.models.attempt import Attempt
 from app.domain.models.writing import WritingTask, WritingSubmission
 from app.domain.models.speaking import SpeakingTask, SpeakingSubmission
 
-CONTENT_DIR = Path(__file__).resolve().parent / "content"
+CONTENT_DIR = Path(__file__).resolve().parents[1] / "content"
 
 QUESTION_TYPES = {
     "single_choice",
@@ -94,26 +95,24 @@ QUESTION_TYPES = {
 }
 
 
-class ImportError_(Exception):
+class ContentImportError(Exception):
     """Raised when a JSON file is structurally invalid."""
 
 
 def _require(obj: dict, key: str, where: str):
     if key not in obj:
-        raise ImportError_(f"Missing required field '{key}' in {where}")
+        raise ContentImportError(f"Missing required field '{key}' in {where}")
     return obj[key]
 
 
 # --------------------------------------------------------------------------- #
 # Builders: turn a plain dict into an ORM object (no DB writes here)
 # --------------------------------------------------------------------------- #
-def _build_test(data: dict) -> Test:
+def build_test(data: dict) -> Test:
     title = _require(data, "title", "test")
     test_type = _require(data, "test_type", f"test '{title}'")
     if test_type not in ("reading", "listening"):
-        raise ImportError_(
-            f"test '{title}': test_type must be 'reading' or 'listening', got '{test_type}'"
-        )
+        raise ContentImportError(f"test '{title}': test_type must be 'reading' or 'listening', got '{test_type}'")
 
     test = Test(
         title=title,
@@ -126,11 +125,11 @@ def _build_test(data: dict) -> Test:
     )
 
     sections = _require(data, "sections", f"test '{title}'")
-    test.sections = [_build_section(s, title, i) for i, s in enumerate(sections, 1)]
+    test.sections = [build_section(s, title, i) for i, s in enumerate(sections, 1)]
     return test
 
 
-def _build_section(data: dict, test_title: str, default_order: int) -> Section:
+def build_section(data: dict, test_title: str, default_order: int) -> Section:
     where = f"test '{test_title}', section {default_order}"
     section = Section(
         order=int(data.get("order", default_order)),
@@ -141,24 +140,20 @@ def _build_section(data: dict, test_title: str, default_order: int) -> Section:
         section_metadata=data.get("metadata"),
     )
     questions = _require(data, "questions", where)
-    section.questions = [
-        _build_question(q, where, i) for i, q in enumerate(questions, 1)
-    ]
+    section.questions = [build_question(q, where, i) for i, q in enumerate(questions, 1)]
     return section
 
 
-def _build_question(data: dict, where: str, default_order: int) -> Question:
+def build_question(data: dict, where: str, default_order: int) -> Question:
     q_type = _require(data, "question_type", f"{where}, question {default_order}")
     if q_type not in QUESTION_TYPES:
-        raise ImportError_(
+        raise ContentImportError(
             f"{where}, question {default_order}: unknown question_type '{q_type}'. "
             f"Allowed: {', '.join(sorted(QUESTION_TYPES))}"
         )
     correct = _require(data, "correct_answer", f"{where}, question {default_order}")
     if not isinstance(correct, list):
-        raise ImportError_(
-            f"{where}, question {default_order}: correct_answer must be a list"
-        )
+        raise ContentImportError(f"{where}, question {default_order}: correct_answer must be a list")
     return Question(
         order=int(data.get("order", default_order)),
         text=_require(data, "text", f"{where}, question {default_order}"),
@@ -182,13 +177,11 @@ def _normalize_evidence(raw):
         quote = e.get("quote", e.get("text"))
         if e.get("paragraph") is None or not quote:
             continue
-        out.append(
-            {"paragraph": e["paragraph"], "sentence": e.get("sentence"), "text": quote}
-        )
+        out.append({"paragraph": e["paragraph"], "sentence": e.get("sentence"), "text": quote})
     return out or None
 
 
-def _build_writing(data: dict) -> WritingTask:
+def build_writing(data: dict) -> WritingTask:
     title = _require(data, "title", "writing_task")
     return WritingTask(
         task_type=int(_require(data, "task_type", f"writing_task '{title}'")),
@@ -202,10 +195,10 @@ def _build_writing(data: dict) -> WritingTask:
     )
 
 
-def _build_speaking(data: dict) -> SpeakingTask:
+def build_speaking(data: dict) -> SpeakingTask:
     questions = _require(data, "questions", "speaking_task")
     if not isinstance(questions, list) or not questions:
-        raise ImportError_("speaking_task: 'questions' must be a non-empty list")
+        raise ContentImportError("speaking_task: 'questions' must be a non-empty list")
     return SpeakingTask(
         part=int(_require(data, "part", "speaking_task")),
         questions=questions,
@@ -220,10 +213,10 @@ def _build_speaking(data: dict) -> SpeakingTask:
 def _import_file(db, path: Path, replace: bool, stats: dict):
     raw = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict):
-        raise ImportError_(f"{path.name}: top level must be a JSON object")
+        raise ContentImportError(f"{path.name}: top level must be a JSON object")
 
     for data in raw.get("tests", []):
-        test = _build_test(data)
+        test = build_test(data)
         existing = db.query(Test).filter(Test.title == test.title).first()
         if existing:
             if not replace:
@@ -241,18 +234,14 @@ def _import_file(db, path: Path, replace: bool, stats: dict):
         print(f"  add   test    '{test.title}' ({test.test_type})")
 
     for data in raw.get("writing_tasks", []):
-        task = _build_writing(data)
+        task = build_writing(data)
         existing = db.query(WritingTask).filter(WritingTask.title == task.title).first()
         if existing:
             if not replace:
                 stats["skipped"] += 1
                 print(f"  skip  writing '{task.title}' (already exists)")
                 continue
-            if (
-                db.query(WritingSubmission)
-                .filter(WritingSubmission.task_id == existing.id)
-                .first()
-            ):
+            if db.query(WritingSubmission).filter(WritingSubmission.task_id == existing.id).first():
                 stats["blocked"] += 1
                 print(f"  KEEP  writing '{task.title}' (has submissions, not replaced)")
                 continue
@@ -263,24 +252,16 @@ def _import_file(db, path: Path, replace: bool, stats: dict):
         print(f"  add   writing '{task.title}' (Task {task.task_type})")
 
     for data in raw.get("speaking_tasks", []):
-        task = _build_speaking(data)
+        task = build_speaking(data)
         first_q = task.questions[0]
-        existing = (
-            db.query(SpeakingTask)
-            .filter(SpeakingTask.part == task.part)
-            .all()
-        )
+        existing = db.query(SpeakingTask).filter(SpeakingTask.part == task.part).all()
         match = next((t for t in existing if (t.questions or [None])[0] == first_q), None)
         if match:
             if not replace:
                 stats["skipped"] += 1
                 print(f"  skip  speak   Part {task.part} '{first_q[:40]}...' (exists)")
                 continue
-            if (
-                db.query(SpeakingSubmission)
-                .filter(SpeakingSubmission.task_id == match.id)
-                .first()
-            ):
+            if db.query(SpeakingSubmission).filter(SpeakingSubmission.task_id == match.id).first():
                 stats["blocked"] += 1
                 print(f"  KEEP  speak   Part {task.part} (has submissions, not replaced)")
                 continue
@@ -303,28 +284,34 @@ def run(paths: list[Path], replace: bool):
             print(f"\n{path.name}:")
             _import_file(db, path, replace, stats)
         db.commit()
-    except (ImportError_, json.JSONDecodeError) as exc:
+    except (ContentImportError, json.JSONDecodeError) as exc:
         db.rollback()
         print(f"\nImport aborted (no changes saved): {exc}")
         sys.exit(1)
     finally:
         db.close()
 
-    print(
-        f"\nDone. added={stats['added']} skipped={stats['skipped']} "
-        f"blocked={stats['blocked']}"
-    )
+    print(f"\nDone. added={stats['added']} skipped={stats['skipped']} blocked={stats['blocked']}")
 
 
-def _collect_paths(args: list[str]) -> list[Path]:
+def collect_paths(args: list[str]) -> list[Path]:
+    """Explicit files as given; otherwise everything under content/, minus any
+    file or folder whose name starts with "_" (e.g. content/_examples/)."""
     files = [a for a in args if not a.startswith("--")]
     if files:
         return [Path(f) for f in files]
     if not CONTENT_DIR.exists():
         return []
-    return sorted(CONTENT_DIR.rglob("*.json"))
+    return sorted(
+        p
+        for p in CONTENT_DIR.rglob("*.json")
+        if not any(part.startswith("_") for part in p.relative_to(CONTENT_DIR).parts)
+    )
+
+
+def main() -> None:
+    run(collect_paths(sys.argv[1:]), "--replace" in sys.argv)
 
 
 if __name__ == "__main__":
-    replace_flag = "--replace" in sys.argv
-    run(_collect_paths(sys.argv[1:]), replace_flag)
+    main()

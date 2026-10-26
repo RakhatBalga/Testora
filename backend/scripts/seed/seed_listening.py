@@ -1,7 +1,8 @@
 """Seed the canonical versioned Testora Listening benchmark.
 
-Run from backend/: .venv/bin/python seed_listening.py
+Run from backend/: python -m scripts.seed.seed_listening
 """
+
 import argparse
 import json
 import re
@@ -12,11 +13,11 @@ from sqlalchemy.orm import Session
 
 from app.domain.models.test import Test
 from app.infrastructure.database import SessionLocal
-from import_content import _build_test
-from validate_listening import Report, validate_test
+from content_tools.importer import build_test
+from content_tools.validate_listening import Report, validate_test
 
 
-CONTENT_PATH = Path(__file__).resolve().parent / "content/listening/testora-studio-02.json"
+CONTENT_PATH = Path(__file__).resolve().parents[2] / "content/listening/testora-studio-02.json"
 
 
 def _version(value: str) -> tuple[int, ...]:
@@ -34,7 +35,7 @@ def seed_package(db: Session, data: dict, *, update_existing: bool = False) -> t
     slug = (data.get("metadata") or {}).get("slug")
     if data.get("test_type") != "listening" or not slug or report.errors:
         raise ValueError("Invalid Listening package: " + "; ".join(report.errors or ["type or slug missing"]))
-    incoming = _build_test(data)
+    incoming = build_test(data)
     if incoming.content_version == "legacy" or not (incoming.content_metadata or {}).get("published"):
         raise ValueError("A published package with an explicit content_version is required")
     version = _version(incoming.content_version)
@@ -43,9 +44,12 @@ def seed_package(db: Session, data: dict, *, update_existing: bool = False) -> t
             # Serialize the deployment command even when no version exists yet.
             db.execute(text("SELECT pg_advisory_xact_lock(82170422)"))
         candidates = db.query(Test).filter(Test.test_type == "listening").all()
-        existing = [item for item in candidates if
-                    (item.content_metadata or {}).get("slug") == slug or
-                    (not (item.content_metadata or {}).get("slug") and item.title == incoming.title)]
+        existing = [
+            item
+            for item in candidates
+            if (item.content_metadata or {}).get("slug") == slug
+            or (not (item.content_metadata or {}).get("slug") and item.title == incoming.title)
+        ]
         same = next((item for item in existing if item.content_version == incoming.content_version), None)
         if same is not None:
             db.commit()
@@ -69,7 +73,9 @@ def seed_package(db: Session, data: dict, *, update_existing: bool = False) -> t
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Seed Listening; preserve historical versions on update.")
-    parser.add_argument("--update", action="store_true", help="Import a newer version without deleting attempts or progress")
+    parser.add_argument(
+        "--update", action="store_true", help="Import a newer version without deleting attempts or progress"
+    )
     args = parser.parse_args()
     raw = json.loads(CONTENT_PATH.read_text(encoding="utf-8"))
     with SessionLocal() as db:
