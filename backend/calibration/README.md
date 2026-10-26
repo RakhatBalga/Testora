@@ -76,6 +76,14 @@ Gold rows: `{"id","task_type","prompt","text","ratings":[{"rater_id":"T1","overa
 "adjudicated": {...}}`. Raters more than 1.0 apart need `adjudicated`. Student
 essays must have written consent and must not go through a free-tier API.
 
+Prompt leakage is blocked: public prompts that also occur in the dev bank or the
+gold set are forced into `test`, never `train`, and `verify_manifest` reports any
+prompt shared between train and test/gold/dev. The split is balanced greedily
+toward `--test-fraction`; a warning is printed (and stored in the manifest) when a
+dominant prompt makes the target unreachable by more than 10 points. Essays carry
+recomputed `text_hash`/`prompt_id`; a stored hash that no longer matches the text
+is an error, so an edited essay can never reuse a cached grade.
+
 **2. Train the classical-ML baselines** (Ridge + gradient boosting, prompt-grouped CV)
 
 ```bash
@@ -113,6 +121,15 @@ python -m ml.evaluate_writing --dataset ml/data/essays.jsonl --manifest ml/data/
   --model-bundle ml/artifacts/writing-v1/writing_models.joblib --run-mock \
   --prereg calibration/prereg-e1.md --out ml/reports/e1-test
 ```
+
+Bootstrap CIs resample whole prompts (cluster bootstrap) by default whenever
+prompts repeat in the evaluated set, because essays on one prompt are not
+independent; pass `--no-cluster-by-prompt` to resample essays instead.
+Systems have a stable id (`provider|model|prompt_version|seed`); the pre-registered
+primary system is matched by that id, a missing primary is an error, and the
+verdict includes a coverage threshold (default >= 95% of the split). The
+pre-registration also stores the dataset hash and the split fingerprints, which are
+rechecked from the dataset itself (no manifest needed).
 
 `test` and `gold` need `--prereg` (or an explicit `--allow-unregistered`, which is
 printed in the report). Same command with `--split gold` adds the human-human

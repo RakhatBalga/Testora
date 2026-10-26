@@ -215,38 +215,42 @@ def icc_2_1(matrix) -> float | None:
     return (msr - mse) / denom
 
 
-def stability(runs_by_essay: dict[str, list[float]]) -> dict | None:
-    """Run-to-run stability. `runs_by_essay`: essay id -> band per run (equal
-    length for essays with a full set of runs; incomplete essays are excluded and
-    counted)."""
+def stability(runs_by_essay: dict[str, dict[int, float] | list[float]]) -> dict | None:
+    """Run-to-run stability, aligned by run index.
+
+    `runs_by_essay`: essay id -> {run index: band} for the runs that succeeded
+    (a plain list is read as runs 0..n-1). SD, flips and ICC use only essays that
+    have EVERY run; pairwise QWK between runs i and j uses every essay that has
+    both, so a failed run never shifts another run's values into its slot.
+    """
     if not runs_by_essay:
         return None
-    k = max(len(v) for v in runs_by_essay.values())
-    full = {e: v for e, v in runs_by_essay.items() if len(v) == k}
-    if k < 2 or len(full) < 2:
-        return {
-            "n_runs": k,
-            "n_essays": len(full),
-            "n_incomplete": len(runs_by_essay) - len(full),
-            "note": "needs >= 2 runs on >= 2 essays",
-        }
-    matrix = [v for v in full.values()]
+    runs = {e: (dict(enumerate(v)) if isinstance(v, list) else dict(v)) for e, v in runs_by_essay.items()}
+    indices = sorted({i for r in runs.values() for i in r})
+    k = len(indices)
+    full = {e: [r[i] for i in indices] for e, r in runs.items() if all(i in r for i in indices)}
+    out = {"n_runs": k, "n_essays": len(full), "n_incomplete": len(runs) - len(full)}
+    if k < 2:
+        return {**out, "note": "needs >= 2 runs on >= 2 essays"}
     pair_qwk = []
-    for i in range(k):
-        for j in range(i + 1, k):
-            q = qwk([half_band(r[i]) for r in matrix], [half_band(r[j]) for r in matrix])
-            if q is not None:
-                pair_qwk.append(q)
+    for x, i in enumerate(indices):
+        for j in indices[x + 1 :]:
+            both = [r for r in runs.values() if i in r and j in r]
+            if len(both) >= 2:
+                q = qwk([half_band(r[i]) for r in both], [half_band(r[j]) for r in both])
+                if q is not None:
+                    pair_qwk.append(q)
+    out["mean_pairwise_qwk"] = mean(pair_qwk) if pair_qwk else None
+    if len(full) < 2:
+        return {**out, "note": "needs >= 2 runs on >= 2 essays"}
+    matrix = list(full.values())
     sds = [sd(r) for r in matrix]
     return {
-        "n_runs": k,
-        "n_essays": len(full),
-        "n_incomplete": len(runs_by_essay) - len(full),
+        **out,
         "mean_within_essay_sd": mean(sds),
         "max_within_essay_sd": max(sds),
         "pct_essays_any_flip": sum(len(set(r)) > 1 for r in matrix) / len(matrix),
         "icc_2_1": icc_2_1(matrix),
-        "mean_pairwise_qwk": mean(pair_qwk) if pair_qwk else None,
     }
 
 

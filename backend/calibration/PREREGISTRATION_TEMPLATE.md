@@ -23,6 +23,7 @@ refuses to score `test` or `gold` without it and lists every deviation in the re
 - Primary system: see block (`primary_system`)
 - QWK (overall, half-band bins) >= 0.60, and the lower 95% bootstrap bound reported
 - MAE <= 0.50; within +-0.5 band >= 70%
+- Coverage of the primary system >= 95% of the split (failures count against it)
 - Compared against: constant mean, constant mode, rule-based mock, Ridge, GBM
 - Human-human QWK/MAE on the gold set is the ceiling row
 

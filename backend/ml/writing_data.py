@@ -147,10 +147,13 @@ class Essay(Record):
 
     @model_validator(mode="after")
     def derive(self):
-        if not self.prompt_id:
-            self.prompt_id = prompt_group(self.prompt)
-        if not self.text_hash:
-            self.text_hash = text_hash(self.text)
+        # Stored hashes are never trusted: an edited essay with a stale hash would
+        # reuse cached grades and silently keep its old split fingerprint.
+        for field, value in (("prompt_id", prompt_group(self.prompt)), ("text_hash", text_hash(self.text))):
+            stored = getattr(self, field)
+            if stored and stored != value:
+                raise ValueError(f"{field} does not match the essay content (edited after export?)")
+            setattr(self, field, value)
         if not self.raters and self.rater_scores:
             self.raters = [r.rater_id for r in self.rater_scores]
         if self.label_kind == "range" and (self.label_min is None or self.label_max is None):
@@ -454,38 +457,75 @@ def deduplicate(essays: list[Essay], *, near_threshold: float = 0.8) -> tuple[li
 # ------------------------------------------------------------------ splits
 
 
-def assign_public_splits(essays: list[Essay], *, test_fraction: float = 0.3, seed: int = 42) -> list[Essay]:
-    """Prompt-grouped train/test split of the `train`/`test` pool.
+SPLIT_SHARE_TOLERANCE = 0.1
 
-    All essays that share a prompt land in the same split. Groups are shuffled
-    with a fixed seed and the first ones fill the test share. `dev` and `gold`
-    essays are never moved.
+
+def assign_public_splits_report(
+    essays: list[Essay], *, test_fraction: float = 0.3, seed: int = 42, tolerance: float = SPLIT_SHARE_TOLERANCE
+) -> tuple[list[Essay], dict]:
+    """Prompt-grouped train/test split of the `train`/`test` pool, with a report.
+
+    * All essays that share a prompt land in the same split.
+    * Prompts that also occur in `dev` or `gold` are forced into `test`, never
+      `train`, so a model trained on `train` cannot have seen the gold prompts.
+    * The remaining groups are placed greedily (largest first, seeded tie-break):
+      a group goes to test only if that moves the test size closer to the target.
+    * `dev` and `gold` essays are never moved. The report states the achieved
+      test share and warns when it is further than `tolerance` from the target.
     """
     pool = [e for e in essays if e.split in ("train", "test")]
+    reserved_prompts = {e.prompt_id for e in essays if e.split in ("dev", "gold")}
     groups: dict[str, list[Essay]] = defaultdict(list)
     for e in pool:
         groups[e.prompt_id].append(e)
-    order = sorted(groups)
-    random.Random(seed).shuffle(order)
     target = test_fraction * len(pool)
-    moved = 0
-    test_groups = set()
-    for gid in order:
-        if moved >= target:
-            break
-        test_groups.add(gid)
-        moved += len(groups[gid])
-    return [
+    forced = sorted(g for g in groups if g in reserved_prompts)
+    test_groups = set(forced)
+    test_n = sum(len(groups[g]) for g in forced)
+    free = sorted(g for g in groups if g not in reserved_prompts)
+    random.Random(seed).shuffle(free)
+    free.sort(key=lambda g: -len(groups[g]))  # stable: seeded order breaks size ties
+    for gid in free:
+        size = len(groups[gid])
+        if abs(test_n + size - target) < abs(test_n - target):
+            test_groups.add(gid)
+            test_n += size
+    out = [
         e.model_copy(update={"split": ("test" if e.prompt_id in test_groups else "train")})
         if e.split in ("train", "test")
         else e
         for e in essays
     ]
+    achieved = test_n / len(pool) if pool else 0.0
+    info = {
+        "target_test_share": test_fraction,
+        "achieved_test_share": achieved,
+        "n_pool": len(pool),
+        "n_prompts_forced_to_test": len(forced),
+        "warning": None,
+    }
+    if pool and abs(achieved - test_fraction) > tolerance:
+        info["warning"] = (
+            f"test share {achieved:.2f} deviates from the target {test_fraction:.2f} by more than {tolerance:.2f} "
+            f"({len(forced)} prompt groups shared with dev/gold are forced into test; large prompt groups limit balance)"
+        )
+    return out, info
 
 
-def _split_fingerprint(essays: list[Essay]) -> str:
+def assign_public_splits(essays: list[Essay], *, test_fraction: float = 0.3, seed: int = 42) -> list[Essay]:
+    return assign_public_splits_report(essays, test_fraction=test_fraction, seed=seed)[0]
+
+
+def split_fingerprint(essays: list[Essay]) -> str:
     rows = sorted(f"{e.id}:{e.text_hash}:{e.overall}" for e in essays)
     return hashlib.sha256("\n".join(rows).encode()).hexdigest()
+
+
+def split_fingerprints(essays: list[Essay]) -> dict[str, str]:
+    by_split = defaultdict(list)
+    for e in essays:
+        by_split[e.split].append(e)
+    return {k: split_fingerprint(v) for k, v in sorted(by_split.items())}
 
 
 def build_manifest(
@@ -512,7 +552,7 @@ def build_manifest(
             s: {
                 "n": len(items),
                 "n_prompts": len(prompts[s]),
-                "fingerprint": _split_fingerprint(items),
+                "fingerprint": split_fingerprint(items),
                 "bands": dict(sorted(Counter(str(e.overall) for e in items).items())),
                 "tasks": dict(sorted(Counter(str(e.task_type) for e in items).items())),
                 "ids": sorted(e.id for e in items),
@@ -532,7 +572,7 @@ def verify_manifest(essays: list[Essay], manifest: dict) -> list[str]:
     for e in essays:
         by_split[e.split].append(e)
     for split, info in manifest["splits"].items():
-        if _split_fingerprint(by_split.get(split, [])) != info["fingerprint"]:
+        if split_fingerprint(by_split.get(split, [])) != info["fingerprint"]:
             problems.append(f"split {split!r} differs from the manifest (essays or labels changed)")
     for split in by_split:
         if split not in manifest["splits"]:
@@ -542,6 +582,11 @@ def verify_manifest(essays: list[Essay], manifest: dict) -> list[str]:
     leaked = [e.id for e in by_split.get("test", []) + by_split.get("gold", []) if e.text_hash in train_hash]
     if leaked:
         problems.append(f"{len(leaked)} test/gold essays also appear in train/dev (text hash)")
+    train_prompts = {e.prompt_id for e in by_split.get("train", [])}
+    for other in ("test", "gold", "dev"):
+        shared = train_prompts & {e.prompt_id for e in by_split.get(other, [])}
+        if shared:
+            problems.append(f"{len(shared)} prompt groups appear in both train and {other} (prompt leakage)")
     if test_ids & {e.id for e in by_split.get("dev", [])}:
         problems.append("dev ids appear in test/gold")
     return problems
@@ -575,10 +620,11 @@ def build_dataset(
     if len({e.id for e in essays}) != len(essays):
         raise ValueError("essay ids collide across inputs; give each source a distinct id prefix")
     kept, removed = deduplicate(essays)
-    kept = assign_public_splits(kept, test_fraction=test_fraction, seed=seed)
+    kept, split_info = assign_public_splits_report(kept, test_fraction=test_fraction, seed=seed)
     write_essays(out, kept, overwrite=overwrite)
     info = build_manifest(kept, removed, seed=seed, test_fraction=test_fraction, dataset_sha256=file_sha256(out))
     info["skipped_public_rows"] = skipped
+    info["split_assignment"] = split_info
     manifest = Path(manifest)
     manifest.parent.mkdir(parents=True, exist_ok=True)
     with manifest.open("w" if overwrite else "x", encoding="utf-8") as handle:
@@ -631,6 +677,8 @@ def main(argv=None):
     )
     for split, s in info["splits"].items():
         print(f"{split:5s} n={s['n']:5d} prompts={s['n_prompts']:4d} fingerprint={s['fingerprint'][:12]}")
+    if info["split_assignment"]["warning"]:
+        print("WARNING:", info["split_assignment"]["warning"])
     print(
         f"removed duplicates: {len(info['removed_duplicates'])}; "
         f"skipped public rows: {len(info['skipped_public_rows'])}"
