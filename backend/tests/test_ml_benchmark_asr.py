@@ -42,6 +42,9 @@ def test_identical_audio_copies_rejected_even_with_different_speakers(tmp_path):
         audio_paths(samples, tmp_path)
 
 def test_training_rejects_duplicated_audio_fingerprints():
+    # train_compare imports joblib/scikit-learn lazily; skip where they are not installed.
+    pytest.importorskip("joblib")
+    pytest.importorskip("sklearn")
     from ml.train_speaking import train_compare
     from ml.speech_features import FEATURE_NAMES
     rows = [dict(sample_id=str(i), speaker_id=str(i), expert_band=6,
