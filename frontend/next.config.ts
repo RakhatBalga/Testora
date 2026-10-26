@@ -39,6 +39,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The legacy single-question exam UI was removed; old links go to the library.
+  async redirects() {
+    return [{ source: "/test/:id", destination: "/tests/reading", permanent: true }];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

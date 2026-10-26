@@ -9,7 +9,7 @@ import { analyticsApi } from "./endpoints/analytics";
 import { historyApi } from "./endpoints/history";
 
 export { mediaUrl } from "./config";
-export { NetworkError, isNetworkError } from "./errors";
+export { ApiError, NetworkError, isNetworkError } from "./errors";
 export { fetchAuthenticatedMedia, warmUpServer } from "./http";
 export { getStoredAuthToken, getStoredUsername, storeAuth, clearStoredAuth } from "./token";
 export * from "./types";

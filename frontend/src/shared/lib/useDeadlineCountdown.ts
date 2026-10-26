@@ -28,6 +28,7 @@ export function useDeadlineCountdown(running: boolean, seconds: number, onDone: 
         onDoneRef.current();
       }
     };
+    sync(); // show the real value immediately, never a 00:00 flash
     const id = window.setInterval(sync, 250);
     document.addEventListener("visibilitychange", sync);
     return () => {

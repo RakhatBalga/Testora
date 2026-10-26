@@ -129,7 +129,7 @@ export default function ResultPage() {
 
       <div className="flex flex-wrap gap-3">
         <LinkButton href="/">Back to dashboard</LinkButton>
-        <LinkButton href={examHref(result.test_type, result.test_id)} variant="secondary">
+        <LinkButton href={examHref(result.test_type, result.test_id, { retake: true })} variant="secondary">
           Retake test
         </LinkButton>
       </div>

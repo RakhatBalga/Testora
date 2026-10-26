@@ -1,9 +1,17 @@
 import { API_URL, mediaUrl } from "./config";
-import { NetworkError, detailToMessage, handleUnauthorized } from "./errors";
+import { ApiError, NetworkError, detailToMessage, handleUnauthorized } from "./errors";
 import { getStoredAuthToken } from "./token";
 
 /** Render's free tier needs ~45 s to wake, so one attempt gets a full minute. */
 export const REQUEST_TIMEOUT_MS = 60_000;
+/**
+ * Synchronous AI endpoints (vocabulary enrich / daily quiz) can wait up to 30 s
+ * for the AI slot and then run up to 3 provider attempts of 60 s each on the
+ * backend (~210 s worst case), so the browser must not give up earlier.
+ */
+export const AI_TIMEOUT_MS = 240_000;
+/** Speaking upload + synchronous grading uses the same backend worst case plus transfer time. */
+export const UPLOAD_TIMEOUT_MS = 300_000;
 const RETRY_BACKOFF_MS = [1_000, 2_000];
 const RETRY_STATUSES = new Set([502, 503, 504]);
 
@@ -27,7 +35,7 @@ async function failureFor(res: Response): Promise<Error> {
   } catch {
     // ignore non-JSON error bodies
   }
-  return new Error(message);
+  return new ApiError(res.status, message);
 }
 
 /**
@@ -109,7 +117,7 @@ export async function requestForm<T>(path: string, formData: FormData): Promise<
   const res = await fetchWithTimeout(
     `${API_URL}${path}`,
     { method: "POST", body: formData, headers },
-    120_000,
+    UPLOAD_TIMEOUT_MS,
   );
 
   if (res.status === 401) {
@@ -132,7 +140,7 @@ export function requestFormWithProgress<T>(
     if (token) request.setRequestHeader("Authorization", `Bearer ${token}`);
     request.responseType = "json";
     // Uploads can be large and the host may be cold; fail instead of hanging at 100%.
-    request.timeout = 120_000;
+    request.timeout = UPLOAD_TIMEOUT_MS;
     request.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100));
     };
@@ -209,5 +217,32 @@ export function warmUpServer(): void {
     fetch(`${API_URL}/health/live`, { mode: "no-cors", cache: "no-store" }).catch(() => {});
   } catch {
     /* best effort */
+  }
+}
+
+export const IN_PROGRESS_RETRY_DELAY_MS = 20_000;
+
+/**
+ * The backend answers 409 "already in progress" while an earlier AI call for
+ * the same user is still running (for example after our request timed out on a
+ * cold start). Wait once and try again instead of showing a dead end.
+ */
+export async function retryWhenInProgress<T>(
+  call: () => Promise<T>,
+  delayMs: number = IN_PROGRESS_RETRY_DELAY_MS,
+): Promise<T> {
+  try {
+    return await call();
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 409 || !/in progress/i.test(error.message)) throw error;
+    await sleep(delayMs);
+    try {
+      return await call();
+    } catch (second) {
+      if (second instanceof ApiError && second.status === 409) {
+        throw new ApiError(409, "The AI is still working on your previous request. Please wait a minute and try again.");
+      }
+      throw second;
+    }
   }
 }
