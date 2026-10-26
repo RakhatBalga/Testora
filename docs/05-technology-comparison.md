@@ -81,13 +81,13 @@ Each table rates alternatives as **++** (strong fit), **+** (adequate), **–** 
 Exact per-token prices change often and are not quoted here. See the providers' official pricing pages [T6][T7][T8].
 
 **Chosen: Gemini in production, behind a provider-independent layer.**
-- **Abstraction layer.** The code defines `WritingGrader` / `SpeakingGrader` interfaces (`app/infrastructure/ai/base.py`) with three implementations: `mock`, `claude` and `gemini`. A factory selects one with the `AI_PROVIDER` environment variable (`factory.py`). If the key is missing, the factory falls back to `mock`, and startup validation refuses to launch production on the mock grader.
+- **Abstraction layer.** The code defines `WritingGrader` / `SpeakingGrader` interfaces (`app/infrastructure/ai/base.py`) with three implementations today: `mock`, `claude` and `gemini`. A factory selects one with the `AI_PROVIDER` environment variable (`factory.py`). If the key is missing, the factory falls back to `mock`, and startup validation refuses to launch production on the mock grader. A fourth provider, `qwen` (a locally hosted open model behind an OpenAI-compatible API), is planned on the same interface.
 - **Why Gemini wins for Testora:**
   1. It accepts the **recorded audio directly**, so one call can grade Speaking, including Pronunciation and Fluency, without a separate ASR service.
   2. It enforces a JSON schema, which the backend then validates again with Pydantic.
   3. Its free and low-cost tiers fit R4.
 - **Claude** is fully implemented as an alternative and can be switched on with one variable.
-- **Self-hosting** was rejected for now because of GPU cost and ops load (R4, R5).
+- **Self-hosting** was rejected for the first production release because of GPU cost and ops load (R4, R5). It remains the planned direction: a locally hosted Qwen model (served by Ollama, LM Studio or vLLM on the team's own machine or rented GPUs) is intended to replace Gemini once experiment E1 (Section 9) shows comparable agreement with expert scores. Gemini stays in production until then; the switch is a configuration change (`AI_PROVIDER=qwen`). This is a plan, not a measured result.
 - **Not locked in.** The abstraction lets us switch providers if prices or quality change, and the calibration script (Section 4, C8) can re-check score agreement before any switch.
 
 ## 5.6 Decision 5: Component interaction
@@ -134,7 +134,7 @@ Exact per-token prices change often and are not quoted here. See the providers' 
 | Vendor lock-in | + Docker image and standard Postgres are portable | ++ | – proprietary services |
 
 **Chosen: Vercel (frontend) + Render (Docker backend) + Neon (PostgreSQL).**
-- **Fits budget and team (R4, R5, R6).** Each tier has a free plan, deploys from GitHub, and handles TLS and patching. GitHub Actions runs tests before deploy.
+- **Fits budget and team (R4, R5, R6).** Each tier has a free plan, deploys from GitHub, and handles TLS and patching. GitHub Actions runs the checks on every pull request and push, and Render deploys `main` only after they pass.
 - **Neon for the database.** Render's free PostgreSQL expires 30 days after creation [T10], while Neon's free tier does not expire [T2].
 - **Portability is kept.** The backend is a standard Docker image (`render.yaml`, `backend/Dockerfile`), so moving to a VPS or a cloud provider later is cheap.
 - **Known trade-offs:**
@@ -149,7 +149,7 @@ Exact per-token prices change often and are not quoted here. See the providers' 
 | Backend | FastAPI | Python ML (R1), async + threadpool for LLM calls (R2), Pydantic validation |
 | Database | PostgreSQL on Neon | Relational history and analytics (R3), JSONB, free tier with no expiry (R4) |
 | Frontend | Next.js + TypeScript + Tailwind | SSR for public pages, React ecosystem, Vercel deploy (R6) |
-| LLM | Gemini, behind a provider-independent interface | Native audio, JSON schema, low cost (R4); swappable to Claude |
+| LLM | Gemini, behind a provider-independent interface | Native audio, JSON schema, low cost (R4); swappable to Claude; locally hosted Qwen planned as replacement |
 | Interaction | REST/JSON + JWT/OAuth PKCE | Simple, browser-native, OpenAPI from FastAPI (R5) |
 | ASR (research) | Local Whisper | Free, private, word timestamps (R1, R4) |
 | Hosting | Vercel + Render + Neon | Near-zero cost, push-to-deploy, low ops (R4–R6) |
