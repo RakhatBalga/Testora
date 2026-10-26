@@ -53,3 +53,7 @@ ai/models/
 
 # Private audio uploads and local backups
 backend/private/
+
+# Local security notes and proof-of-concept files
+security_prompt*.md
+*poc*.html
