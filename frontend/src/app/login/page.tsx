@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/shared/api";
 import { useAuth } from "@/shared/auth";
+import { safeNext } from "@/shared/lib";
 import { AuthField, AuthShell, GoogleSignInButton } from "@/features/auth";
 
 export default function LoginPage() {
@@ -24,7 +25,7 @@ export default function LoginPage() {
       login(res.access_token, username);
       const next = new URLSearchParams(window.location.search).get("next");
       // Only honour same-site relative paths to avoid open-redirect abuse.
-      router.push(next && next.startsWith("/") ? next : "/");
+      router.push(safeNext(next));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

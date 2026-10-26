@@ -10,7 +10,8 @@ export function useRequireAuth() {
 
   useEffect(() => {
     if (ready && !token) {
-      router.replace("/login");
+      const { pathname, search } = window.location;
+      router.replace(`/login?next=${encodeURIComponent(pathname + search)}`);
     }
   }, [ready, token, router]);
 
