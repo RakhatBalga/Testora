@@ -62,15 +62,24 @@ class Settings(BaseSettings):
         """How long a pending grading may run before it counts as dead.
 
         Never shorter than the slowest legitimate grading, or a live request
-        would be failed and refunded under its own feet. With Qwen that is two
-        stages (examiner, coach), each up to 3 transport attempts of
-        QWEN_TIMEOUT_SECONDS, plus slack for backoff.
+        would be failed and refunded under its own feet (and its resource lock
+        freed). Worst case for the active provider:
+
+            stages(2: examiner, coach)
+              x SCHEMA_ATTEMPTS(2, engine.py)
+              x (MAX_ATTEMPTS(3, retry.py) x per-call timeout
+                 + 2 x MAX_RETRY_AFTER_SECONDS(30) of back-off)
+            + GRADING_QUEUE_TIMEOUT_SECONDS (waiting for a slot) + 60 s margin
+
+        The Better Version call runs in parallel and is a single, shorter chain.
+        The per-call timeout is QWEN_TIMEOUT_SECONDS for qwen and 60 s (the
+        Gemini/Claude HTTP timeout) otherwise. GRADING_STALE_MINUTES is the floor.
         """
-        stale = self.GRADING_STALE_MINUTES
-        if self.AI_PROVIDER.strip().lower() == "qwen":
-            worst_seconds = 2 * 3 * self.QWEN_TIMEOUT_SECONDS + 60
-            stale = max(stale, int(worst_seconds // 60) + 1)
-        return stale
+        provider = self.AI_PROVIDER.strip().lower()
+        per_call = self.QWEN_TIMEOUT_SECONDS if provider == "qwen" else 60.0
+        per_ask = 2 * (3 * per_call + 2 * 30)
+        worst_seconds = 2 * per_ask + self.GRADING_QUEUE_TIMEOUT_SECONDS + 60
+        return max(self.GRADING_STALE_MINUTES, int(worst_seconds // 60) + 1)
 
     @property
     def is_production(self) -> bool:
@@ -111,13 +120,17 @@ class Settings(BaseSettings):
     # Shared per-user daily budget (app timezone day) includes failed attempts
     # and vocabulary generation.
     AI_DAILY_ATTEMPTS: int = Field(default=20, ge=1)
-    # Global daily budget across ALL users (AI reservations per app-timezone
-    # day); protects the provider bill from scripted sign-ups. Negative = off.
+    # Global daily budget across ALL users, counted in AI *reservations* (one per
+    # Writing/Speaking submission or vocabulary request) per app-timezone day, NOT in
+    # provider calls: one Writing review makes 2-3 model calls (examiner, coach,
+    # Better Version) and a schema re-ask or transport retry adds more. Size it
+    # as (affordable provider calls per day) / ~3. Failed reservations are not
+    # refunded. Protects the bill from scripted sign-ups. Negative = off.
     AI_GLOBAL_DAILY_ATTEMPTS: int = 400
     # A pending grading older than this is considered dead (worker killed) and
     # is reconciled: marked failed and its quota refunded. Must exceed the
-    # slowest legitimate grading (3 x 60 s timeout, two stages). Use
-    # `grading_stale_minutes`, which raises this for a slow Qwen server.
+    # slowest legitimate grading. Floor only: the code uses
+    # `grading_stale_minutes`, which raises it to the provider's worst case.
     GRADING_STALE_MINUTES: int = Field(default=10, ge=1)
     # Max time a request waits for a free grading slot before getting a 503.
     GRADING_QUEUE_TIMEOUT_SECONDS: int = 30

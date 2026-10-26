@@ -16,7 +16,9 @@ _QUOTES = str.maketrans(
 )
 _EDGE_PUNCT = " .,;:!?\"'`()[]"
 _SPACES_RE = re.compile(r"\s+")
-_WORD_RE = re.compile(r"[\w]+(?:[-'][\w]+)*", re.UNICODE)
+# Numbers with separators or a currency sign ("1,500", "10:30", "£25.50", "45%")
+# are one word; "2nd" still falls through to the plain-word branch.
+_WORD_RE = re.compile(r"[£$€]?\d+(?:[.,:]\d+)*%?(?!\w)|[\w]+(?:[-'][\w]+)*", re.UNICODE)
 
 
 def normalize_answer(value: str) -> str:

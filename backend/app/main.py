@@ -15,6 +15,7 @@ from app.infrastructure.errortracking import init_error_tracking
 from app.infrastructure.database import SessionLocal, engine
 from app.api.middleware import BodySizeLimitMiddleware, RequestContextMiddleware
 from app.application.quota import reconcile_stale_reservations
+from app.application.speaking import reconcile_stale_speaking
 from app.application.writing import reconcile_stale_writing
 from app.infrastructure.ai.factory import effective_provider
 from app.infrastructure.ai.qwen import ping_qwen
@@ -85,7 +86,7 @@ def _reconcile_on_startup() -> None:
     try:
         with SessionLocal() as db:
             writing = reconcile_stale_writing(db)
-            reservations = reconcile_stale_reservations(db)
+            reservations = reconcile_stale_reservations(db) + reconcile_stale_speaking(db)
         if writing or reservations:
             logger.warning(
                 "Startup reconciliation: %s stale writing submission(s) marked failed, "

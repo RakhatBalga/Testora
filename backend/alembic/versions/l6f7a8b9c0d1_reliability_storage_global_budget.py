@@ -31,6 +31,15 @@ def upgrade() -> None:
         sa.CheckConstraint("used >= 0", name="ck_ai_global_budget_used"),
     )
     op.add_column("ai_reservations", sa.Column("charged", sa.Boolean, nullable=False, server_default=sa.false()))
+    # Before this migration every Writing/Speaking reservation consumed a lifetime
+    # review (vocabulary ones never did). A reservation still "reserved" now belongs
+    # to a grading a deploy may have killed, so mark it charged: the stale sweep then
+    # refunds it. Quota-exempt users have no such bucket row, and the refund only
+    # touches a bucket with used > 0, so they are unaffected.
+    op.execute(
+        sa.text("UPDATE ai_reservations SET charged = :yes WHERE status = 'reserved' AND kind IN ('writing', 'speaking')")
+        .bindparams(yes=True)
+    )
     op.add_column("writing_submissions", sa.Column("status_updated_at", sa.DateTime, nullable=True))
     op.add_column("users", sa.Column("token_version", sa.Integer, nullable=False, server_default="0"))
 
