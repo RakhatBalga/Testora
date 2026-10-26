@@ -1,51 +1,46 @@
-"""Google Gemini-based graders.
+"""Google Gemini transport and graders.
 
 Used when AI_PROVIDER=gemini and GEMINI_API_KEY is set (see factory.py).
 The `google-genai` package is imported lazily so the app runs without it
 installed while on the mock provider.
 
+Only the transport is Gemini-specific. Prompts, schema, temperature, seed and
+the scoring rules are shared with every provider through `engine.py`.
+
 Gemini is multimodal, so the Speaking grader sends the recorded audio file
 directly to the model -- no separate speech-to-text step is required.
 """
 
-import json
 import logging
 import time
 from pathlib import Path
 
+from app.domain.grading import Feedback, grading_error_feedback
 from app.infrastructure.config import settings
 from app.infrastructure.ai import prompts
-from app.infrastructure.ai.base import Feedback, SpeakingGrader, WritingGrader
-from app.infrastructure.ai.vocab import (
-    QuizQuestion,
-    QuizSchema,
-    VocabularyCoach,
-    WordInfo,
-    WordInfoSchema,
-    WordQuiz,
+from app.infrastructure.ai.base import SpeakingGrader, WritingGrader
+from app.infrastructure.ai.engine import (
+    EXAMINER_MAX_TOKENS,
+    EXAMINER_TEMPERATURE,
+    GRADING_SEED,
+    ROLE_EXAMINER,
+    SCHEMA_ATTEMPTS,
+    TransportVocabularyCoach,
+    WritingEngine,
+    extract_json_text,
+    parse_json_object,
 )
-from app.infrastructure.ai.schemas import (
-    CoachResult,
-    build_feedback,
-    examiner_model,
-    normalize_examiner,
-    sanitize_coach_evidence,
+from app.infrastructure.ai.retry import (
+    DEFAULT_POLICY,
+    RetryPolicy,
+    SchemaError,
+    TruncatedResponse,
+    is_transient_status,
+    parse_retry_after,
 )
-from app.application.writing_precheck import (
-    count_words,
-    validate_writing_submission,
-    zero_band_feedback,
-)
+from app.infrastructure.ai.schemas import SpeakingExaminer, speaking_feedback
 
 logger = logging.getLogger("testora.ai.gemini")
-
-# Examiner runs cold for consistency; coach a little warmer for natural prose.
-_EXAMINER_TEMPERATURE = 0.1
-_COACH_TEMPERATURE = 0.35
-
-# Retry policy for transient Gemini failures (timeouts, 5xx, connection resets).
-_MAX_ATTEMPTS = 3
-_BACKOFF_BASE_SECONDS = 1.0
 
 # How long to wait for the model to respond, in milliseconds. The default
 # httpx timeout is too short for full IELTS grading.
@@ -62,20 +57,8 @@ _AUDIO_MIME = {
     ".webm": "audio/webm",
 }
 
-_SPEAKING_SYSTEM = (
-    "You are an experienced IELTS examiner. Listen to the candidate's recorded "
-    "spoken response and grade it using the official IELTS band descriptors "
-    "(0-9, half-bands allowed) for four criteria: Fluency & Coherence, "
-    "Lexical Resource, Grammatical Range & Accuracy, Pronunciation. "
-    "Base Pronunciation and Fluency on the actual audio. Respond ONLY with a JSON "
-    'object of the form: {"band": number, "criteria": {"Fluency & Coherence": '
-    'number, "Lexical Resource": number, "Grammatical Range & Accuracy": number, '
-    '"Pronunciation": number}, "summary": string, "suggestions": [string, ...]}.'
-)
-
-
-class _TruncatedResponse(Exception):
-    """The model stopped because it hit the output-token cap; output is unusable."""
+# Backward-compatible alias (tests and callers used the private name).
+_TruncatedResponse = TruncatedResponse
 
 
 def _client():
@@ -97,22 +80,25 @@ def _config(
     system: str,
     *,
     schema=None,
-    temperature: float = 0.3,
+    temperature: float = EXAMINER_TEMPERATURE,
     max_tokens: int = 4096,
     model: str | None = None,
+    json_mode: bool = True,
 ):
     from google.genai import types
 
     kwargs = dict(
         system_instruction=system,
-        response_mime_type="application/json",
         # Headroom so a full criterion-level rubric + errors never gets truncated
         # mid-JSON. The examiner prompt is intentionally detailed; Pro models also
         # spend output tokens on required thinking. A truncated body is surfaced as
         # a grading error, never saved as a bogus grade.
         max_output_tokens=max_tokens,
         temperature=temperature,
+        seed=GRADING_SEED,
     )
+    if json_mode:
+        kwargs["response_mime_type"] = "application/json"
     # Gemini Flash supports disabling thinking, which keeps structured grading
     # cheaper and more deterministic. Gemini Pro requires thinking mode, so do
     # not send an invalid zero budget for Pro models.
@@ -129,9 +115,34 @@ def _raise_if_truncated(resp) -> None:
     for cand in candidates:
         reason = getattr(cand, "finish_reason", None)
         if reason is not None and str(reason).upper().endswith("MAX_TOKENS"):
-            raise _TruncatedResponse(
-                "Gemini response was truncated at the output-token limit"
-            )
+            raise TruncatedResponse("Gemini response was truncated at the output-token limit")
+
+
+def _classify(exc: Exception) -> tuple[bool, float | None]:
+    """(transient?, retry_after seconds) for an exception from the SDK call."""
+    try:
+        from google.genai import errors as genai_errors
+    except ImportError:  # pragma: no cover - SDK is a hard dependency
+        genai_errors = None
+    if genai_errors is not None and isinstance(exc, genai_errors.APIError):
+        code = getattr(exc, "code", None)
+        if isinstance(code, int) and is_transient_status(code):
+            headers = getattr(getattr(exc, "response", None), "headers", None) or {}
+            try:
+                retry_after = parse_retry_after(headers.get("retry-after"))
+            except AttributeError:
+                retry_after = None
+            return True, retry_after
+        return False, None
+    if isinstance(exc, (TimeoutError, ConnectionError)):
+        return True, None
+    try:
+        import httpx
+    except ImportError:  # pragma: no cover
+        return False, None
+    if isinstance(exc, (httpx.TimeoutException, httpx.TransportError)):
+        return True, None
+    return False, None
 
 
 def _generate(
@@ -139,16 +150,19 @@ def _generate(
     system: str,
     *,
     schema=None,
-    temperature: float = 0.3,
+    temperature: float = EXAMINER_TEMPERATURE,
     max_tokens: int = 4096,
     model: str | None = None,
+    json_mode: bool = True,
+    policy: RetryPolicy = DEFAULT_POLICY,
 ) -> str:
-    """Call Gemini with a fresh client, retrying transient failures with backoff."""
-    last_exc: Exception | None = None
+    """Call Gemini with a fresh client; retry only transient failures."""
     used_model = model or settings.GEMINI_MODEL
     if "pro" in used_model.lower():
         max_tokens = max(max_tokens, 8192)
-    for attempt in range(1, _MAX_ATTEMPTS + 1):
+    attempt = 0
+    while True:
+        attempt += 1
         try:
             client = _client()
             resp = client.models.generate_content(
@@ -160,193 +174,85 @@ def _generate(
                     temperature=temperature,
                     max_tokens=max_tokens,
                     model=used_model,
+                    json_mode=json_mode,
                 ),
             )
             _raise_if_truncated(resp)
             text = resp.text
             if not text or not text.strip():
-                raise ValueError("Gemini returned an empty response")
+                raise SchemaError("Gemini returned an empty response")
             return text
-        except _TruncatedResponse:
+        except (TruncatedResponse, SchemaError):
             raise
-        except Exception as exc:  # noqa: BLE001 - retried, then surfaced
-            last_exc = exc
+        except Exception as exc:  # noqa: BLE001 - classified, retried or surfaced
+            transient, retry_after = _classify(exc)
+            delay = policy.delay(attempt, retry_after) if transient else None
             logger.warning(
-                "Gemini generate_content attempt %d/%d failed: %s",
+                "Gemini generate_content attempt %d/%d failed (%s): %s",
                 attempt,
-                _MAX_ATTEMPTS,
+                policy.max_attempts,
+                "transient" if transient else "permanent",
                 exc,
             )
-            if attempt < _MAX_ATTEMPTS:
-                time.sleep(_BACKOFF_BASE_SECONDS * (2 ** (attempt - 1)))
-    raise last_exc  # type: ignore[misc]
+            if delay is None:
+                raise
+            time.sleep(delay)
 
 
 def _json_text(raw: str) -> str:
     """Return clean JSON text, stripping any markdown code fence the model added."""
-    raw = (raw or "").strip()
-    if not raw:
-        raise ValueError("Gemini returned an empty response")
-    if raw.startswith("```"):
-        raw = raw.strip("`")
-        raw = raw[raw.find("{") : raw.rfind("}") + 1]
-    return raw
+    return extract_json_text(raw)
 
 
 def _parse(raw: str) -> dict:
-    data = json.loads(_json_text(raw))
-    if not isinstance(data, dict):
-        raise ValueError("Gemini response was not a JSON object")
-    return data
+    return parse_json_object(raw)
 
 
-def _to_feedback(data: dict) -> Feedback:
-    criteria = {k: float(v) for k, v in data.get("criteria", {}).items()}
-    band = float(
-        data.get("band")
-        or (sum(criteria.values()) / len(criteria) if criteria else 0)
-    )
-    return Feedback(
-        band=band,
-        criteria=criteria,
-        summary=str(data.get("summary", "")),
-        suggestions=[str(s) for s in data.get("suggestions", [])],
-    )
+class GeminiTransport:
+    provider = "gemini"
 
+    def model_for(self, role: str) -> str:
+        return settings.GEMINI_MODEL if role == ROLE_EXAMINER else settings.GEMINI_FAST_MODEL
 
-def _error_feedback(message: str) -> Feedback:
-    """Return failed-grading feedback without persisting a bogus Band-0 grade."""
-    return Feedback(
-        band=0.0,
-        criteria={},
-        summary=f"Automatic grading could not be completed: {message}",
-        suggestions=["Try submitting again, or check the AI configuration."],
-        error=True,
-    )
+    def generate_json(self, *, role, system, user, schema, temperature, max_tokens) -> str:
+        return _generate(
+            [user],
+            system,
+            schema=schema,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            model=self.model_for(role),
+        )
+
+    def generate_text(self, *, role, system, user, temperature, max_tokens) -> str:
+        return _generate(
+            [user],
+            system,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            model=self.model_for(role),
+            json_mode=False,
+        )
 
 
 class GeminiWritingGrader(WritingGrader):
-    """Two-stage IELTS Writing engine: cold Examiner, then warmer Coach."""
+    """Two-stage IELTS Writing engine (shared method) over the Gemini transport."""
+
+    def __init__(self):
+        self.engine = WritingEngine(GeminiTransport(), coach_enabled=settings.WRITING_COACH_ENABLED)
 
     def grade(self, *, task_type: int, prompt: str, text: str, min_words: int) -> Feedback:
-        precheck = validate_writing_submission(
-            task_type=task_type,
-            text=text,
-            min_words=min_words,
-        )
-        word_count = precheck.word_count
-        if not precheck.valid:
-            return zero_band_feedback(task_type, precheck)
-
-        system = (
-            prompts.TASK1_EXAMINER_SYSTEM
-            if task_type == 1
-            else prompts.TASK2_EXAMINER_SYSTEM
-        )
-        user = prompts.examiner_user_prompt(
-            task_type=task_type,
-            prompt=prompt,
-            text=text,
-            min_words=min_words,
-            word_count=word_count,
-        )
-        model = examiner_model(task_type)
-        try:
-            raw = _generate(
-                [user],
-                system,
-                schema=model,
-                temperature=_EXAMINER_TEMPERATURE,
-            )
-            examiner = model.model_validate_json(_json_text(raw))
-        except Exception as exc:  # noqa: BLE001 - never 500 the submit endpoint
-            logger.exception("Gemini Writing examiner stage failed")
-            return _error_feedback(str(exc))
-
-        normalized = normalize_examiner(
-            examiner,
-            task_type=task_type,
-            word_count=word_count,
-            min_words=min_words,
-        )
-        coaching = (
-            self._coach(task_type, prompt, text, examiner, normalized["overall"])
-            if settings.WRITING_COACH_ENABLED
-            else None
-        )
-        return build_feedback(normalized, coaching, task_type=task_type)
+        self.engine.coach_enabled = settings.WRITING_COACH_ENABLED
+        return self.engine.grade(task_type=task_type, prompt=prompt, text=text, min_words=min_words)
 
     def improve(self, *, task_type: int, prompt: str, text: str) -> str | None:
-        """Generate the higher-band "Better Version" as plain text.
-
-        Best-effort: a failure here must never fail the submission — the UI
-        falls back to its deterministic diff engine when this returns None.
-        """
-        from google.genai import types
-
-        try:
-            user = prompts.better_version_user_prompt(
-                task_type=task_type, prompt=prompt, text=text
-            )
-            cfg_kwargs = dict(
-                system_instruction=prompts.BETTER_VERSION_SYSTEM,
-                temperature=0.4,
-                max_output_tokens=2048,
-            )
-            if "pro" not in settings.GEMINI_FAST_MODEL.lower():
-                cfg_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
-            client = _client()
-            resp = client.models.generate_content(
-                model=settings.GEMINI_FAST_MODEL,
-                contents=[user],
-                config=types.GenerateContentConfig(**cfg_kwargs),
-            )
-            out = (resp.text or "").strip()
-            return out or None
-        except Exception:  # noqa: BLE001 - never fail the submit endpoint
-            logger.exception("Gemini Better Version generation failed")
-            return None
-
-    def _coach(
-        self,
-        task_type,
-        prompt,
-        text,
-        examiner,
-        current_overall,
-    ) -> CoachResult | None:
-        """Best-effort coaching; a failure here must not fail the grade."""
-        try:
-            user = prompts.coach_user_prompt(
-                task_type=task_type,
-                prompt=prompt,
-                text=text,
-                examiner_json=examiner.model_dump_json(),
-                current_overall=current_overall,
-            )
-            raw = _generate(
-                [user],
-                prompts.COACH_SYSTEM,
-                schema=CoachResult,
-                temperature=_COACH_TEMPERATURE,
-                max_tokens=1536,
-                model=settings.GEMINI_FAST_MODEL,
-            )
-            coaching = CoachResult.model_validate_json(_json_text(raw))
-            return sanitize_coach_evidence(
-                coaching,
-                essay=text,
-                errors=examiner.errors,
-            )
-        except Exception:  # noqa: BLE001
-            logger.warning(
-                "Gemini Writing coach stage failed; returning examiner result only",
-                exc_info=True,
-            )
-            return None
+        return self.engine.improve(task_type=task_type, prompt=prompt, text=text)
 
 
 class GeminiSpeakingGrader(SpeakingGrader):
+    """Audio-in grading. Same schema and normalisation as the transcript path;
+    snippets are cleared because they cannot be checked against audio."""
+
     def grade(
         self,
         *,
@@ -357,141 +263,45 @@ class GeminiSpeakingGrader(SpeakingGrader):
     ) -> Feedback:
         from google.genai import types
 
-        joined = "\n".join(f"- {q}" for q in questions)
-        prompt = (
-            f"IELTS Speaking Part {part}.\n\nQUESTIONS:\n{joined}\n\n"
-            "Grade the attached audio recording of the candidate's answer."
-        )
+        model = settings.GEMINI_MODEL
         try:
             path = Path(audio_path)
             mime = _AUDIO_MIME.get(path.suffix.lower(), "audio/webm")
             audio_bytes = path.read_bytes()
             contents = [
                 types.Part.from_bytes(data=audio_bytes, mime_type=mime),
-                prompt,
+                prompts.speaking_user_prompt(part=part, questions=questions),
             ]
-            raw = _generate(contents, _SPEAKING_SYSTEM)
-            return _to_feedback(_parse(raw))
-        except Exception as exc:  # noqa: BLE001
+            result = None
+            for attempt in range(1, SCHEMA_ATTEMPTS + 1):
+                try:
+                    raw = _generate(
+                        contents,
+                        prompts.SPEAKING_AUDIO_SYSTEM,
+                        schema=SpeakingExaminer,
+                        temperature=EXAMINER_TEMPERATURE,
+                        max_tokens=EXAMINER_MAX_TOKENS,
+                        model=model,
+                    )
+                    result = SpeakingExaminer.model_validate_json(_json_text(raw))
+                    break
+                except (SchemaError, ValueError) as exc:
+                    logger.warning("Gemini speaking output invalid (attempt %d): %s", attempt, exc)
+            if result is None:
+                raise SchemaError("speaking output invalid")
+            feedback = speaking_feedback(result, transcript=None)
+        except Exception:  # noqa: BLE001
             logger.exception("Gemini speaking grading failed")
-            return _error_feedback(str(exc))
+            feedback = grading_error_feedback()
+        feedback.provider = "gemini"
+        feedback.model = model
+        feedback.prompt_version = prompts.prompt_version()
+        return feedback
 
 
-class GeminiVocabularyCoach(VocabularyCoach):
+class GeminiVocabularyCoach(TransportVocabularyCoach):
     """Word enrichment + practice-quiz generation. Uses the fast model — this is
     prose/lookup work, not band scoring, so Flash quality is fine and cheaper."""
 
-    def enrich_word(
-        self, *, word: str, context: str | None, native_language: str | None
-    ) -> WordInfo:
-        native = (native_language or "").strip()
-        translation_line = (
-            f"a natural translation of the word into {native}"
-            if native
-            else "leave translation empty (the learner has no native language set)"
-        )
-        system = (
-            "You are a vocabulary coach for an IELTS student. For the given English "
-            "word or phrase and the sentence it appeared in, produce concise, "
-            "learner-friendly enrichment as JSON. Base the meaning on how the word is "
-            "used in the context."
-        )
-        user = (
-            f'WORD: "{word}"\n'
-            f'CONTEXT: "{context or "(no context provided)"}"\n\n'
-            "Return: a short plain-English meaning; the part of speech; up to 5 common "
-            "synonyms; up to 3 \"better alternatives\" (stronger, more precise or "
-            f"higher-band words the student could use instead); {translation_line}; and "
-            "one natural example sentence that uses the word."
-        )
-        try:
-            raw = _generate(
-                [user],
-                system,
-                schema=WordInfoSchema,
-                temperature=0.3,
-                max_tokens=1024,
-                model=settings.GEMINI_FAST_MODEL,
-            )
-            data = WordInfoSchema.model_validate_json(_json_text(raw))
-            return WordInfo(
-                word=word,
-                meaning=data.meaning,
-                part_of_speech=data.part_of_speech,
-                synonyms=[str(s) for s in data.synonyms][:5],
-                alternatives=[str(s) for s in data.alternatives][:3],
-                translation=data.translation,
-                example=data.example,
-            )
-        except Exception:  # noqa: BLE001 - degrade, never 500 the endpoint
-            logger.exception("Gemini word enrichment failed for %r", word)
-            return WordInfo(word=word, error=True)
-
-    def generate_quiz(
-        self,
-        *,
-        words: list[dict],
-        native_language: str | None,
-        num_questions: int,
-    ) -> WordQuiz:
-        native = (native_language or "").strip()
-        lines: list[str] = []
-        for w in words:
-            parts = [f'word: {w.get("word", "")}']
-            if w.get("meaning"):
-                parts.append(f'meaning: {w["meaning"]}')
-            if w.get("translation"):
-                parts.append(f'{native or "native"} translation: {w["translation"]}')
-            if w.get("synonyms"):
-                parts.append(f'synonyms: {", ".join(w["synonyms"])}')
-            lines.append("- " + "; ".join(parts))
-        listing = "\n".join(lines)
-        kinds = '"meaning" (choose the correct meaning), "synonym" (choose the best synonym or stronger alternative)'
-        native_clause = ""
-        if native:
-            kinds += f', "translation" (match the English word to its {native} translation)'
-            native_clause = (
-                f"Include at least one translation question to/from {native}. "
-            )
-        system = (
-            "You are a vocabulary coach. Create a multiple-choice quiz that helps an "
-            "IELTS student practise their saved words. Return JSON only."
-        )
-        user = (
-            f"SAVED WORDS:\n{listing}\n\n"
-            f"Create up to {num_questions} multiple-choice questions, varying the kind "
-            f"across {kinds}. {native_clause}Each question needs: word (the saved word "
-            "being tested), prompt (the question text), kind, exactly 4 options, "
-            "answer_index (0-3 pointing at the correct option), and a one-line "
-            "explanation. Exactly one option is correct; the other three must be "
-            "plausible but wrong."
-        )
-        try:
-            raw = _generate(
-                [user],
-                system,
-                schema=QuizSchema,
-                temperature=0.5,
-                max_tokens=2048,
-                model=settings.GEMINI_FAST_MODEL,
-            )
-            data = QuizSchema.model_validate_json(_json_text(raw))
-            questions: list[QuizQuestion] = []
-            for q in data.questions[:num_questions]:
-                opts = [str(o) for o in q.options][:4]
-                if len(opts) < 2 or not (0 <= q.answer_index < len(opts)):
-                    continue
-                questions.append(
-                    QuizQuestion(
-                        word=q.word,
-                        prompt=q.prompt,
-                        kind=q.kind or "meaning",
-                        options=opts,
-                        answer_index=q.answer_index,
-                        explanation=q.explanation,
-                    )
-                )
-            return WordQuiz(questions=questions)
-        except Exception:  # noqa: BLE001
-            logger.exception("Gemini quiz generation failed")
-            return WordQuiz(error=True)
+    def __init__(self):
+        super().__init__(GeminiTransport())

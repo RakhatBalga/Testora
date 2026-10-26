@@ -1,45 +1,153 @@
+"""Rule-based baseline graders (no AI calls).
+
+The Writing mock is a surface-feature heuristic (length, type/token ratio,
+linker and paragraph counts) — a rule-based baseline, not a model. Its raw
+bands go through the same normalisation as every LLM provider
+(`app.domain.grading.normalize_writing`).
+"""
+
 import re
 from collections import Counter
 
+from app.domain.grading import (
+    WritingVerdict,
+    count_words,
+    grading_error_feedback,
+    normalize_writing,
+    snap_band,
+    writing_criteria,
+)
 from app.infrastructure.ai.base import Feedback, MistakeItem, WritingGrader, SpeakingGrader
+
+MOCK_MODEL = "rule-based"
+MOCK_METHOD_VERSION = "mock-rules-v2"
 
 # Small stopword set so vocabulary detectors focus on content words.
 _STOPWORDS = {
-    "the", "a", "an", "and", "or", "but", "of", "to", "in", "on", "for", "with",
-    "is", "are", "was", "were", "be", "been", "it", "this", "that", "these",
-    "those", "as", "at", "by", "from", "we", "i", "you", "they", "he", "she",
-    "their", "our", "my", "your", "its", "not", "can", "will", "would", "have",
-    "has", "had", "do", "does", "did", "so", "if", "than", "then", "there",
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "but",
+    "of",
+    "to",
+    "in",
+    "on",
+    "for",
+    "with",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "it",
+    "this",
+    "that",
+    "these",
+    "those",
+    "as",
+    "at",
+    "by",
+    "from",
+    "we",
+    "i",
+    "you",
+    "they",
+    "he",
+    "she",
+    "their",
+    "our",
+    "my",
+    "your",
+    "its",
+    "not",
+    "can",
+    "will",
+    "would",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "so",
+    "if",
+    "than",
+    "then",
+    "there",
 }
 # Basic, non-academic words that cap Lexical Resource when overused.
 _BASIC_WORDS = {"good", "bad", "very", "thing", "things", "important", "big", "nice", "get", "lot"}
 
 # Cohesive devices that lift Coherence & Cohesion when used appropriately.
 _COHESIVE_WORDS = {
-    "however", "therefore", "furthermore", "moreover", "consequently", "nevertheless",
-    "nonetheless", "meanwhile", "additionally", "similarly", "conversely", "thus",
-    "hence", "firstly", "secondly", "finally", "subsequently", "accordingly", "instead",
+    "however",
+    "therefore",
+    "furthermore",
+    "moreover",
+    "consequently",
+    "nevertheless",
+    "nonetheless",
+    "meanwhile",
+    "additionally",
+    "similarly",
+    "conversely",
+    "thus",
+    "hence",
+    "firstly",
+    "secondly",
+    "finally",
+    "subsequently",
+    "accordingly",
+    "instead",
 }
 _COHESIVE_PHRASES = (
-    "in contrast", "on the other hand", "for instance", "for example", "as a result",
-    "in conclusion", "to conclude", "in addition", "in particular", "to begin with",
-    "by contrast", "on balance",
+    "in contrast",
+    "on the other hand",
+    "for instance",
+    "for example",
+    "as a result",
+    "in conclusion",
+    "to conclude",
+    "in addition",
+    "in particular",
+    "to begin with",
+    "by contrast",
+    "on balance",
 )
 # Subordinating words signalling complex sentence structures (Grammar range).
 _SUBORDINATORS = {
-    "because", "although", "though", "while", "whereas", "since", "unless", "despite",
-    "whether", "which", "that", "who", "whose", "if", "when", "once", "before", "after",
+    "because",
+    "although",
+    "though",
+    "while",
+    "whereas",
+    "since",
+    "unless",
+    "despite",
+    "whether",
+    "which",
+    "that",
+    "who",
+    "whose",
+    "if",
+    "when",
+    "once",
+    "before",
+    "after",
 }
 
 
 def _round_half(x: float) -> float:
-    """Round to the nearest IELTS half-band (0.5 step), clamped to 0-9."""
-    x = max(0.0, min(9.0, x))
-    return round(x * 2) / 2
+    """Round to the nearest IELTS half-band (half-up, like round_ielts), 0-9."""
+    return snap_band(x)
 
 
 def _count_words(text: str) -> int:
-    return len(re.findall(r"\b[\w'-]+\b", text))
+    """The same IELTS word count the pre-check and the live counter use."""
+    return count_words(text)
 
 
 class MockWritingGrader(WritingGrader):
@@ -50,11 +158,7 @@ class MockWritingGrader(WritingGrader):
         sentences = [s for s in re.split(r"[.!?]+", text) if s.strip()]
         sentence_count = max(1, len(sentences))
         avg_sentence_len = words / sentence_count
-        unique_ratio = (
-            len({w.lower() for w in re.findall(r"\b[\w'-]+\b", text)}) / words
-            if words
-            else 0
-        )
+        unique_ratio = len({w.lower() for w in re.findall(r"\b[\w'-]+\b", text)}) / words if words else 0
 
         suggestions: list[str] = []
         tokens = [w.lower() for w in re.findall(r"\b[\w'-]+\b", text)]
@@ -136,16 +240,22 @@ class MockWritingGrader(WritingGrader):
         if words and article_count / words < 0.02:
             grammar -= 0.5
 
-        criteria = {
-            "Task Achievement": _round_half(task),
-            "Coherence & Cohesion": _round_half(coherence),
-            "Lexical Resource": _round_half(lexical),
-            "Grammatical Range & Accuracy": _round_half(grammar),
-        }
-        overall = _round_half(sum(criteria.values()) / len(criteria))
+        first, cc_name, lr_name, gra_name = writing_criteria(task_type)
+        normalized = normalize_writing(
+            WritingVerdict(
+                task_type=task_type,
+                bands={first: task, cc_name: coherence, lr_name: lexical, gra_name: grammar},
+            ),
+            word_count=words,
+            min_words=min_words,
+            text=text,
+            prompt=prompt,
+        )
+        criteria = normalized.criteria
+        overall = normalized.overall
 
         if not suggestions:
-            suggestions.append("Solid attempt. Keep practising to push past band 6.5.")
+            suggestions.append(f"Solid attempt. Keep practising to push past band {overall:.1f}.")
 
         summary = (
             f"Estimated band {overall} based on {words} words across "
@@ -167,6 +277,11 @@ class MockWritingGrader(WritingGrader):
             summary=summary,
             suggestions=suggestions,
             mistakes=mistakes,
+            provider="mock",
+            model=MOCK_MODEL,
+            prompt_version=MOCK_METHOD_VERSION,
+            flags=normalized.flags,
+            caps_applied=normalized.caps_applied,
         )
 
     def _extract_mistakes(
@@ -292,7 +407,11 @@ class MockWritingGrader(WritingGrader):
 
 
 class MockSpeakingGrader(SpeakingGrader):
-    """Free placeholder grader. Audio scoring needs real AI, so this defers."""
+    """Placeholder: audio scoring needs a real model, so this never grades.
+
+    Returns error feedback so the router stores no band (a fake Band 0 would
+    pollute analytics in dev and demos) and the quota is refunded.
+    """
 
     def grade(
         self,
@@ -302,19 +421,12 @@ class MockSpeakingGrader(SpeakingGrader):
         audio_path: str,
         transcript: str | None = None,
     ) -> Feedback:
-        criteria = {
-            "Fluency & Coherence": 0.0,
-            "Lexical Resource": 0.0,
-            "Grammatical Range & Accuracy": 0.0,
-            "Pronunciation": 0.0,
-        }
-        return Feedback(
-            band=0.0,
-            criteria=criteria,
-            summary=(
-                "Your recording was saved. Automatic speaking assessment requires "
-                "AI transcription and grading, which is not enabled yet. Connect the "
-                "Claude provider to receive a band score and feedback."
+        return grading_error_feedback(
+            provider="mock",
+            model=MOCK_MODEL,
+            prompt_version=MOCK_METHOD_VERSION,
+            message=(
+                "Your recording was saved. Automatic speaking assessment needs an "
+                "AI provider (AI_PROVIDER=gemini), which is not enabled here."
             ),
-            suggestions=["Speaking is awaiting manual or AI review."],
         )
