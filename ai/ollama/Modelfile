@@ -1,0 +1,21 @@
+# Testora examiner model for Ollama (macOS / Linux).
+#
+#   ollama pull qwen3:8b                        # ~5 GB download (Q4); see docs/qwen.md for other sizes
+#   ollama create testora-qwen3 -f ai/ollama/Modelfile
+#   ollama serve                                # API at http://localhost:11434/v1
+#
+# Then in backend/.env:
+#   AI_PROVIDER=qwen
+#   QWEN_BASE_URL=http://localhost:11434/v1
+#   QWEN_MODEL=testora-qwen3
+#
+# Why a Modelfile: the OpenAI-compatible endpoint cannot set the context size
+# per request, and Ollama's default window is too small for the ~3k-token
+# examiner prompt + essay + ~2k-token JSON reply (it silently truncates the
+# prompt). 16k leaves headroom. qwen3:8b fits a 16 GB Mac; use qwen3:14b on
+# 32 GB and qwen3:32b on 64 GB+ (docs/qwen.md).
+FROM qwen3:8b
+
+PARAMETER num_ctx 16384
+# The backend sends temperature/seed per request; these are only defaults.
+PARAMETER temperature 0.1
