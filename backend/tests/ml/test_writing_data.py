@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from ml.writing_data import (
+    prompt_group,
     Essay,
     assign_public_splits,
     build_dataset,
@@ -94,8 +95,16 @@ def test_dedup_exact_near_and_priority():
 
 def test_prompt_grouped_split_is_deterministic_and_leaves_dev_gold_alone():
     pool = make_essays(80, n_prompts=10)
-    fixed = [e.model_copy(update={"split": "dev"}) for e in make_essays(3, prefix="d")]
-    fixed += [e.model_copy(update={"split": "gold"}) for e in make_essays(3, prefix="g")]
+    fixed = [
+        e.model_copy(update={"split": "dev", "prompt": f"Dev prompt {i}", "prompt_id": prompt_group(f"Dev prompt {i}")})
+        for i, e in enumerate(make_essays(3, prefix="d"))
+    ]
+    fixed += [
+        e.model_copy(
+            update={"split": "gold", "prompt": f"Gold prompt {i}", "prompt_id": prompt_group(f"Gold prompt {i}")}
+        )
+        for i, e in enumerate(make_essays(3, prefix="g"))
+    ]
     first = assign_public_splits(pool + fixed, test_fraction=0.3, seed=7)
     again = assign_public_splits(pool + fixed, test_fraction=0.3, seed=7)
     assert [e.split for e in first] == [e.split for e in again]

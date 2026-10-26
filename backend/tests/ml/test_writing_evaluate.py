@@ -26,7 +26,7 @@ def provider(labels, fn, cap_flags=None):
 @pytest.fixture
 def setup(tmp_path):
     test = make_essays(40, n_prompts=8, seed=11, split="test", prefix="t", with_criteria=True)
-    train = make_essays(40, n_prompts=8, seed=12, split="train", prefix="r")
+    train = make_essays(40, n_prompts=8, seed=12, split="train", prefix="r", prompt_name="Training prompt")
     labels = {e.text: e.overall for e in test}
     cache = tmp_path / "cache.jsonl"
     kw = dict(cache_path=cache, runs=3)
@@ -171,7 +171,7 @@ def test_cli_protects_test_split_and_checks_prereg(tmp_path, setup):
     prereg = tmp_path / "prereg.md"
     assert ev.main([*base, "--write-prereg", str(prereg), "--primary", "good:m"]) == 0
     with pytest.raises(FileExistsError):
-        ev.main([*base, "--write-prereg", str(prereg)])
+        ev.main([*base, "--write-prereg", str(prereg), "--primary", "good:m"])
     out = tmp_path / "rep"
     assert ev.main([*base, "--prereg", str(prereg), "--out", str(out)]) == 0
     report = json.loads((tmp_path / "rep.json").read_text())

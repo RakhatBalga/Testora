@@ -24,27 +24,34 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ml import writing_stats as ws
-from ml.writing_data import CRITERIA, Essay, file_sha256, read_essays, verify_manifest
+from ml.writing_data import CRITERIA, Essay, file_sha256, read_essays, split_fingerprints, verify_manifest
 from ml.collect_writing import load_cache
 
 REPORT_VERSION = "writing-eval.v1"
 PROTECTED_SPLITS = ("test", "gold")
-DEFAULT_THRESHOLDS = {"qwk_min": 0.6, "mae_max": 0.5, "within_0_5_min": 0.7}
+DEFAULT_THRESHOLDS = {"qwk_min": 0.6, "mae_max": 0.5, "within_0_5_min": 0.7, "coverage_min": 0.95}
 PREREG_BLOCK = re.compile(r"```json prereg\s*(\{.*?\})\s*```", re.S)
 
 
 class System:
-    def __init__(self, name, kind, detail=None):
+    def __init__(self, name, kind, detail=None, id=None):
+        # `name` is for display and can change when more systems are loaded; `id`
+        # is the stable key used by pre-registrations (provider|model|prompt|seed).
         self.name, self.kind, self.detail = name, kind, detail or {}
+        self.id = id or name
         self.pred: dict[str, dict[str, float]] = defaultdict(dict)  # target -> id -> band
         self.flags: dict[str, dict | None] = {}
-        self.runs: dict[str, list[float]] = {}
+        self.runs: dict[str, dict[int, float]] = {}
         self.attempted = 0
         self.failed = 0
         self.failure_reasons: Counter = Counter()
 
 
 # ----------------------------------------------------------------- systems
+
+
+def system_id(provider, model, prompt_version, seed) -> str:
+    return f"{provider}|{model}|{prompt_version}|seed{seed}"
 
 
 def constant_systems(train: list[Essay], fallback: list[Essay], ids: list[str]) -> list[System]:
@@ -73,11 +80,19 @@ def systems_from_cache(records: dict[str, dict], essays: list[Essay], only: set[
         if rec["essay_hash"] in by_hash and (not only or rec["provider"] in only):
             groups[(rec["provider"], rec["model"], rec["prompt_version"], rec["seed"])].append(rec)
     versions = Counter((p, m) for p, m, _, _ in groups)
+    seeds = Counter((p, m, v) for p, m, v, _ in groups)
     systems = []
     for (provider, model, pv, seed), recs in sorted(groups.items()):
         name = f"{provider}:{model}" + (f"@{pv}" if versions[(provider, model)] > 1 else "")
+        if seeds[(provider, model, pv)] > 1:
+            name += f"#seed{seed}"
         kind = "rules" if provider == "mock" else "llm"
-        s = System(name, kind, {"provider": provider, "model": model, "prompt_version": pv, "seed": seed})
+        s = System(
+            name,
+            kind,
+            {"provider": provider, "model": model, "prompt_version": pv, "seed": seed},
+            id=system_id(provider, model, pv, seed),
+        )
         per_run: dict[str, dict[int, float]] = defaultdict(dict)
         for rec in recs:
             eid = by_hash[rec["essay_hash"]].id
@@ -93,8 +108,7 @@ def systems_from_cache(records: dict[str, dict], essays: list[Essay], only: set[
                     s.failure_reasons[str(rec.get("error"))[:60]] += 1
             if rec["ok"]:
                 per_run[eid][rec["run"]] = rec["band"]
-        s.runs = {e: [r[k] for k in sorted(r)] for e, r in per_run.items()}
-        s.runs = {e: v for e, v in s.runs.items()}
+        s.runs = dict(per_run)  # essay id -> {run index: band}, aligned by index
         systems.append(s)
     return systems
 
@@ -169,7 +183,7 @@ def evaluate_system(
     cluster_by_prompt: bool,
     ci_criteria: bool,
 ) -> dict:
-    block: dict = {"name": s.name, "kind": s.kind, "detail": s.detail}
+    block: dict = {"name": s.name, "id": s.id, "kind": s.kind, "detail": s.detail}
     expected = len(essays_by_id)
     covered = len(s.pred["overall"])
     block["coverage"] = {
@@ -180,6 +194,11 @@ def evaluate_system(
         "rate": covered / expected if expected else None,
         "failure_reasons": dict(s.failure_reasons),
     }
+    # Metrics on every essay this system covered (not only the common subset), so
+    # selective failures cannot hide behind the shared comparison set.
+    own_ids, own_y, own_p = _aligned(essays_by_id, sorted(essays_by_id), _target_label("overall"), s.pred["overall"])
+    if len(own_ids) >= 2:
+        block["own_overall"] = {"n": len(own_ids), **ws.point_metrics(own_y, own_p)}
     targets = {}
     for target in ("overall", *CRITERIA):
         if target not in s.pred:
@@ -247,9 +266,11 @@ def evaluate(
     n_boot: int = 2000,
     seed: int = 0,
     reference: str | None = None,
-    cluster_by_prompt: bool = False,
+    cluster_by_prompt: bool | None = None,
     ci_criteria: bool = False,
 ) -> dict:
+    """`cluster_by_prompt=None` (default) resamples whole prompts whenever prompts
+    repeat in the evaluated set, since essays on one prompt are not independent."""
     by_id = {e.id: e for e in essays}
     ids = sorted(by_id)
     all_systems = constant_systems(train_essays or [], essays, ids) + systems
@@ -261,6 +282,8 @@ def evaluate(
         )
     if len(common) < 30:
         warnings.append(f"only {len(common)} common essays: confidence intervals are very wide")
+    if cluster_by_prompt is None:
+        cluster_by_prompt = len({by_id[i].prompt_id for i in common}) < len(common)
     blocks = [
         evaluate_system(
             s, by_id, common, n_boot=n_boot, seed=seed, cluster_by_prompt=cluster_by_prompt, ci_criteria=ci_criteria
@@ -271,7 +294,7 @@ def evaluate(
     if ceiling:
         blocks.append(ceiling)
     paired = []
-    ref = next((s for s in all_systems if s.name == reference), None) if reference else None
+    ref = next((s for s in all_systems if reference in (s.name, s.id)), None) if reference else None
     if reference and ref is None:
         warnings.append(f"reference system {reference!r} not found")
     if ref is None:
@@ -288,6 +311,7 @@ def evaluate(
                 {
                     "a": ref.name,
                     "b": other.name,
+                    "b_id": other.id,
                     "n": len(common),
                     "metrics": ws.paired_bootstrap_diff(y, pr, po, n_boot=n_boot, seed=seed, clusters=clusters),
                 }
@@ -314,47 +338,81 @@ def parse_prereg(path: Path) -> dict:
     return json.loads(match.group(1))
 
 
-def check_protocol(prereg: dict, report: dict, manifest: dict | None, split: str) -> list[str]:
+def check_protocol(
+    prereg: dict,
+    report: dict,
+    split: str,
+    *,
+    dataset_sha256: str | None = None,
+    fingerprints: dict[str, str] | None = None,
+) -> list[str]:
+    """Deviations from the frozen protocol. Works without a manifest: the dataset
+    hash and per-split fingerprints are recomputed from the dataset itself."""
     deviations = []
-    if manifest and split in prereg.get("split_fingerprints", {}):
-        if manifest["splits"][split]["fingerprint"] != prereg["split_fingerprints"][split]:
+    frozen_sha = prereg.get("dataset_sha256")
+    if frozen_sha and dataset_sha256 and frozen_sha != dataset_sha256:
+        deviations.append("dataset file hash differs from the pre-registered one")
+    frozen = prereg.get("split_fingerprints", {})
+    if split in frozen:
+        if (fingerprints or {}).get(split) != frozen[split]:
             deviations.append(f"split {split!r} fingerprint differs from the pre-registered one")
-    allowed = {(m["provider"], m["model"], m["prompt_version"]) for m in prereg.get("systems", [])}
+    elif split in PROTECTED_SPLITS:
+        deviations.append(f"split {split!r} has no pre-registered fingerprint")
+    allowed = {
+        m.get("id") or system_id(m["provider"], m["model"], m["prompt_version"], m.get("seed", 0))
+        for m in prereg.get("systems", [])
+    }
     for block in report["systems"]:
-        d = block["detail"]
-        if block["kind"] in ("llm", "rules") and (d["provider"], d["model"], d["prompt_version"]) not in allowed:
-            deviations.append(f"system {block['name']} (prompt {d['prompt_version']}) is not pre-registered")
+        if block["kind"] in ("llm", "rules") and block["id"] not in allowed:
+            d = block["detail"]
+            deviations.append(
+                f"system {block['name']} (prompt {d['prompt_version']}, seed {d['seed']}) is not pre-registered"
+            )
     return deviations
 
 
-def threshold_verdict(prereg: dict, report: dict) -> dict | None:
-    primary = prereg.get("primary_system")
+def threshold_verdict(prereg: dict, report: dict) -> dict:
+    """Pre-registered pass/fail for the primary system. The primary is matched by
+    its stable id and a missing primary is an error, never a silent skip."""
+    primary = prereg.get("primary_id") or prereg.get("primary_system")
+    if not primary:
+        raise ValueError("the pre-registration names no primary system (primary_id)")
     th = {**DEFAULT_THRESHOLDS, **prereg.get("thresholds", {})}
-    block = next((b for b in report["systems"] if b["name"] == primary), None)
-    if not block or "overall" not in block["targets"]:
-        return None
+    block = next((b for b in report["systems"] if primary in (b.get("id"), b["name"])), None)
+    if block is None:
+        raise ValueError(f"pre-registered primary system {primary!r} is not in the evaluated systems")
+    if "overall" not in block["targets"]:
+        raise ValueError(f"primary system {primary!r} has too few scored essays to evaluate")
     t = block["targets"]["overall"]
     ci = t.get("ci95", {})
     q_lo = (ci.get("qwk") or {}).get("lo")
-    return {
-        "primary_system": primary,
+    cov = block["coverage"]
+    verdict = {
+        "primary_id": block["id"],
+        "primary_system": block["name"],
         "thresholds": th,
+        "coverage": {"covered": cov["covered"], "expected": cov["expected"], "rate": cov["rate"]},
+        "n_scored_common": t["n"],
+        "coverage_ok": cov["rate"] is not None and cov["rate"] >= th["coverage_min"],
         "qwk_point_ok": t["qwk"] is not None and t["qwk"] >= th["qwk_min"],
         "qwk_ci_lower_ok": q_lo is not None and q_lo >= th["qwk_min"],
         "mae_ok": t["mae"] <= th["mae_max"],
         "within_0_5_ok": t["within_0_5"] >= th["within_0_5_min"],
     }
+    verdict["all_ok"] = all(verdict[k] for k in ("coverage_ok", "qwk_point_ok", "mae_ok", "within_0_5_ok"))
+    return verdict
 
 
 def render_prereg(
-    *, dataset_sha256, manifest: dict | None, systems: list[dict], primary: str | None, thresholds=None
+    *, dataset_sha256, fingerprints: dict[str, str], systems: list[dict], primary: str | None, thresholds=None
 ) -> str:
     payload = {
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "dataset_sha256": dataset_sha256,
-        "split_fingerprints": {s: i["fingerprint"] for s, i in (manifest or {}).get("splits", {}).items()},
+        "split_fingerprints": fingerprints,
         "systems": systems,
-        "primary_system": primary,
+        "primary_system": next((m["name"] for m in systems if m["id"] == primary), None),
+        "primary_id": primary,
         "thresholds": thresholds or DEFAULT_THRESHOLDS,
     }
     template = Path(__file__).resolve().parents[1] / "calibration" / "PREREGISTRATION_TEMPLATE.md"
@@ -503,7 +561,12 @@ def main(argv=None):
     parser.add_argument("--reference", help="system name for paired comparisons (default: first LLM)")
     parser.add_argument("--n-boot", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--cluster-by-prompt", action="store_true")
+    parser.add_argument(
+        "--cluster-by-prompt",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="cluster bootstrap by prompt (default: on whenever prompts repeat; --no-cluster-by-prompt disables)",
+    )
     parser.add_argument("--ci-criteria", action="store_true", help="also bootstrap per-criterion QWK/MAE")
     parser.add_argument("--prereg", type=Path, help="frozen protocol (required for test/gold)")
     parser.add_argument(
@@ -560,12 +623,22 @@ def main(argv=None):
                 "provider": s.detail["provider"],
                 "model": s.detail["model"],
                 "prompt_version": s.detail["prompt_version"],
+                "seed": s.detail["seed"],
+                "id": s.id,
                 "name": s.name,
             }
             for s in systems
             if s.kind in ("llm", "rules")
         ]
-        text = render_prereg(dataset_sha256=dataset_sha, manifest=manifest, systems=reg, primary=args.primary)
+        primary = next((m["id"] for m in reg if args.primary in (m["id"], m["name"])), None)
+        if primary is None:
+            raise SystemExit(
+                f"--primary {args.primary!r} must name one of the collected systems: "
+                + ", ".join(m["name"] for m in reg)
+            )
+        text = render_prereg(
+            dataset_sha256=dataset_sha, fingerprints=split_fingerprints(all_essays), systems=reg, primary=primary
+        )
         args.write_prereg.parent.mkdir(parents=True, exist_ok=True)
         with args.write_prereg.open("x", encoding="utf-8") as handle:
             handle.write(text)
@@ -605,8 +678,17 @@ def main(argv=None):
         meta["protocol_deviations"].append("evaluated WITHOUT a pre-registered protocol")
     if prereg is not None:
         meta["prereg_sha256"] = file_sha256(args.prereg)
-        meta["protocol_deviations"] += check_protocol(prereg, report, manifest, args.split)
-        meta["verdict"] = threshold_verdict(prereg, report)
+        meta["protocol_deviations"] += check_protocol(
+            prereg,
+            report,
+            args.split,
+            dataset_sha256=dataset_sha,
+            fingerprints=split_fingerprints(all_essays),
+        )
+        try:
+            meta["verdict"] = threshold_verdict(prereg, report)
+        except ValueError as exc:
+            raise SystemExit(f"cannot compute the pre-registered verdict: {exc}") from None
     report["meta"] = meta
     markdown = render_markdown(report, meta)
     if args.out:

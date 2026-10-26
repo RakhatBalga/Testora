@@ -22,7 +22,7 @@ def make_text(band: float, rng: random.Random) -> str:
     return "\n\n".join(" ".join(sentences[i : i + 4]) for i in range(0, len(sentences), 4))
 
 
-def make_essays(n=60, n_prompts=12, seed=1, split="train", prefix="s", with_criteria=False):
+def make_essays(n=60, n_prompts=12, seed=1, split="train", prefix="s", with_criteria=False, prompt_name="Prompt"):
     rng = random.Random(seed)
     out = []
     for i in range(n):
@@ -32,7 +32,7 @@ def make_essays(n=60, n_prompts=12, seed=1, split="train", prefix="s", with_crit
             Essay(
                 id=f"{prefix}{i:03d}",
                 task_type=2,
-                prompt=f"Prompt number {i % n_prompts} about topic.",
+                prompt=f"{prompt_name} number {i % n_prompts} about topic.",
                 text=make_text(band, rng) + f" Unique tag {prefix}{i}.",
                 overall=band,
                 criteria=crit,
