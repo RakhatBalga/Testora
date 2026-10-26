@@ -5,47 +5,53 @@ The project aim is to build an IELTS preparation system that (a) grades Writing 
 1. **Verification:** the system does what Section 6 specifies. This is checked by automated tests in CI, content validators, and scripted security and end-to-end checks.
 2. **Evaluation:** the system is good enough to be useful. This is checked by four experiments (E1–E4), each with a research question, data, metric, measurement conditions, a baseline, and a success threshold.
 
-> **Honest status (22 October 2026):** no accuracy or pilot results exist yet. The measurement code is in place (`backend/scripts/run_writing_calibration.py`, `backend/ml/*`), but the labelled datasets are still being collected (YouTrack **TST-40**: Writing dataset, **TST-45**: Speaking dataset). All thresholds below are **targets**, not achieved results.
+> **Honest status (26 October 2026):** no accuracy or pilot results exist yet. The measurement code is in place (`backend/ml/`: dataset builder, collector, evaluator and trained baselines for Writing; ASR, Speaking and adaptive evaluation), but the labelled datasets are still being collected (YouTrack **TST-40**: Writing dataset, **TST-45**: Speaking dataset). The 8-essay development bank is not a test set (the prompt was tuned on it), so any score on it is not evidence of accuracy. All thresholds below are **targets**, not achieved results.
 
 ## 9.1 Testing plan
 
 ### 9.1.1 Existing automated tests
 
-Counts are taken from the `main` branch: `def test_*` functions in the backend and `it(...)`/`test(...)` blocks in the frontend. Parametrised tests expand into more cases at run time.
+Counts were taken on 26 October 2026 from the integration branch: `def test_*` functions in the backend (`grep -c "def test_"`), `pytest --collect-only` for the number of cases after parametrisation, and `npx vitest run` for the frontend. Recount before every submission.
 
-**Backend – pytest: 34 files, 162 test functions** (`backend/tests/`)
+**Backend – pytest: 51 test files, 391 test functions, 541 collected cases** (`backend/tests/`; a few PostgreSQL-only tests are skipped on SQLite)
 
 | Area | Test files (number of test functions) |
 |------|---------------------------------------|
-| LLM Writing grading | `test_writing_examiner.py` (26), `test_gemini_grading.py` (14), `test_writing_precheck.py` (4), `test_writing_retry.py` (4) |
-| Coach loop / analytics | `test_personalized_learning.py` (6), `test_recommendations.py` (2), `test_weekly_analytics.py` (1), `test_target_band.py` (8), `test_band.py` (6) |
-| Reading / Listening | `test_reading_scoring.py` (4), `test_reading_catalog.py` (3), `test_listening_scoring.py` (6), `test_listening_updates.py` (4), `test_listening_validator.py` (4), `test_content_pipeline.py` (7) |
+| LLM Writing grading | `test_writing_examiner.py` (59), `test_gemini_grading.py` (21), `test_qwen_grading.py` (16), `test_qwen_client.py` (20), `test_writing_precheck.py` (4), `test_writing_retry.py` (4) |
+| Coach loop / analytics | `test_analytics_core.py` (8), `test_personalized_learning.py` (6), `test_recommendations.py` (2), `test_weekly_analytics.py` (1), `test_target_band.py` (8), `test_band.py` (6), `test_response_models.py` (3) |
+| Reading / Listening / content | `test_reading_scoring.py` (4), `test_reading_catalog.py` (3), `test_listening_scoring.py` (6), `test_listening_updates.py` (4), `test_listening_validator.py` (4), `test_content_pipeline.py` (9), `test_seed_demo_guard.py` (3) |
 | Vocabulary | `test_vocabulary.py` (4), `test_vocabulary_quota.py` (3) |
-| Security & reliability | `test_auth_tokens.py` (3), `test_google_auth.py` (5), `test_ratelimit.py` (2), `test_ai_safety.py` (7), `test_ai_quota.py` (6), `test_deploy_paths.py` (3) |
-| ML research modules | `test_ml_asr.py` (1), `test_ml_benchmark_asr.py` (2), `test_ml_data.py` (3), `test_ml_speech_features.py` (3), `test_ml_train_speaking.py` (2), `test_ml_metrics.py` (3), `test_ml_irt.py` (2), `test_ml_knowledge_tracing.py` (3), `test_ml_recommendation.py` (2), `test_ml_evaluate_adaptive.py` (3), `test_ml_export_responses.py` (6) |
+| Security & reliability | `test_auth_tokens.py` (3), `test_google_auth.py` (5), `test_ratelimit.py` (2), `test_request_limits.py` (10), `test_ai_safety.py` (12), `test_ai_quota.py` (6), `test_reliability.py` (24), `test_storage_and_uploads.py` (12), `test_deploy_paths.py` (3) |
+| ML research modules | `test_ml_asr.py` (1), `test_ml_benchmark_asr.py` (4), `test_ml_data.py` (3), `test_ml_speech_features.py` (3), `test_ml_train_speaking.py` (10), `test_ml_metrics.py` (6), `test_ml_irt.py` (2), `test_ml_knowledge_tracing.py` (3), `test_ml_recommendation.py` (2), `test_ml_evaluate_adaptive.py` (7), `test_ml_export_responses.py` (6) |
+| E1 Writing evaluation tooling (`tests/ml/`) | `test_writing_data.py` (8), `test_writing_stats.py` (11), `test_writing_collect.py` (6), `test_writing_train.py` (5), `test_writing_evaluate.py` (8), `test_writing_integrity.py` (14); dataset readiness and record safety in `tests/ml/datasets/` (`test_readiness.py` 11, `test_speaking_readiness.py` 3, `test_record_safety.py` 3) |
 
-**Frontend – Vitest + Testing Library: 12 files, 40 test blocks (41 cases at run time)**
+**Frontend – Vitest + Testing Library: 22 files, 108 tests** (`npx vitest run`)
 
-`features/auth/googleFlow.test.ts` (4), `features/auth/ui/GoogleSignInButton.test.tsx` (2), `app/login/page.test.tsx` (1), `shared/api/login.test.ts` (5), `shared/api/quotaErrors.test.ts` (2), `features/feedback/ui/ReviewStatusNotice.test.tsx` (2), `features/listening-session/progress.test.ts` (8), `app/listening/progress.test.tsx` (5), `features/listening-session/ui/ListeningAudioPlayer.test.tsx` (1 `it.each` → 2 cases), `shared/ui/Button.test.tsx` (3), `shared/lib/formatDisplayName.test.ts` (4), `shared/lib/greeting.test.ts` (3).
+`app/listening/progress.test.tsx`, `app/login/page.test.tsx`, `entities/profile/model/stats.test.ts`, `entities/test/model/routes.test.ts`, `entities/test/model/storage.test.ts`, `features/auth/model/googleFlow.test.ts`, `features/auth/ui/GoogleSignInButton.test.tsx`, `features/feedback/ui/ReviewStatusNotice.test.tsx`, `features/listening-session/model/progress.test.ts`, `features/listening-session/ui/ListeningAudioPlayer.test.tsx`, `shared/api/login.test.ts`, `shared/api/quotaErrors.test.ts`, `shared/api/request.test.ts`, `shared/lib/band.test.ts`, `shared/lib/examTimer.test.ts`, `shared/lib/formatDisplayName.test.ts`, `shared/lib/greeting.test.ts`, `shared/lib/micError.test.ts`, `shared/lib/safeNext.test.ts`, `shared/lib/useDeadlineCountdown.test.tsx`, `shared/lib/useExamTimer.test.tsx`, `shared/ui/Button.test.tsx`.
 
-**Content validators** (run in CI before the tests):
+**Content validators** (run as `python -m content_tools.validate_<name>` from `backend/`; in CI before the tests):
 
 | Validator | What it checks |
 |-----------|----------------|
-| `validate_reading.py` | Every question (except "Not Given") has evidence with paragraph, sentence and a quote found **verbatim** in the passage. Answer keys and question types are well-formed |
-| `validate_listening.py` | Test structure, evidence quotes in transcripts, and the **real audio duration** (ffmpeg) against section timings |
-| `validate_writing.py` | Task 1 `visual_data` is consistent (e.g. chart series align with labels) |
-| `scripts/check_migration_heads.py` | The Alembic migration graph has a single head |
+| `content_tools/validate_reading.py` | Every question (except "Not Given") has evidence with paragraph, sentence and a quote found **verbatim** in the passage. Answer keys and question types are well-formed |
+| `content_tools/validate_listening.py` | Test structure, evidence quotes in transcripts, and the **real audio duration** (ffmpeg) against section timings |
+| `content_tools/validate_writing.py` | Task 1 `visual_data` is consistent (e.g. chart series align with labels) |
+| `scripts/dev/check_migration_heads.py` | The Alembic migration graph has a single head |
 
 **CI pipeline** (`.github/workflows/ci.yml`, runs on every push to `main` / `nurhan/**` and on every pull request):
 
 | Job | Steps |
 |-----|-------|
-| `backend` | Python 3.12 + PostgreSQL 16 service → migration single-head check → `alembic upgrade head` → downgrade → upgrade again (migrations are reversible) → three content validators → `pytest -q` (with `AI_PROVIDER=mock`, so no paid calls) |
+| `backend` | Python 3.12 + PostgreSQL 16 service → ruff (syntax errors and undefined names) → migration single-head check → `alembic upgrade head` → downgrade → upgrade again (migrations are reversible) → `alembic check` (models match migrations, blocking) → three content validators → `pytest -q` (with `AI_PROVIDER=mock`, so no paid calls) |
 | `frontend` | Node 20 → `npm ci` → ESLint → `tsc --noEmit` → `vitest run` → `next build` |
-| `compose-config` | Validates `docker-compose.prod.yml` with production-like variables |
+| `backend-image` | Builds the backend Docker image (no push) |
+| `compose-config` | Validates `docker-compose.yml` (defaults and production-like variables, `qwen` profile) |
 
-Merge rule: a pull request is merged only when all three jobs are green. (`deploy.yml` is a legacy manual workflow. Production deploys through Render, `render.yaml`.)
+Merge rule: since 26 October 2026 branch protection on `main` requires the checks `backend`, `frontend` and `compose-config`, and blocks force-push and deletion. Approvals are not required by the protection rule. Production deploys through Render (`render.yaml`, `autoDeployTrigger: checksPass`), i.e. only after the checks for the commit pass. Before that date, Render deployed every push without waiting for CI and no rule enforced green checks. Dependabot proposes dependency updates weekly (pip, npm, GitHub Actions, Docker).
+
+**Provider tests.** The Qwen client and grading pipeline are tested against fake servers (`test_qwen_client.py`, `test_qwen_grading.py`); no real model or paid API is called in CI.
+
+**Code review.** The workflow asks for a review of every pull request by the other team member. In practice only a few pull requests so far carry a recorded review (the documentation pull request was reviewed and approved); most earlier ones were merged by their author. Mandatory approvals are not enforced yet and are planned once the workflow in Section 10 is in regular use.
 
 ### 9.1.2 Gaps and planned tests
 
@@ -81,11 +87,11 @@ Planned additions: an IDOR test that checks every `/{id}` endpoint returns 404 f
 | Item | Plan |
 |------|------|
 | **Research question** | How closely does the two-stage Gemini examiner agree with qualified IELTS examiners, overall and per criterion, and is it stable across repeated runs? |
-| **Data** | Labelled Task 1 and Task 2 essays with expert band scores (overall + 4 criteria), from published examiner-scored sample answers (where reuse is permitted) and essays scored by certified teachers (TST-40). Planned size: **≥ 100 essays**, spread over bands 4–8. A seed bank of anchor cases already exists: `backend/tests/fixtures/writing_calibration.md`, with bands 4–8 plus cap cases: off-topic, under-length, fabricated data, no overview. Data stays outside git (`*.local.jsonl`). |
-| **Metrics** | MAE (overall and per criterion); **Quadratic Weighted Kappa (QWK)** on half-band labels; % exact agreement and **% within ±0.5 band**; cap-case hit rate. **Stability:** each essay graded 5 times → standard deviation of the overall band, and % of essays whose band changes between runs. |
-| **Measurement conditions** | Production configuration: `gemini-2.5-flash`, examiner temperature 0.1, the same prompts as production. Coach stage disabled (`WRITING_COACH_ENABLED=false`) so only the grade is measured. Run with `scripts/run_writing_calibration.py --tolerance 0.5 --report ...`. Prompts and model version are frozen during the run, and the report is saved. Expert labels are hidden from the prompt. |
-| **Baselines** | (1) **Mean predictor** (always the dataset's mean band). (2) The **deterministic heuristic grader** (`ai/mock.py`, the free fallback used in development). (3) **Ridge regression on text features** (length, type/token ratio, sentence length, error counts), cross-validated on the same essays. |
-| **Success thresholds (targets)** | Overall MAE ≤ 0.5. **QWK ≥ 0.6** overall (≥ 0.5 per criterion). ≥ 70% of essays within ±0.5 band. Cap cases fire in ≥ 90% of cases. Std of the overall band across 5 runs ≤ 0.25. The LLM must beat all baselines on MAE and QWK. |
+| **Data** | Labelled Task 1 and Task 2 essays with expert band scores (overall + 4 criteria), from published examiner-scored sample answers (where reuse is permitted) and essays scored by certified teachers (TST-40). Planned size: **≥ 100 essays**, spread over bands 4–8. A small development bank of anchor cases already exists (`backend/tests/fixtures/writing_calibration_bank.jsonl`, 8 essays; descriptions in `backend/tests/fixtures/writing_calibration.md`) with bands 4–8 plus cap cases: off-topic, under-length, fabricated data, no overview. It is the `dev` split only: the prompt was tuned on it, so it is never used as a test set. The evaluation set is a public scored-essay corpus (single, non-certified raters, possibly seen by the LLM during training: a noisy-label benchmark with contamination risk, reported as such) plus a double-marked teacher set (`gold`). The dataset builder (`ml/writing_data.py`, schema `writing-essay.v1`) removes exact and near-duplicates and splits by prompt group, so no prompt appears in both train and test; a manifest records sources, licences and skipped rows. Private data stays outside git (`*.local.jsonl`). |
+| **Metrics** | MAE (overall and per criterion); **Quadratic Weighted Kappa (QWK)** on half-band labels; % exact agreement and **% within ±0.5 band**; cap-case hit rate. Also bias (mean signed error), prediction spread and mode share (a flat predictor can have a respectable MAE and QWK near 0, so these are read together), RMSE, Pearson/Spearman, coverage (share of essays graded successfully) and 95% bootstrap confidence intervals, plus paired bootstrap differences between systems. **Stability:** each gold essay graded 5 times → standard deviation, intraclass correlation (ICC) and % of essays whose band changes between runs. **Human ceiling:** agreement between the two teachers on the gold set. |
+| **Measurement conditions** | Production configuration: `gemini-2.5-flash`, examiner temperature 0.1, the same prompts as production. Coach stage disabled (`WRITING_COACH_ENABLED=false`) so only the grade is measured. The pipeline (documented in `backend/calibration/README.md`, "How to run E1"): `ml.writing_data` → `ml.train_writing` → `ml.collect_writing` (cached, resumable, failures recorded and retried, `--runs N`) → `ml.evaluate_writing`. A provider that is not actually configured is refused instead of silently falling back to the mock grader. **Pre-registration:** the model, prompts, primary metric and thresholds are written down (`calibration/PREREGISTRATION_TEMPLATE.md`, generated with `--write-prereg`) and committed before the test split is evaluated; evaluating `test` or `gold` without it is flagged in the report. Every graded result records `provider`, `model` and `prompt_version` in its feedback diagnostics, and the E1 collection cache key includes `prompt_version`, so runs made under different prompt versions are kept apart. Prompts and model version are frozen during the run, and the report (`ml/reports/*.md/.json`) is saved. Expert labels are hidden from the prompt. The same protocol is run for a locally hosted Qwen model (`--provider qwen`) next to Gemini, so that the planned replacement is judged on the same essays with the same thresholds. |
+| **Baselines** | (1) **Mean predictor** (always the dataset's mean band). (2) The **deterministic heuristic grader** (`ai/mock.py`, the free fallback used in development). (3) **Trained text-feature baselines**: Ridge regression and gradient boosting on features such as length, type/token ratio and sentence length (`ml/train_writing.py`), with prompt-grouped cross-validation and evaluated on the same test split. (4) Constant mean and mode predictors as sanity floors. |
+| **Success thresholds (targets)** | Overall MAE ≤ 0.5. **QWK ≥ 0.6** overall (≥ 0.5 per criterion). ≥ 70% of essays within ±0.5 band. Cap cases fire in ≥ 90% of cases. Std of the overall band across 5 runs ≤ 0.25. The LLM must beat all baselines on MAE and QWK. A candidate replacement model (Qwen, implemented but not yet measured) is accepted only if it also meets these thresholds and is not significantly worse than Gemini on the paired bootstrap difference. |
 
 ### E2 – Speaking: ASR quality and score model (TST-46, data TST-45)
 
@@ -125,7 +131,7 @@ Planned additions: an IDOR test that checks every `/{id}` endpoint returns 404 f
 
 | Aim component | Evidence at the defence |
 |---------------|-------------------------|
-| The system works as specified | Green CI run (162 backend test functions + 41 frontend test cases, validators, build) and the live demo of Scenarios 1–5 on testora.studio |
+| The system works as specified | Green CI run (467 backend test cases + 102 frontend tests, validators, build) and the live demo of Scenarios 1–5 on testora.studio |
 | The grading is trustworthy | E1 report: MAE/QWK/±0.5 agreement vs baselines, per criterion, and the stability table |
 | The ML components add value | E2 (WER, speaker-disjoint QWK) and E3 (AUC vs error-rate baseline). Components that do not meet targets are reported as negative results and stay out of the product |
 | Learners benefit | E4: band change, SUS, usefulness, retention |

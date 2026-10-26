@@ -3,14 +3,14 @@
 ## 10.1 Tools and traceability
 | Tool | Link | Use |
 |---|---|---|
-| Git repository | https://github.com/RakhatBalga/Testora | Source code, documentation, diagrams, tests. `main` is the reviewed baseline; changes go through feature branches and pull requests |
+| Git repository | https://github.com/RakhatBalga/Testora | Source code, documentation, diagrams, tests. `main` is the baseline; changes go through feature branches and pull requests. Branch protection (since 26 Oct 2026) requires the CI checks to pass and blocks force-push and deletion |
 | YouTrack | https://testora-diploma.youtrack.cloud (project **TST**) | Tasks with assignee, priority, deadline, expected outcome, acceptance criteria and links to commits/PRs; Kanban board |
-| CI | GitHub Actions (`.github/workflows/ci.yml`) | Backend tests, frontend lint/tests, content validators, security regression tests |
-| Production | https://testora.studio | Live prototype for demonstrations and the pilot |
+| CI | GitHub Actions (`.github/workflows/ci.yml`) | Jobs `backend` (ruff, migrations, content validators, pytest), `frontend` (lint, typecheck, tests, build), `backend-image`, `compose-config`. Render deploys `main` only after the checks pass |
+| Production | https://testora.studio | Live prototype for demonstrations and the pilot (Vercel + Render + Neon, see `docs/operations.md`) |
 
-**Workflow (from this stage on):** one YouTrack task per meaningful work item → branch `TST-<id>-short-name` → commits `TST-<id>: description` → pull request that references the task and explains how the change was checked → review by the other team member → merge to `main` → task closed only when its acceptance criteria are met. Each submission is tagged (`prob-period-1`, then `pre-defense-1`, `pre-defense-2`, `final-pre-defense`); tags are never moved after submission.
+**Workflow (from this stage on):** one YouTrack task per meaningful work item → branch `TST-<id>-short-name` → commits `TST-<id>: description` → pull request that references the task and explains how the change was checked → review by the other team member (a practice being introduced: so far only a few pull requests have a recorded review) → merge to `main` → task closed only when its acceptance criteria are met. Each submission is tagged (`prob-period-1`, then `pre-defense-1`, `pre-defense-2`, `final-pre-defense`); tags are not moved after a formal submission. The first tag predates the report sections, so it will be re-cut on a commit that contains them and agreed with the supervisor.
 
-**Note on history:** development started on 21 June 2026 (first commit). Work before October 2026 was tracked in Git history and pull requests; it was entered into YouTrack retroactively as tasks TST-17…TST-38 and TST-51…TST-76 with links to the original commits and their real dates. From October 2026 all work is planned in YouTrack first.
+**Note on history:** the first commit in the repository history is dated 30 June 2026; it contains the prototype as it was then (earlier local history was squashed into it and is not preserved). Work before October 2026 was tracked in Git history and pull requests; it was entered into YouTrack retroactively as tasks TST-17…TST-38 and TST-51…TST-76 with links to the original commits and their real dates. From October 2026 all work is planned in YouTrack first.
 
 ## 10.2 Allocation of responsibilities
 | Area | Rakhat Balgabekov | Nurhan Turganbek |
@@ -41,21 +41,21 @@ Supervision: weekly meeting with the supervisor; a demo of the working version e
 | # | Risk | Probability | Impact | Mitigation |
 |---|---|---|---|---|
 | R1 | Not enough expert-scored essays/recordings for a reliable accuracy experiment | Medium | High | Combine public scored datasets with essays scored by certified teachers; start collection in November; report confidence intervals |
-| R2 | LLM grading is unstable across runs or drifts after provider model updates | Medium | High | Fixed model version and temperature, schema-validated output, repeated-run stability test, provider-independent layer to switch models |
-| R3 | LLM API cost or rate limits exceed the budget | Medium | Medium | Free-tier quota per user, atomic quota reservation, cheaper model for secondary tasks, caching |
+| R2 | LLM grading is unstable across runs or drifts after provider model updates | Medium | High | Fixed model version and temperature, schema-validated output, repeated-run stability test, provider-independent layer to switch models (Gemini, and later Qwen, are compared with the same E1 protocol) |
+| R3 | LLM API cost or rate limits exceed the budget | Medium | Medium | Free-tier quota per user, atomic quota reservation, global daily AI budget, cheaper model (`gemini-2.5-flash-lite`) for secondary tasks, caching; longer term a self-hosted Qwen model (implemented, not yet measured) |
 | R4 | Whisper errors on accented speech reduce Speaking score quality | Medium | Medium | Compare model sizes by WER on our recordings; use ASR confidence as a feature; report error by accent where possible |
 | R5 | Cold start: adaptive models have too few responses per item/user | High | Medium | Regularized Rasch model, explicit cold-start rules, error-rate baseline as fallback |
-| R6 | Free hosting limits (sleep after inactivity, database limits, non-commercial frontend plan) affect the pilot | Medium | Medium | Warm-up before demos/pilot; move to a paid plan or a single VPS if needed (section 5) |
+| R6 | Free hosting limits (sleep after inactivity, database limits, non-commercial frontend plan) affect the pilot | Medium | Medium | Warm-up before demos/pilot (the frontend also pings the backend); manual database backups (`scripts/backup_prod.sh`, no scheduled backup yet); move to a paid plan or a single VPS if needed (section 5) |
 | R7 | Personal data and recordings leak | Low | High | Recordings stored privately and served only to the owner; pseudonymous ML export; secrets only in environment variables; security regression tests in CI |
-| R8 | Workload imbalance or schedule slip in a two-person team | Medium | Medium | Weekly planning in YouTrack, clear ownership (10.2), review of each other's pull requests, re-planning at the weekly meeting |
+| R8 | Workload imbalance or schedule slip in a two-person team | Medium | Medium | Weekly planning in YouTrack, clear ownership (10.2), review of each other's pull requests (being introduced; branch protection added 26 Oct 2026), re-planning at the weekly meeting |
 | R9 | Interview/pilot participants are hard to recruit | Medium | Medium | Recruit among students preparing for IELTS; short sessions; incentives such as free extended gradings |
 
 ## 10.5 Dependencies
 | Dependency | Type | Used for | Fallback |
 |---|---|---|---|
-| Google Gemini API | External service | Writing/Speaking assessment | Claude or OpenAI via the same provider interface; deterministic mock grader for development |
+| Google Gemini API | External service | Writing/Speaking assessment | Claude via the same provider interface; deterministic mock grader for development. Alternative provider implemented: a self-hosted Qwen model (OpenAI-compatible server on the team's machine or rented GPUs, `AI_PROVIDER=qwen`, see `docs/qwen.md`); not used in production and not yet measured, to be adopted only if E1 shows comparable accuracy |
 | Google OAuth | External service | Sign-in | Username + password login |
-| Vercel, Render, Neon | Hosting | Frontend, backend, PostgreSQL | Docker Compose deployment on a single VPS (`docker-compose.prod.yml`) |
+| Vercel, Render, Neon | Hosting | Frontend, backend, PostgreSQL | Docker Compose deployment on a single VPS (`docker-compose.yml`) |
 | OpenAI Whisper (open-source) | Library/model | Speaking transcription (research) | Cloud speech-to-text |
 | Expert raters | People | Ground-truth band scores | Public scored datasets |
 | Pilot users | People | Evaluation of usefulness | Smaller pilot with qualitative feedback |
