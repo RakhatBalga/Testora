@@ -1,0 +1,30 @@
+# Install: pip install pre-commit && pre-commit install
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+        exclude: \.(svg|png|m4a|json)$
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+        exclude: \.(svg|png|m4a)$
+      - id: check-yaml
+      - id: check-added-large-files
+        args: [--maxkb=2048]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.2
+    hooks:
+      - id: ruff
+        files: ^backend/
+      # Formatting is introduced in a separate commit; enable then:
+      # - id: ruff-format
+      #   files: ^backend/
+  - repo: local
+    hooks:
+      - id: frontend-eslint
+        name: eslint (frontend)
+        language: system
+        entry: sh -c 'cd frontend && npm run lint --silent'
+        files: ^frontend/.*\.(ts|tsx|js|jsx|mjs)$
+        pass_filenames: false
+        stages: [manual]
