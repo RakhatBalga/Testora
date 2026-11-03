@@ -108,11 +108,7 @@ def list_catalog(db: Session) -> list[dict]:
         .group_by(Section.test_id)
         .all()
     )
-    tests = [
-        test
-        for test in db.query(Test).order_by(Test.id).all()
-        if is_published(test)
-    ]
+    tests = [test for test in db.query(Test).order_by(Test.id).all() if is_published(test)]
     return [_catalog_item(test, counts.get(test.id, 0)) for test in tests]
 
 
