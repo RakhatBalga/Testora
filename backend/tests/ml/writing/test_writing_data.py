@@ -19,7 +19,7 @@ from ml.writing_data import (
 )
 from writing_synth import make_essays
 
-BANK = Path(__file__).resolve().parents[1] / "fixtures" / "writing_calibration_bank.jsonl"
+BANK = Path(__file__).resolve().parents[2] / "fixtures" / "writing_calibration_bank.jsonl"
 
 
 def essay(id_, text, prompt="P", **kw):

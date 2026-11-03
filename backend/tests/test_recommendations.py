@@ -48,7 +48,9 @@ def test_question_type_recommendation_links_to_matching_listening_test():
     db = _session()
     try:
         user = User(username="listener", password="hashed")
-        listening = ContentTest(title="Listening A", test_type="listening", duration_minutes=30)
+        listening = ContentTest(
+            title="Listening A", test_type="listening", duration_minutes=30, content_metadata={"published": True}
+        )
         section = Section(order=1, title="Section 1")
         section.questions = [
             Question(order=1, text="Heading", question_type="matching_information", correct_answer=["A"])

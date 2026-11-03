@@ -1,3 +1,4 @@
+from app.domain.publication import is_published
 from statistics import mean
 
 from sqlalchemy.orm import Session
@@ -13,7 +14,14 @@ from app.domain.models.writing import WritingSubmission, WritingTask
 
 def _content(db: Session) -> dict:
     writing = db.query(WritingTask).order_by(WritingTask.task_type.desc(), WritingTask.id).first()
-    reading = db.query(Test).filter(Test.test_type == "reading").order_by(Test.id).first()
+    reading = next(
+        (
+            test
+            for test in db.query(Test).filter(Test.test_type == "reading").order_by(Test.id).all()
+            if is_published(test)
+        ),
+        None,
+    )
     return {
         "writing_task_id": writing.id if writing else None,
         "reading_test_id": reading.id if reading else None,

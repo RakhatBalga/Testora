@@ -1,7 +1,7 @@
 import json
 import pytest
 from ml.data import SpeakingSample
-from ml.datasets.speaking_readiness import assess, main
+from ml.datasets.speaking.readiness import assess, main
 
 
 def recordings(tmp_path):
