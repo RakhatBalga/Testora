@@ -9,3 +9,6 @@ venv
 .git
 .gitignore
 private/audio_submissions
+ml/data
+ml/artifacts
+ml/reports

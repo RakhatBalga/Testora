@@ -32,6 +32,22 @@ def score_summary(actual, predicted):
     }
 
 
+def speaker_split(samples, *, seed=42, test_size=0.25):
+    """Plan the fixed holdout before loading ASR or fitting any preprocessing."""
+    from sklearn.model_selection import GroupShuffleSplit
+
+    groups = [r.speaker_id for r in samples]
+    if len(set(groups)) < 4:
+        raise ValueError("At least four distinct speakers are required for a pilot split")
+    if not 0 < test_size < 1:
+        raise ValueError("test_size must be between zero and one")
+    splitter = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=seed)
+    train, test = next(splitter.split(list(range(len(samples))), groups=groups))
+    if len({groups[i] for i in train}) < 2:
+        raise ValueError("At least two training speakers are required; reduce test_size")
+    return train, test
+
+
 def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path | None = None):
     import joblib
     import numpy as np
@@ -40,7 +56,6 @@ def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path 
     from sklearn.ensemble import GradientBoostingRegressor
     from sklearn.impute import SimpleImputer
     from sklearn.linear_model import LinearRegression
-    from sklearn.model_selection import GroupShuffleSplit
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
 
@@ -51,10 +66,7 @@ def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path 
     samples.sort(key=lambda r: (r.speaker_id, r.sample_id))
     if len({r.sample_id for r in samples}) != len(samples):
         raise ValueError("Duplicate samples would bias evaluation")
-    if len({r.speaker_id for r in samples}) < 4:
-        raise ValueError("At least four distinct speakers are required for a pilot split")
-    if not 0 < test_size < 1:
-        raise ValueError("test_size must be between zero and one")
+    train, test = speaker_split(samples, seed=seed, test_size=test_size)
     if any(set(r.features) != set(FEATURE_NAMES) for r in samples):
         raise ValueError("Feature schema differs from fluency.v1")
     x = np.array(
@@ -62,8 +74,6 @@ def train_compare(rows: list[dict], *, seed=42, test_size=0.25, artifacts: Path 
     )
     y = np.array([r.expert_band for r in samples])
     groups = [r.speaker_id for r in samples]
-    splitter = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=seed)
-    train, test = next(splitter.split(x, y, groups))
     models = {
         "mean_baseline": DummyRegressor(strategy="mean"),
         "linear_regression": LinearRegression(),

@@ -1,0 +1,59 @@
+Speaking pilot experiment (TST-46)
+
+Run from backend. This workflow never accesses the application database.
+Install requirements-ml.txt and, for actual transcription, requirements-asr.txt
+into your local environment. Whisper weights must already be available locally
+unless you explicitly pass --allow-download. Audio stays on this machine;
+there are no external scoring API calls.
+
+Input: a speaking.v1 samples.jsonl produced by ml.datasets.speaking.labels,
+with consent, stable pseudonymous speaker IDs, human reference transcripts and
+independent expert bands. Use the SAME speaker ID for all recordings from one
+participant. Do not use model-generated transcripts as WER references or
+model-generated grades as expert labels. Keep consent receipts privately.
+
+First, check inputs and freeze a proposed speaker split without loading ASR:
+
+python -m ml.experiments.speaking.run ml/data/speaking-pilot-01/bundle/samples.jsonl --audio-root ml/data/speaking-pilot-01/audio --output-dir ml/reports/speaking-pilot-01-preflight --dataset-kind real --check-only
+
+Then run using a NEW output directory:
+
+python -m ml.experiments.speaking.run ml/data/speaking-pilot-01/bundle/samples.jsonl --audio-root ml/data/speaking-pilot-01/audio --output-dir ml/reports/speaking-pilot-01-run01 --dataset-kind real --model tiny.en --seed 42 --test-size 0.25
+
+Outputs:
+  run.json       input/source hashes, versions, config, planned split, readiness
+  asr.json       WER, timing and features (no transcripts)
+  models/        mean baseline, linear regression, gradient boosting artifacts
+  report.json    predictions, metrics, sample/speaker split and limitations
+  summary.html   aggregate comparison for manual review
+  status.json    completed / preflight_only / failed
+
+Do not consume partial outputs unless status is completed. Never load untrusted
+joblib artifacts. Repeated runs need a new directory; outputs are not overwritten.
+JSON and model artifacts remain private even though IDs are pseudonymous.
+The standard ml/data, ml/artifacts and ml/reports paths are excluded from Git
+and backend Docker builds. Other custom output paths are not automatically
+protected: do not put them in public storage or deployment images.
+Use --dataset-kind synthetic for simulated data; its scores are software checks,
+not a measurement of learner assessment accuracy. The dataset-kind flag and
+consent declarations cannot independently prove data provenance.
+
+Four speakers is a software minimum, not a scientific sample-size recommendation.
+All preprocessing and fitting use training speakers only. Every scored model
+uses the same held-out recordings. Optional LLM scores are compared only with
+complete holdout coverage. No LLM calls are made by this workflow.
+
+WER is computed over the complete recording set; regression MAE/QWK are holdout
+metrics. QWK can be null for degenerate score distributions. The summary does
+not choose a winner or tune on the holdout. Do not keep trying seeds to improve
+the reported result. Model/seed/holdout choices should be fixed before looking
+at scores. A subsequent tuning stage requires a separate validation split.
+
+ASR-derived features are fluency proxies, not a validated pronunciation measure.
+This workflow predicts an experimental overall label; it is not a four-criterion
+IELTS examiner. No real-data accuracy claim exists until actual consented,
+independently labelled recordings are evaluated. Small pilots have no confidence
+intervals here. Hardware and ASR versions can affect numerical reproducibility;
+keep the same local weights and environment when repeating an experiment.
+The report records a model name, not a fingerprint of cached Whisper weights;
+it does not guarantee bitwise reproducibility across model cache changes.
