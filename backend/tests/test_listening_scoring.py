@@ -4,10 +4,10 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.api.routers.results import get_attempt, submit_attempt
+from app.api.routers.results import get_attempt
 from app.api.routers.listening import get_listening_test, review_listening, save_progress, submit_listening
 from app.api.schemas.listening import ListeningProgressIn, ListeningSubmitIn
-from app.api.schemas.result import AnswerIn, SubmitIn
+from app.api.schemas.result import AnswerIn
 from app.domain.band import band_from_raw
 from app.domain.listening_scoring import answer_word_count, grade_listening
 from app.domain.models.attempt import Attempt, ListeningProgress
@@ -32,7 +32,13 @@ def test_listening_attempt_is_scored_stored_and_reviewable():
     db = _db()
     try:
         user = User(username="listener", password="hashed")
-        test = ContentTest(title="Listening test", test_type="listening", duration_minutes=30)
+        test = ContentTest(
+            title="Listening test",
+            test_type="listening",
+            duration_minutes=30,
+            content_version="1",
+            content_metadata={"published": True},
+        )
         section = Section(order=1, title="Section 1", passage="The room is on King Street.")
         section.questions = [
             Question(
@@ -55,16 +61,18 @@ def test_listening_attempt_is_scored_stored_and_reviewable():
         db.add_all([user, test])
         db.commit()
 
-        payload = SubmitIn(
-            test_id=test.id,
+        payload = ListeningSubmitIn(
+            content_version="1",
+            mode="practice",
+            submission_key="scoring-regression-1",
             answers=[
                 AnswerIn(question_id=section.questions[0].id, answer="king street"),
                 AnswerIn(question_id=section.questions[1].id, answer="Monday", marked_for_review=True),
             ],
             duration_seconds=95,
         )
-        submitted = submit_attempt(payload, db=db, current_user=user)
-        reviewed = get_attempt(submitted["id"], db=db, current_user=user)
+        submitted = submit_listening(test.id, payload, db=db, current_user=user)
+        reviewed = get_attempt(submitted["attempt_id"], db=db, current_user=user)
 
         assert submitted["score"] == 1
         assert submitted["total"] == 2

@@ -10,6 +10,7 @@ from app.domain.models.attempt import Attempt, ListeningProgress
 from app.domain.models.test import Question, Section, Test
 from app.domain.models.user import User
 from app.domain.scoring import display_answer
+from app.domain.publication import is_published as is_content_published
 from app.infrastructure.time import utcnow
 
 PUBLIC_SCHEMA = "testora.listening-public.v1"
@@ -21,8 +22,7 @@ def _metadata(test: Test) -> dict:
 
 
 def is_published(test: Test) -> bool:
-    meta = _metadata(test)
-    return test.test_type == "listening" and meta.get("published", False) is True
+    return test.test_type == "listening" and is_content_published(test)
 
 
 def _catalog_item(test: Test, question_count: int) -> dict:
@@ -111,7 +111,7 @@ def list_catalog(db: Session) -> list[dict]:
     tests = [
         test
         for test in db.query(Test).order_by(Test.id).all()
-        if is_published(test) and not _metadata(test).get("superseded_by")
+        if is_published(test)
     ]
     return [_catalog_item(test, counts.get(test.id, 0)) for test in tests]
 

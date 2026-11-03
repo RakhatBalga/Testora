@@ -33,7 +33,9 @@ def _content(db):
         min_words=250,
         duration_minutes=40,
     )
-    reading_test = ContentTest(title="Reading A", test_type="reading", duration_minutes=60)
+    reading_test = ContentTest(
+        title="Reading A", test_type="reading", duration_minutes=60, content_metadata={"published": True}
+    )
     section = Section(order=1, title="Passage 1", passage="Solar power is widely available.")
     question = Question(
         order=1,

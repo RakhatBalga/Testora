@@ -1,4 +1,4 @@
-import re
+from app.domain.publication import is_published
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
@@ -11,16 +11,8 @@ from app.api.schemas.test import TestOut, TestDetail
 
 router = APIRouter()
 
-READING_CATALOG_TITLE = re.compile(r"^IELTS Academic Reading\s+(?:—|-)\s+Test\s+\d{2}$")
-
-
-def is_catalog_test(test: Test) -> bool:
-    if test.test_type == "listening":
-        meta = test.content_metadata or {}
-        return meta.get("published") is True and not meta.get("superseded_by")
-    if test.test_type != "reading":
-        return True
-    return bool(READING_CATALOG_TITLE.match(test.title))
+# Compatibility alias for callers of the former catalog helper.
+is_catalog_test = is_published
 
 
 @router.get("", response_model=List[TestOut])
@@ -58,7 +50,7 @@ def get_test(
     current_user: User = Depends(get_current_user),
 ):
     test = db.query(Test).filter(Test.id == test_id).first()
-    if not test:
+    if not test or not is_published(test):
         raise HTTPException(status_code=404, detail="Test not found")
     if test.test_type == "listening":
         # Legacy route remains available for old clients, but review-only data

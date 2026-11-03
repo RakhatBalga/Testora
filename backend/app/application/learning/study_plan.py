@@ -1,3 +1,4 @@
+from app.domain.publication import is_published
 import re
 from datetime import date, timedelta
 
@@ -54,7 +55,14 @@ def _writing_signal(db: Session, user_id: int) -> tuple[str | None, float | None
 
 
 def _candidates(db: Session, user: User) -> list[dict]:
-    reading_test = db.query(Test).filter(Test.test_type == "reading").order_by(Test.id).first()
+    reading_test = next(
+        (
+            test
+            for test in db.query(Test).filter(Test.test_type == "reading").order_by(Test.id).all()
+            if is_published(test)
+        ),
+        None,
+    )
     criterion, criterion_band, writing = _writing_signal(db, user.id)
     preferred_task_type = 1 if criterion == "Task Achievement" else 2
     writing_task = (

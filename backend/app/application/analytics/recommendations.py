@@ -10,6 +10,7 @@ Deterministic — no AI. Pulls from five ranked signals:
 Every recommendation carries a `reason` — the exact signal that triggered it.
 """
 
+from app.domain.publication import is_published
 from collections import defaultdict
 from datetime import datetime
 from statistics import mean
@@ -130,14 +131,16 @@ def _weakest_question_type(db: Session, user_id: int) -> dict | None:
 
 
 def _test_for_question_type(db: Session, skill: str, question_type: str) -> Test | None:
-    return (
+    candidates = (
         db.query(Test)
         .join(Section, Section.test_id == Test.id)
         .join(Question, Question.section_id == Section.id)
         .filter(Test.test_type == skill, Question.question_type == question_type)
         .order_by(Test.id)
-        .first()
+        .all()
     )
+
+    return next((test for test in candidates if is_published(test)), None)
 
 
 def compute_recommendations(

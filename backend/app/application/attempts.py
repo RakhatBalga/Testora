@@ -1,6 +1,7 @@
 """Reading/Listening attempts: grading persistence shared by both skills."""
 
 import threading
+from app.domain.publication import is_published
 from datetime import timedelta
 from typing import Callable
 
@@ -120,7 +121,7 @@ def save_graded_attempt(
 
 def submit_reading(db: Session, user: User, payload) -> dict:
     test = db.query(Test).filter(Test.id == payload.test_id).first()
-    if not test:
+    if not test or not is_published(test):
         raise HTTPException(status_code=404, detail="Test not found")
     if test.test_type == "listening" and (test.content_metadata or {}).get("published") is True:
         raise HTTPException(

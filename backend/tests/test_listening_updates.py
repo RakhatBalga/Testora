@@ -84,19 +84,23 @@ def test_update_preserves_attempts_question_ids_and_in_progress_sessions(db):
     assert db.query(ListeningProgress).one().answers == {str(question_id): "Hartley"}
     assert [item["id"] for item in list_listening_tests(db=db, current_user=user)] == [new.id]
     assert is_catalog_test(new) and not is_catalog_test(old)
-    # Old open tabs can still finish against their original question IDs/version.
-    submit_listening(
-        old.id,
-        ListeningSubmitIn(
-            content_version="1.0.0",
-            mode="practice",
-            submission_key="resumed-attempt-123",
-            answers=[AnswerIn(question_id=question_id, answer="Hartley")],
-        ),
-        db=db,
-        current_user=user,
-    )
-    assert db.query(Attempt).count() == 2
+    # Superseded versions stay reviewable but cannot accept new submissions.
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as exc:
+        submit_listening(
+            old.id,
+            ListeningSubmitIn(
+                content_version="1.0.0",
+                mode="practice",
+                submission_key="resumed-attempt-123",
+                answers=[AnswerIn(question_id=question_id, answer="Hartley")],
+            ),
+            db=db,
+            current_user=user,
+        )
+    assert exc.value.status_code == 404
+    assert db.query(Attempt).count() == 1
     again, created = seed_package(db, data, update_existing=True)
     assert not created and again.id == new.id
     assert db.query(ContentTest).count() == 2
