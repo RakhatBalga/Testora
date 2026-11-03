@@ -5,7 +5,7 @@ import traceback
 import pytest
 
 from ml.data import read_jsonl
-from ml.datasets.speaking_registry import Recording, inspect_recordings, main, worksheet
+from ml.datasets.speaking.registry import Recording, inspect_recordings, main, worksheet
 
 
 def registry(tmp_path, count=4):

@@ -6,9 +6,9 @@ import traceback
 import pytest
 
 from ml.data import SpeakingSample, read_jsonl
-from ml.datasets.speaking_labels import assemble, build_bundle, import_ratings, main
-from ml.datasets.speaking_readiness import assess
-from ml.datasets.speaking_registry import CRITERIA, LABEL_COLUMNS, Recording, inspect_recordings, worksheet
+from ml.datasets.speaking.labels import assemble, build_bundle, import_ratings, main
+from ml.datasets.speaking.readiness import assess
+from ml.datasets.speaking.registry import CRITERIA, LABEL_COLUMNS, Recording, inspect_recordings, worksheet
 
 
 def batch(tmp_path):
