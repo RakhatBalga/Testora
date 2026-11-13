@@ -19,4 +19,4 @@ python-multipart==0.0.32
 google-genai==2.9.0
 httpx==0.28.1
 # IANA timezone database for APP_TIMEZONE (slim images ship none; without it day boundaries fall back to UTC).
-tzdata==2025.2
+tzdata==2026.5
