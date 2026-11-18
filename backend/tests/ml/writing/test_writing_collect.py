@@ -88,7 +88,7 @@ def test_rate_limit_spaces_calls(tmp_path):
     assert len(sleeps) == 3 and all(s == pytest.approx(0.5) for s in sleeps)
 
 
-def test_grade_call_passes_seed_only_when_supported():
+def test_grade_call_applies_the_seed_or_refuses():
     class Seeded:
         def grade(self, *, task_type, prompt, text, min_words, seed=None):
             return seed
@@ -99,7 +99,9 @@ def test_grade_call_passes_seed_only_when_supported():
         def grade(self, *, task_type, prompt, text, min_words):
             return "ok"
 
-    assert graders.grade_call(Plain(), task_type=2, prompt="p", text="t", min_words=250, seed=9) == "ok"
+    assert graders.grade_call(Plain(), task_type=2, prompt="p", text="t", min_words=250, seed=None) == "ok"
+    with pytest.raises(graders.RunInputError):  # a seed that cannot be applied is refused, not dropped
+        graders.grade_call(Plain(), task_type=2, prompt="p", text="t", min_words=250, seed=9)
 
 
 def test_adapter_mock_and_unavailable_provider(monkeypatch):

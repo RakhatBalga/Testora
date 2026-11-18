@@ -84,6 +84,7 @@ def _config(
     max_tokens: int = 4096,
     model: str | None = None,
     json_mode: bool = True,
+    seed: int = GRADING_SEED,
 ):
     from google.genai import types
 
@@ -95,7 +96,7 @@ def _config(
         # a grading error, never saved as a bogus grade.
         max_output_tokens=max_tokens,
         temperature=temperature,
-        seed=GRADING_SEED,
+        seed=seed,
     )
     if json_mode:
         kwargs["response_mime_type"] = "application/json"
@@ -155,6 +156,7 @@ def _generate(
     model: str | None = None,
     json_mode: bool = True,
     policy: RetryPolicy = DEFAULT_POLICY,
+    seed: int = GRADING_SEED,
 ) -> str:
     """Call Gemini with a fresh client; retry only transient failures."""
     used_model = model or settings.GEMINI_MODEL
@@ -175,6 +177,7 @@ def _generate(
                     max_tokens=max_tokens,
                     model=used_model,
                     json_mode=json_mode,
+                    seed=seed,
                 ),
             )
             _raise_if_truncated(resp)
@@ -211,6 +214,10 @@ def _parse(raw: str) -> dict:
 class GeminiTransport:
     provider = "gemini"
 
+    def __init__(self, seed: int = GRADING_SEED):
+        # Sampling seed sent with every request of this transport.
+        self.seed = seed
+
     def model_for(self, role: str) -> str:
         return settings.GEMINI_MODEL if role == ROLE_EXAMINER else settings.GEMINI_FAST_MODEL
 
@@ -222,6 +229,7 @@ class GeminiTransport:
             temperature=temperature,
             max_tokens=max_tokens,
             model=self.model_for(role),
+            seed=self.seed,
         )
 
     def generate_text(self, *, role, system, user, temperature, max_tokens) -> str:
@@ -232,14 +240,15 @@ class GeminiTransport:
             max_tokens=max_tokens,
             model=self.model_for(role),
             json_mode=False,
+            seed=self.seed,
         )
 
 
 class GeminiWritingGrader(WritingGrader):
     """Two-stage IELTS Writing engine (shared method) over the Gemini transport."""
 
-    def __init__(self):
-        self.engine = WritingEngine(GeminiTransport(), coach_enabled=settings.WRITING_COACH_ENABLED)
+    def __init__(self, seed: int = GRADING_SEED):
+        self.engine = WritingEngine(GeminiTransport(seed=seed), coach_enabled=settings.WRITING_COACH_ENABLED)
 
     def grade(self, *, task_type: int, prompt: str, text: str, min_words: int) -> Feedback:
         self.engine.coach_enabled = settings.WRITING_COACH_ENABLED

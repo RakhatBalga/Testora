@@ -102,11 +102,13 @@ def systems_from_cache(records: dict[str, dict], essays: list[Essay], only: set[
     groups: dict[tuple, list[dict]] = defaultdict(list)
     for rec in records.values():
         if rec["essay_hash"] in by_hash and (not only or rec["provider"] in only):
-            groups[(rec["provider"], rec["model"], rec["prompt_version"], rec["seed"])].append(rec)
+            # Runs of one system share a base seed; each run records the seed it sent.
+            base = rec.get("base_seed", rec["seed"])
+            groups[(rec["provider"], rec["model"], rec["prompt_version"], base)].append(rec)
     versions = Counter((p, m) for p, m, _, _ in groups)
     seeds = Counter((p, m, v) for p, m, v, _ in groups)
     systems = []
-    for (provider, model, pv, seed), recs in sorted(groups.items()):
+    for (provider, model, pv, seed), recs in sorted(groups.items(), key=lambda g: tuple(map(str, g[0]))):
         name = f"{provider}:{model}" + (f"@{pv}" if versions[(provider, model)] > 1 else "")
         if seeds[(provider, model, pv)] > 1:
             name += "#noseed" if seed is None else f"#seed{seed}"
@@ -120,6 +122,7 @@ def systems_from_cache(records: dict[str, dict], essays: list[Essay], only: set[
                 "prompt_version": pv,
                 "examiner_version": next((r.get("examiner_version") for r in recs if r.get("examiner_version")), None),
                 "seed": seed,
+                "run_seeds": {str(run): s for run, s in sorted({r["run"]: r["seed"] for r in recs}.items())},
             },
             id=system_id(provider, model, pv, seed),
         )
@@ -247,6 +250,7 @@ def evaluate_system(
     block["targets"] = targets
     if s.kind in ("llm", "rules") and s.runs:
         block["stability"] = ws.stability(s.runs)
+        block["stability"]["run_seeds"] = s.detail.get("run_seeds")
     # Share of essays on which any cap flag fired: descriptive only, no label involved.
     fired = [ws.cap_hit(s.flags.get(i)) for i in common_ids if i in s.flags]
     fired = [h for h in fired if h is not None]
@@ -449,6 +453,7 @@ def _stability_check(stability: dict | None, sd_max: float, runs_min: int) -> di
         )
     out = _bar(sd, sd_max, at_most=True)
     out["n_runs"], out["n_essays"] = runs, stability["n_essays"]
+    out["run_seeds"] = stability.get("run_seeds")
     return out
 
 
@@ -568,6 +573,14 @@ def _cap(stats) -> str:
     return f"{stats['hit_rate']:.2f} ({stats['hits']}/{stats['n_cap_cases']})"
 
 
+def _seeds(detail: dict) -> str:
+    """Seeds really sent, in run order; `none` for a provider that takes no seed."""
+    seeds = list((detail.get("run_seeds") or {"0": detail.get("seed")}).values())
+    if all(x is None for x in seeds):
+        return "none"
+    return ", ".join("none" if x is None else str(x) for x in seeds)
+
+
 def _value(v) -> str:
     if isinstance(v, dict):
         if "primary" in v:
@@ -648,14 +661,14 @@ def render_markdown(report: dict, meta: dict) -> str:
             "",
             "Values recorded by the collector for each run; they are the ones in effect, not requested labels.",
             "",
-            "| System | Provider | Model | Examiner prompt | Prompt version (cache key) | Seed |",
+            "| System | Provider | Model | Examiner prompt | Prompt version (cache key) | Seed sent, by run |",
             "|---|---|---|---|---|---|",
         ]
         for b in prov:
             d = b["detail"]
             lines.append(
                 f"| {b['name']} | {d['provider']} | {d['model']} | {d.get('examiner_version') or 'n/a'} | "
-                f"`{d['prompt_version']}` | {'none' if d['seed'] is None else d['seed']} |"
+                f"`{d['prompt_version']}` | {_seeds(d)} |"
             )
         lines.append("")
     crit = [b for b in report["systems"] if any(c in b["targets"] for c in CRITERIA)]
@@ -678,16 +691,21 @@ def render_markdown(report: dict, meta: dict) -> str:
         lines += [
             "## Run-to-run stability",
             "",
-            "| System | runs | essays | mean SD | max SD | essays that flip | ICC(2,1) | mean pairwise QWK |",
-            "|---|---|---|---|---|---|---|---|",
+            "Each run sends its own seed (base seed + run index) where the provider takes one, so the spread "
+            "below covers sampling variation across seeds as well as server-side nondeterminism. A provider "
+            "without a seed (`none`) repeats the identical request.",
+            "",
+            "| System | runs | seeds | essays | mean SD | max SD | essays that flip | ICC(2,1) | mean pairwise QWK |",
+            "|---|---|---|---|---|---|---|---|---|",
         ]
         for b in stab:
             s = b["stability"]
+            seeds = _seeds(b["detail"])
             if "icc_2_1" not in s:
-                lines.append(f"| {b['name']} | {s['n_runs']} | {s['n_essays']} | {s['note']} | | | | |")
+                lines.append(f"| {b['name']} | {s['n_runs']} | {seeds} | {s['n_essays']} | {s['note']} | | | | |")
                 continue
             lines.append(
-                f"| {b['name']} | {s['n_runs']} | {s['n_essays']} | {_f(s['mean_within_essay_sd'])} | "
+                f"| {b['name']} | {s['n_runs']} | {seeds} | {s['n_essays']} | {_f(s['mean_within_essay_sd'])} | "
                 f"{_f(s['max_within_essay_sd'])} | {_f(s['pct_essays_any_flip'], 2)} | "
                 f"{_f(s['icc_2_1'])} | {_f(s['mean_pairwise_qwk'])} |"
             )

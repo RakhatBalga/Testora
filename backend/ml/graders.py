@@ -46,13 +46,17 @@ class RunInputError(ValueError):
     """A requested prompt version, model or seed cannot be applied to the run."""
 
 
-def make_grader(provider: str):
+def make_grader(provider: str, seed: int | None = None):
+    """Build the grader. `seed` goes to the factory, which hands it to the
+    provider's transport or refuses it (SeedNotSupported -> RunInputError)."""
     if provider in _REGISTRY:
         return _REGISTRY[provider]()
     from app.infrastructure.ai import factory
 
     try:
-        return factory.get_writing_grader(provider=provider)
+        return factory.get_writing_grader(provider=provider, seed=seed)
+    except factory.SeedNotSupported as exc:
+        raise RunInputError(f"{exc}; {seed} cannot be applied") from None
     except factory.ProviderNotConfigured as exc:
         raise ProviderUnavailable(f"provider {provider!r} is not usable here: {exc}") from exc
 
@@ -133,14 +137,16 @@ def accepts_seed(grader) -> bool:
     return "seed" in inspect.signature(grader.grade).parameters
 
 
-def engine_seed(provider: str) -> int | None:
-    """The seed the engine really sends: fixed in code for Gemini and Qwen; the
-    Claude Messages API has no seed parameter."""
-    if provider in ("gemini", "qwen"):
-        from app.infrastructure.ai.engine import GRADING_SEED
+def transport_seed(grader) -> int | None:
+    """The seed the grader's transport sends with its requests; None when the
+    transport has no seed (Claude) or the grader has no transport (mock)."""
+    return getattr(_transport(grader), "seed", None)
 
-        return GRADING_SEED
-    return None
+
+def seed_for_run(base: int | None, run: int) -> int | None:
+    """Seed of run `run`: base + run, so repeated runs use distinct seeds and run 0
+    uses the base seed. None stays None (provider without a seed)."""
+    return None if base is None else base + run
 
 
 @dataclass(frozen=True)
@@ -152,7 +158,7 @@ class RunSpec:
     model: str
     examiner_version: str | None  # v1 | v2 for engine providers, else None
     prompt_version: str
-    seed: int | None  # None = no seed is applied
+    seed: int | None  # base seed (run 0); run r sends seed + r. None = no seed is applied
 
     def collect_kwargs(self) -> dict:
         return {
@@ -173,6 +179,10 @@ def experiment_run(
     seed: int | None = None,
 ) -> Iterator[RunSpec]:
     """Build a grader with the requested inputs applied; grade inside the block.
+
+    `seed` is the base seed. Gemini and Qwen take it through the grader factory
+    (default: the engine's GRADING_SEED, which is what production sends); Claude
+    and the mock grader cannot take a seed and refuse one.
 
     Raises RunInputError for an input that would not be applied, so a run can never
     be labelled with a prompt version, model or seed it did not use.
@@ -197,12 +207,6 @@ def experiment_run(
                 raise RunInputError(
                     f"the {provider} model is fixed in code ({model_name(provider)}); {model!r} cannot be applied"
                 )
-        fixed = engine_seed(provider)
-        if seed is not None and seed != fixed:
-            raise RunInputError(
-                f"the {provider} grader does not take a seed from the experiment "
-                f"(effective seed: {fixed}); {seed} cannot be applied"
-            )
     elif examiner is not None:
         raise RunInputError(f"provider {provider!r} does not use the examiner prompt; drop the examiner version")
 
@@ -212,14 +216,16 @@ def experiment_run(
     for key, value in overrides.items():
         setattr(settings, key, value)
     try:
-        grader = make_grader(provider)
+        grader = make_grader(provider, seed if engine else None)
         effective_model = model_name(provider, grader)
         if model is not None and model != effective_model:
             raise RunInputError(
                 f"model {model!r} cannot be applied to {provider!r} (it grades with {effective_model!r})"
             )
         if engine:
-            effective_seed = engine_seed(provider)
+            effective_seed = transport_seed(grader)  # read back from the transport that sends it
+            if seed is not None and effective_seed != seed:
+                raise RunInputError(f"seed {seed} did not reach the {provider} transport ({effective_seed})")
         elif seed is not None and not accepts_seed(grader):
             raise RunInputError(f"the {provider!r} grader takes no seed; {seed} cannot be applied")
         else:
@@ -252,8 +258,20 @@ def provenance_mismatch(feedback, *, model: str, prompt_version: str) -> str | N
 
 
 def grade_call(grader, *, task_type: int, prompt: str, text: str, min_words: int, seed: int | None):
-    """Call grader.grade, passing `seed` only if the grader accepts it."""
+    """Grade once with `seed` really applied, or refuse.
+
+    The seed goes to `grade(seed=...)` when the grader accepts it, else to the
+    grader's transport (Gemini, Qwen), which sends it with the request. A seed
+    that can go nowhere raises RunInputError: a record never carries a seed that
+    was not used.
+    """
     kwargs = dict(task_type=task_type, prompt=prompt, text=text, min_words=min_words)
-    if seed is not None and accepts_seed(grader):
-        kwargs["seed"] = seed
+    if seed is not None:
+        transport = _transport(grader)
+        if accepts_seed(grader):
+            kwargs["seed"] = seed
+        elif hasattr(transport, "seed"):
+            transport.seed = seed
+        else:
+            raise RunInputError(f"this grader takes no seed; {seed} cannot be applied")
     return grader.grade(**kwargs)
