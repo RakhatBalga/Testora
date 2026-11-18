@@ -1,12 +1,10 @@
 from app.domain.publication import is_published
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db, get_current_user
-from app.domain.models.attempt import Attempt
-from app.domain.models.test import Test, Section, Question
+from app.application import catalog
 from app.domain.models.user import User
 from app.api.schemas.test import TestOut, TestDetail
 
@@ -21,27 +19,7 @@ def list_tests(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # One grouped query for question counts, so the library can show "N questions"
-    # without an N+1 fetch of every test's sections.
-    counts = dict(
-        db.query(Section.test_id, func.count(Question.id))
-        .join(Question, Question.section_id == Section.id)
-        .group_by(Section.test_id)
-        .all()
-    )
-    tests = [t for t in db.query(Test).order_by(Test.id).all() if is_catalog_test(t)]
-    return [
-        {
-            "id": t.id,
-            "title": t.title,
-            "test_type": t.test_type,
-            "description": t.description,
-            "duration_minutes": t.duration_minutes,
-            "difficulty": t.difficulty,
-            "question_count": counts.get(t.id, 0),
-        }
-        for t in tests
-    ]
+    return catalog.list_published_tests(db)
 
 
 @router.get("/{test_id}", response_model=TestDetail)
@@ -50,8 +28,8 @@ def get_test(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    test = db.query(Test).filter(Test.id == test_id).first()
-    if not test or not is_published(test):
+    test = catalog.get_published_test(db, test_id)
+    if not test:
         raise HTTPException(status_code=404, detail="Test not found")
     if test.test_type == "listening":
         # Legacy route remains available for old clients, but review-only data
@@ -87,10 +65,7 @@ def get_test(
                 for section in test.sections
             ],
         }
-    attempted = (
-        db.query(Attempt.id).filter(Attempt.user_id == current_user.id, Attempt.test_id == test.id).first() is not None
-    )
-    if attempted:
+    if catalog.has_attempt(db, current_user.id, test.id):
         # The review highlights evidence; this user has already seen the answers.
         return test
     # Before the first submission the evidence spans would point at the answers.

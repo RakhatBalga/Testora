@@ -1,14 +1,18 @@
 from types import SimpleNamespace
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException as _RouterError
 
 from app.api.routers.tests import get_test, list_tests
 from app.application.attempts import submit_reading
+from app.application.errors import ApplicationError
 from app.application.listening.service import get_published_test, list_catalog
 from app.domain.models.test import Test as ContentTest
 from app.domain.models.attempt import Attempt
 from app.domain.publication import is_published
+
+# Routers raise the framework error, use cases the application one; both carry status_code.
+HTTPException = (_RouterError, ApplicationError)
 
 
 @pytest.mark.parametrize("skill", ["reading", "listening"])

@@ -4,7 +4,15 @@ import secrets
 
 import bcrypt
 import httpx
-from fastapi import HTTPException
+from app.application.errors import (
+    AuthenticationFailed,
+    Conflict,
+    InvalidRequest,
+    NotConfigured,
+    ServiceUnavailable,
+    UpstreamInvalidResponse,
+    UpstreamTimeout,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -21,7 +29,7 @@ _CREATE_ATTEMPTS = 5
 
 def _require_configured() -> None:
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
-        raise HTTPException(status_code=501, detail="Google auth is not configured")
+        raise NotConfigured(detail="Google auth is not configured")
 
 
 def _google_request(method: str, url: str, **kwargs) -> dict:
@@ -30,19 +38,19 @@ def _google_request(method: str, url: str, **kwargs) -> dict:
         with httpx.Client(timeout=15) as client:
             response = client.request(method, url, **kwargs)
     except httpx.TimeoutException:
-        raise HTTPException(504, "Google took too long to respond. Please start sign-in again.") from None
+        raise UpstreamTimeout("Google took too long to respond. Please start sign-in again.") from None
     except httpx.RequestError:
-        raise HTTPException(503, "Google sign-in is temporarily unavailable. Please try again.") from None
+        raise ServiceUnavailable("Google sign-in is temporarily unavailable. Please try again.") from None
     if response.status_code == 429 or response.status_code >= 500:
-        raise HTTPException(503, "Google sign-in is temporarily unavailable. Please try again.")
+        raise ServiceUnavailable("Google sign-in is temporarily unavailable. Please try again.")
     if response.status_code != 200:
-        raise HTTPException(400, "Google could not complete sign-in. Please start again.")
+        raise InvalidRequest("Google could not complete sign-in. Please start again.")
     try:
         payload = response.json()
     except ValueError:
-        raise HTTPException(502, "Google returned an invalid response. Please start sign-in again.") from None
+        raise UpstreamInvalidResponse("Google returned an invalid response. Please start sign-in again.") from None
     if not isinstance(payload, dict):
-        raise HTTPException(502, "Google returned an invalid response. Please start sign-in again.")
+        raise UpstreamInvalidResponse("Google returned an invalid response. Please start sign-in again.")
     return payload
 
 
@@ -68,13 +76,13 @@ def sign_in(db: Session, payload) -> dict:
     )
     access_token = google_tokens.get("access_token")
     if not access_token:
-        raise HTTPException(status_code=401, detail="No access token from Google")
+        raise AuthenticationFailed(detail="No access token from Google")
 
     google_user = _google_request("GET", GOOGLE_USERINFO_URL, headers={"Authorization": f"Bearer {access_token}"})
     google_id = google_user.get("id")
     email = google_user.get("email")
     if not google_id or not email or google_user.get("verified_email") is not True:
-        raise HTTPException(status_code=401, detail="Incomplete Google profile")
+        raise AuthenticationFailed(detail="Incomplete Google profile")
 
     user = db.query(User).filter(User.google_id == google_id).first()
     is_new_user = False
@@ -82,7 +90,7 @@ def sign_in(db: Session, payload) -> dict:
         user = db.query(User).filter(User.email == email).first()
         if user:
             if user.google_id and user.google_id != google_id:
-                raise HTTPException(status_code=409, detail="Email is linked to another Google account")
+                raise Conflict(detail="Email is linked to another Google account")
             user.google_id = google_id
             db.commit()
 
@@ -121,7 +129,7 @@ def sign_in(db: Session, payload) -> dict:
             is_new_user = True
             break
         if not user:
-            raise HTTPException(status_code=503, detail="Could not create the account. Please try again.")
+            raise ServiceUnavailable(detail="Could not create the account. Please try again.")
 
     return {
         "access_token": create_access_token(user.id, user.token_version or 0),

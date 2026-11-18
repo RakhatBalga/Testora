@@ -9,7 +9,7 @@ import logging
 import threading
 from datetime import datetime, timedelta
 
-from fastapi import HTTPException
+from app.application.errors import ApplicationError, Conflict, NotFound
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -25,7 +25,7 @@ from app.application.quota import (
 from app.application.writing_precheck import validate_writing_submission, zero_band_feedback
 from app.domain.models.user import User
 from app.domain.models.writing import WritingSubmission, WritingTask
-from app.infrastructure.ai import get_writing_grader
+from app.application.ports import get_writing_grader
 from app.infrastructure.config import settings
 from app.infrastructure.time import utcnow
 
@@ -86,6 +86,14 @@ def reconcile_stale_writing(db: Session, user_id: int | None = None, *, started_
     return len(rows) + released
 
 
+def list_tasks(db: Session) -> list[WritingTask]:
+    return db.query(WritingTask).order_by(WritingTask.task_type).all()
+
+
+def get_task(db: Session, task_id: int) -> WritingTask | None:
+    return db.query(WritingTask).filter(WritingTask.id == task_id).first()
+
+
 def get_owned_submission(db: Session, user: User, submission_id: int) -> WritingSubmission:
     reconcile_stale_writing(db, user.id)
     sub = (
@@ -94,7 +102,7 @@ def get_owned_submission(db: Session, user: User, submission_id: int) -> Writing
         .first()
     )
     if not sub:
-        raise HTTPException(status_code=404, detail="Submission not found")
+        raise NotFound(detail="Submission not found")
     return sub
 
 
@@ -217,7 +225,7 @@ def submit_writing(
             return sub
     try:
         return _grade_and_persist(db, user, sub, task)
-    except HTTPException:
+    except ApplicationError:
         # Refused before grading (quota, busy): do not leave a pending ghost row.
         db.rollback()
         if sub.status == "pending" and sub.feedback is None:
@@ -229,7 +237,7 @@ def submit_writing(
 def retry_writing(db: Session, user: User, submission_id: int) -> WritingSubmission:
     sub = get_owned_submission(db, user, submission_id)  # also reconciles stale pending rows
     if sub.status != "failed":
-        raise HTTPException(409, "Only failed writing submissions can be retried")
+        raise Conflict("Only failed writing submissions can be retried")
     return _grade_and_persist(db, user, sub, sub.task)
 
 
@@ -245,7 +253,7 @@ def _grade_and_persist(db: Session, user: User, submission: WritingSubmission, t
         ) as reservation:
             db.refresh(submission)
             if submission.status not in ("failed", "pending"):
-                raise HTTPException(409, "This submission was already graded")
+                raise Conflict("This submission was already graded")
             submission.status = "pending"
             submission.status_updated_at = utcnow()
             db.add(submission)

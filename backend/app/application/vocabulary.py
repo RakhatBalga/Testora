@@ -9,7 +9,7 @@ on-demand, date-keyed generation, mirroring the weekly study plan.
 """
 
 from datetime import date
-from fastapi import HTTPException
+from app.application.errors import ServiceUnavailable
 
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
@@ -19,7 +19,7 @@ from app.infrastructure.time import utcnow
 from app.domain.models.user import User
 from app.domain.models.vocabulary import DailyWordQuiz, SavedWord
 from app.application.ai_gate import grading_admission, run_graded
-from app.infrastructure.ai.factory import get_vocabulary_coach
+from app.application.ports import get_vocabulary_coach
 from app.application.quota import reserve_ai_call
 
 MAX_WORD_LEN = 80
@@ -196,7 +196,7 @@ def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWordQuiz
             num_questions=min(QUIZ_QUESTIONS, max(1, len(words))),
         )
         if quiz.error:
-            raise HTTPException(503, "Quiz generation failed. Please try again.")
+            raise ServiceUnavailable("Quiz generation failed. Please try again.")
         payload = {"questions": [q.to_dict() for q in quiz.questions]}
         row = DailyWordQuiz(user_id=user.id, quiz_date=quiz_date, payload=payload, total=len(quiz.questions))
         db.add(row)

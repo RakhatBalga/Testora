@@ -72,6 +72,19 @@ def start_diagnostic(db: Session, user_id: int, skills: list[str]) -> dict:
     return _serialize(session, db)
 
 
+def record_skipped_diagnostic(db: Session, user_id: int) -> dict:
+    session = DiagnosticSession(
+        user_id=user_id,
+        status="skipped",
+        skills=[],
+        completed_at=utcnow(),
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+    return diagnostic_state(db, user_id)
+
+
 def refresh_diagnostic(db: Session, user_id: int) -> dict | None:
     session = (
         db.query(DiagnosticSession)

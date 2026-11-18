@@ -18,6 +18,8 @@ from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
+import app.bootstrap  # noqa: E402, F401 - binds the AI ports, as app.main does
+
 
 @pytest.fixture()
 def api(monkeypatch, tmp_path):

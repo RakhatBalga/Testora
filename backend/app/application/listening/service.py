@@ -1,6 +1,6 @@
 """Listening use cases: catalog, progress autosave, versioned submit and review."""
 
-from fastapi import HTTPException
+from app.application.errors import Conflict, NotFound, ValidationFailed
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -82,7 +82,7 @@ def _public_test(test: Test) -> dict:
 def get_published_test(db: Session, test_id: int) -> Test:
     test = db.query(Test).filter(Test.id == test_id).first()
     if not test or not is_published(test):
-        raise HTTPException(status_code=404, detail="Listening test not found")
+        raise NotFound(detail="Listening test not found")
     return test
 
 
@@ -120,7 +120,7 @@ def public_test(db: Session, test_id: int) -> dict:
 def get_progress(db: Session, user: User, test_id: int, content_version: str, mode: str):
     get_published_test(db, test_id)
     if mode not in {"exam", "practice"}:
-        raise HTTPException(status_code=422, detail="Unsupported mode")
+        raise ValidationFailed(detail="Unsupported mode")
     return (
         db.query(ListeningProgress)
         .filter(
@@ -136,7 +136,7 @@ def get_progress(db: Session, user: User, test_id: int, content_version: str, mo
 def save_progress(db: Session, user: User, test_id: int, payload) -> ListeningProgress:
     test = get_published_test(db, test_id)
     if payload.content_version != test.content_version:
-        raise HTTPException(status_code=409, detail="Content version changed; restart this test")
+        raise Conflict(detail="Content version changed; restart this test")
     for attempt in range(2):
         row = (
             db.query(ListeningProgress)
@@ -178,13 +178,13 @@ def save_progress(db: Session, user: User, test_id: int, payload) -> ListeningPr
 def submit(db: Session, user: User, test_id: int, payload) -> dict:
     test = get_published_test(db, test_id)
     if payload.content_version != test.content_version:
-        raise HTTPException(status_code=409, detail="Content version changed; restart this test")
+        raise Conflict(detail="Content version changed; restart this test")
 
     questions = [question for section in test.sections for question in section.questions]
     valid_ids = {question.id for question in questions}
     submitted_ids = [answer.question_id for answer in payload.answers]
     if len(submitted_ids) != len(set(submitted_ids)) or not set(submitted_ids).issubset(valid_ids):
-        raise HTTPException(status_code=422, detail="Answers contain duplicate or foreign question IDs")
+        raise ValidationFailed(detail="Answers contain duplicate or foreign question IDs")
     answers_map = {answer.question_id: answer.answer for answer in payload.answers}
     review_map = {answer.question_id: answer.marked_for_review for answer in payload.answers}
     graded, score, breakdown = grade_listening(questions, answers_map)
@@ -239,7 +239,7 @@ def _evidence(question: Question, section: Section) -> list[dict]:
 def review(db: Session, user: User, attempt_id: int) -> dict:
     attempt = db.query(Attempt).filter(Attempt.id == attempt_id, Attempt.user_id == user.id).first()
     if not attempt or attempt.test.test_type != "listening":
-        raise HTTPException(status_code=404, detail="Listening attempt not found")
+        raise NotFound(detail="Listening attempt not found")
     section_by_question = {question.id: section for section in attempt.test.sections for question in section.questions}
     base = _submit_response(attempt)
     base.update(

@@ -287,3 +287,25 @@ def set_plan_status(db: Session, user_id: int, item_id: int, status: str) -> dic
     db.commit()
     db.refresh(item)
     return _serialize(item)
+
+
+def reset_weekly_plan(db: Session, user: User) -> dict:
+    """Drop this week's items and build the plan again from current results."""
+    db.query(StudyPlanItem).filter(
+        StudyPlanItem.user_id == user.id,
+        StudyPlanItem.week_start == week_start(),
+    ).delete(synchronize_session=False)
+    db.commit()
+    return get_weekly_plan(db, user, recalculate=True)
+
+
+def plan_item_explanation(db: Session, user_id: int, item_id: int) -> dict | None:
+    item = db.query(StudyPlanItem).filter(StudyPlanItem.id == item_id, StudyPlanItem.user_id == user_id).first()
+    if not item:
+        return None
+    return {
+        "id": item.id,
+        "title": item.title,
+        "reason": item.reason,
+        "source": {"type": item.source_type, "ref": item.source_ref},
+    }

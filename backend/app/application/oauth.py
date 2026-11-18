@@ -4,7 +4,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
-from fastapi import HTTPException
+from app.application.errors import Conflict, InvalidRequest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -24,7 +24,7 @@ def validate_redirect(redirect_uri: str) -> None:
     origins = {settings.FRONTEND_URL.rstrip("/"), *settings.cors_origins_list}
     allowed = {origin.rstrip("/") + "/auth/google/callback" for origin in origins}
     if redirect_uri not in allowed:
-        raise HTTPException(400, "Invalid Google redirect URI")
+        raise InvalidRequest("Invalid Google redirect URI")
 
 
 def start_flow(db: Session, state: str, redirect_uri: str) -> str:
@@ -44,7 +44,7 @@ def start_flow(db: Session, state: str, redirect_uri: str) -> str:
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(409, "Authorization flow already exists; start again")
+        raise Conflict("Authorization flow already exists; start again")
     return "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(
         {
             "client_id": settings.GOOGLE_CLIENT_ID,
@@ -74,7 +74,7 @@ def consume_flow(db: Session, state: str, redirect_uri: str) -> str:
     )
     if changed != 1:
         db.rollback()
-        raise HTTPException(400, "Invalid or expired Google authorization flow; start again")
+        raise InvalidRequest("Invalid or expired Google authorization flow; start again")
     verifier = db.get(OAuthFlow, key).verifier
     # Commit before the network call: concurrent exchanges cannot reuse a flow.
     db.commit()

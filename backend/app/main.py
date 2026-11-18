@@ -11,10 +11,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
+from app import bootstrap  # noqa: F401 - binds the application's AI ports to the configured provider
 from app.infrastructure.config import settings
 from app.infrastructure.logging import configure_logging
 from app.infrastructure.errortracking import init_error_tracking
 from app.infrastructure.database import SessionLocal, engine
+from app.api.errors import register_error_handlers
 from app.api.middleware import BodySizeLimitMiddleware, RequestContextMiddleware
 from app.application.quota import reconcile_stale_reservations
 from app.application.speaking import reconcile_stale_speaking
@@ -175,6 +177,7 @@ app.add_middleware(
 # parsing, and every response (even CORS preflights) carries a request id.
 app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(RequestContextMiddleware)
+register_error_handlers(app)
 
 
 @app.exception_handler(Exception)
