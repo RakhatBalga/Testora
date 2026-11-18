@@ -95,7 +95,7 @@ export default function GoogleCallbackPage() {
           </p>
           <form onSubmit={saveNick} className="mt-6 space-y-4">
             {nickError && (
-              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{nickError}</p>
+              <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{nickError}</p>
             )}
             <input
               value={nick}
@@ -103,6 +103,7 @@ export default function GoogleCallbackPage() {
               autoFocus
               minLength={3}
               maxLength={50}
+              aria-label="Username"
               className="h-[54px] w-full rounded-2xl border border-[var(--border)] bg-white px-4 text-base text-[var(--text-primary)] outline-none transition-colors focus:border-[var(--brand)]"
               placeholder="Username"
             />

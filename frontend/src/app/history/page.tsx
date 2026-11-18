@@ -114,6 +114,8 @@ export default function HistoryPage() {
                 </button>
               )}
               <button
+                type="button"
+                aria-label="Clear selection"
                 onClick={() => setSelected([])}
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-secondary)] hover:bg-slate-50"
               >

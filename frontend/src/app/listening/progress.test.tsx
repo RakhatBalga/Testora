@@ -81,3 +81,10 @@ it("offers Continue for server progress even when an older attempt is completed"
   expect(screen.getByText(/1 of 4 questions answered/)).toBeInTheDocument();
 });
 
+
+it("still lists the tests when a progress lookup fails", async () => {
+  vi.mocked(api.getListeningProgress).mockRejectedValue(new Error("Progress unavailable"));
+  render(<ListeningLibraryPage />);
+  expect(await screen.findByText("Listening practice")).toBeInTheDocument();
+  expect(screen.queryByText("Progress unavailable")).not.toBeInTheDocument();
+});

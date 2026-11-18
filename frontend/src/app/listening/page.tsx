@@ -7,7 +7,7 @@ import { Skeleton } from "@/shared/ui";
 import { ContinueCard, RecentActivity, TestCard } from "@/entities/test";
 import { accentFor, deriveProgress, type TestProgress } from "@/entities/test";
 
-import { listeningSessionKey, restoreProgress } from "@/features/listening-session";
+import { loadLibraryProgress } from "@/features/listening-session";
 import { routes } from "@/shared/config";
 
 export default function ListeningLibraryPage() {
@@ -27,11 +27,10 @@ export default function ListeningLibraryPage() {
         if (cancelled) return;
         setTests(listeningTests.map((test) => ({ ...test, test_type: "listening" })));
         setAttempts(allAttempts.filter((attempt) => attempt.test_type === "listening"));
-        const progress = await Promise.all(listeningTests.map(async (test) => [test.id,
-          restoreProgress(listeningSessionKey(test.id, test.content_version),
-            await api.getListeningProgress(test.id, test.content_version, "practice"))] as const));
+        const progress = await loadLibraryProgress(listeningTests,
+          (id, contentVersion) => api.getListeningProgress(id, contentVersion, "practice"));
         if (cancelled) return;
-        setSavedProgress(Object.fromEntries(progress));
+        setSavedProgress(progress);
       })
       .catch((err) => { if (!cancelled) setError(err.message); })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -74,7 +73,7 @@ export default function ListeningLibraryPage() {
           Testora Listening Practice
         </h1>
         <p className="mt-2 max-w-2xl text-slate-500">
-          Complete an original four-section test in Exam or Practice mode, then review timestamped evidence.
+          Complete an original four-section test in Practice mode, then review timestamped evidence.
         </p>
       </header>
 

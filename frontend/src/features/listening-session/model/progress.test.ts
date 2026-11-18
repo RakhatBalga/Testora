@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { storeAuth } from "@/shared/api";
-import { createProgressWriter, listeningSessionKey, restoreProgress, type ProgressInput } from "./progress";
+import { createProgressWriter, listeningSessionKey, loadLibraryProgress, restoreProgress, type ProgressInput } from "./progress";
 
 const progress: ProgressInput = { content_version: "1.0.1", mode: "practice", answers: { "1": "Hartley" }, current_section: 1, audio_position: 150, max_audio_position: 160 };
 afterEach(() => { localStorage.clear(); sessionStorage.clear(); vi.restoreAllMocks(); });
@@ -89,4 +89,17 @@ it("keeps unsynced edits even if an older request received a later server timest
 it("ignores corrupt browser drafts", () => {
   localStorage.setItem("session-draft", "broken json");
   expect(restoreProgress("session", null)).toBeNull();
+});
+
+it("keeps the library progress of other tests when one lookup fails", async () => {
+  const saved = { ...progress, status: "in_progress" as const, updated_at: new Date().toISOString() };
+  const tests = [{ id: 1, content_version: "1.0.1" }, { id: 2, content_version: "1.0.1" }, { id: 3, content_version: "1.0.1" }];
+  // Test 2 fails on the server but has a local draft; test 3 fails with nothing saved.
+  createProgressWriter(listeningSessionKey(2, "1.0.1"), vi.fn(), vi.fn()).record(progress);
+  const fetchSaved = vi.fn((id: number) => (id === 1 ? Promise.resolve(saved) : Promise.reject(new Error("503"))));
+  const result = await loadLibraryProgress(tests, fetchSaved);
+  expect(fetchSaved).toHaveBeenCalledTimes(3);
+  expect(result[1]).toEqual(saved);
+  expect(result[2]).toMatchObject({ ...progress, status: "in_progress" });
+  expect(result[3]).toBeNull();
 });

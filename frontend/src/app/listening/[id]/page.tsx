@@ -154,7 +154,7 @@ function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: Lis
       <div className="sticky top-[57px] z-30">
         <Card className="space-y-2.5 px-4 py-3">
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0"><h1 className="truncate text-sm font-bold text-slate-950">{test.title}</h1><p className="text-xs text-slate-500">Section {activeSection + 1} of 4 · {answeredCount}/{flat.length} answered</p></div>
+            <div className="min-w-0"><h1 className="truncate text-sm font-bold text-slate-950">{test.title}</h1><p className="text-xs text-slate-500">Section {activeSection + 1} of {test.sections.length} · {answeredCount}/{flat.length} answered</p></div>
             <div className="flex shrink-0 items-center gap-2">
               <div className={`flex h-9 items-center gap-1.5 rounded-xl px-2.5 font-mono text-sm font-semibold ${remaining !== null && remaining < 60 ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-700"}`}><Clock3 className="h-4 w-4" />{formatClockSeconds(remaining)}</div>
               {mode === "practice" && <button type="button" aria-label={paused ? "Resume timer" : "Pause timer"} onClick={paused ? resume : pause} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50">{paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}</button>}
@@ -178,9 +178,9 @@ function ActiveSession({ test, mode, initial }: { test: ListeningTest; mode: Lis
         </Card>
       </div>
       {saveError && <p role="alert" className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">{saveError}</p>}
-      {error && <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
       <main className="mt-5 space-y-5">
-        {section.map_asset && <Image src={section.map_asset} alt="Map for Section 2 questions" width={800} height={520} priority className="h-auto w-full rounded-xl border border-slate-200 bg-white" />}
+        {section.map_asset && <Image src={section.map_asset} alt={`Map for Section ${activeSection + 1} questions`} width={800} height={520} priority className="h-auto w-full rounded-xl border border-slate-200 bg-white" />}
         <ListeningQuestions section={groups[activeSection]} answers={answers} activeNumber={activeNumber} onAnswer={answer} onFocusQuestion={setActiveNumber} />
       </main>
       <SubmitConfirm open={confirmOpen} answered={answeredCount} total={flat.length} submitting={submitting} onConfirm={handleSubmit} onCancel={() => setConfirmOpen(false)} />

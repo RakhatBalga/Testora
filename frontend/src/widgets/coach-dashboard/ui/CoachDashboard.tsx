@@ -18,6 +18,7 @@ export function CoachDashboard({ username }: { username: string | null }) {
   const [data, setData] = useState<LearningDashboard | null>(null);
   const [error, setError] = useState("");
   const [completing, setCompleting] = useState(false);
+  const [completeError, setCompleteError] = useState("");
 
   const load = () => api.getLearningDashboard().then((d) => { setError(""); setData(d); }).catch((err) => setError(err.message));
   useEffect(() => { void load(); }, []);
@@ -31,7 +32,15 @@ export function CoachDashboard({ username }: { username: string | null }) {
   const completeToday = async () => {
     if (!today) return;
     setCompleting(true);
-    try { await api.updateStudyPlanItem(today.id, "completed"); await load(); } finally { setCompleting(false); }
+    setCompleteError("");
+    try {
+      await api.updateStudyPlanItem(today.id, "completed");
+      await load();
+    } catch (err) {
+      setCompleteError(err instanceof Error ? err.message : "Could not mark the task complete. Please try again.");
+    } finally {
+      setCompleting(false);
+    }
   };
 
   return (
@@ -51,7 +60,7 @@ export function CoachDashboard({ username }: { username: string | null }) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
         <Card className="p-6">
           <div className="flex items-center justify-between"><div><p className="text-xs font-semibold uppercase text-slate-500">Today</p><h2 className="mt-1 text-xl font-bold text-slate-950">{today?.title || "You are caught up"}</h2></div>{today && <span className={`rounded-md px-2 py-1 text-xs font-semibold capitalize ${today.skill === "writing" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{today.skill}</span>}</div>
-          {today ? <><p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{today.reason}</p><p className="mt-3 text-sm font-medium text-slate-500">{today.minutes} minutes</p><div className="mt-5 flex flex-wrap gap-3"><Link href={today.href} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">Start task <ArrowRight className="h-4 w-4" /></Link><button type="button" disabled={completing} onClick={completeToday} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Check className="h-4 w-4" /> Mark complete</button></div></> : <p className="mt-3 text-sm text-slate-500">Recalculate your plan when you are ready for the next task.</p>}
+          {today ? <><p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">{today.reason}</p><p className="mt-3 text-sm font-medium text-slate-500">{today.minutes} minutes</p><div className="mt-5 flex flex-wrap gap-3"><Link href={today.href} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700">Start task <ArrowRight className="h-4 w-4" /></Link><button type="button" disabled={completing} onClick={completeToday} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"><Check className="h-4 w-4" /> Mark complete</button></div>{completeError && <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{completeError}</p>}</> : <p className="mt-3 text-sm text-slate-500">Recalculate your plan when you are ready for the next task.</p>}
         </Card>
 
         <Card className="p-6">
