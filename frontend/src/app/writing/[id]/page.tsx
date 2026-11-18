@@ -7,8 +7,13 @@ import { api, ApiError, FreeQuota, isNetworkError, WritingTask } from "@/shared/
 import { useAuth, useRequireAuth } from "@/shared/auth";
 import { formatClockSeconds, useExamTimer } from "@/shared/lib";
 import { Badge, Button, Card, ErrorState, Skeleton } from "@/shared/ui";
-import { clearExamSubmissionKey, examSubmissionKey } from "@/entities/test";
-import { findSubmittedWriting, WritingTaskVisual, type SubmitAttempt } from "@/features/writing-task";
+import {
+  clearWritingSubmissionKey,
+  findSubmittedWriting,
+  writingSubmissionKey,
+  WritingTaskVisual,
+  type SubmitAttempt,
+} from "@/features/writing-task";
 import { routes } from "@/shared/config";
 
 // Count words the way an IELTS examiner does, matching the backend's
@@ -91,11 +96,9 @@ export default function WritingTaskPage() {
     const timer = window.setTimeout(() => {
       if (answer.trim()) {
         localStorage.setItem(draftKey, answer);
-        // The draft gets its idempotency key as soon as it exists.
-        examSubmissionKey(draftKey);
       } else {
         localStorage.removeItem(draftKey);
-        clearExamSubmissionKey(draftKey);
+        clearWritingSubmissionKey(draftKey);
       }
     }, 500);
     return () => window.clearTimeout(timer);
@@ -119,7 +122,7 @@ export default function WritingTaskPage() {
 
   const openResult = (submissionId: number) => {
     localStorage.removeItem(draftKey);
-    clearExamSubmissionKey(draftKey);
+    clearWritingSubmissionKey(draftKey);
     clearTimer();
     router.push(routes.writing.result(submissionId));
   };
@@ -155,9 +158,11 @@ export default function WritingTaskPage() {
     setError("");
     const startedAt = Date.now();
     try {
-      // One key per draft, kept with it: a retry after a timeout or a reload
-      // returns the submission the server already has.
-      const submission = await api.submitWriting(task.id, answer.trim(), examSubmissionKey(draftKey));
+      // The key is stored with the text it was sent with: a retry or reload with
+      // the same text returns the submission the server already has, while an
+      // edited essay is sent as a new submission.
+      const text = answer.trim();
+      const submission = await api.submitWriting(task.id, text, writingSubmissionKey(draftKey, text));
       const elapsed = Date.now() - startedAt;
       if (elapsed < MIN_REVIEW_DISPLAY_MS) {
         await new Promise((resolve) => {
@@ -291,7 +296,7 @@ export default function WritingTaskPage() {
       {draftRecovered && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
           <span>Your saved draft was restored.</span>
-          <button type="button" onClick={() => { setAnswer(""); setDraftRecovered(false); localStorage.removeItem(draftKey); clearExamSubmissionKey(draftKey); }} className="inline-flex items-center gap-1.5 font-semibold text-blue-800 hover:underline">
+          <button type="button" onClick={() => { setAnswer(""); setDraftRecovered(false); localStorage.removeItem(draftKey); clearWritingSubmissionKey(draftKey); }} className="inline-flex items-center gap-1.5 font-semibold text-blue-800 hover:underline">
             <Trash2 className="h-4 w-4" /> Discard draft
           </button>
         </div>

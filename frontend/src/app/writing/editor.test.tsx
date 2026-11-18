@@ -34,7 +34,7 @@ afterEach(() => { vi.useRealTimers(); vi.resetAllMocks(); localStorage.clear(); 
 const DRAFT = "testora.writing.draft.ann.3";
 const KEY = `${DRAFT}-submission-key`;
 
-it("autosaves the draft with its submission key and restores it after a reload", async () => {
+it("autosaves the draft and restores it after a reload", async () => {
   vi.mocked(api.listWritingSubmissions).mockResolvedValue([]);
   vi.useFakeTimers();
   const view = render(<WritingTaskPage />);
@@ -43,8 +43,6 @@ it("autosaves the draft with its submission key and restores it after a reload",
   expect(localStorage.getItem(DRAFT)).toBeNull();
   await act(async () => { await vi.advanceTimersByTimeAsync(500); });
   expect(localStorage.getItem(DRAFT)).toBe("Cities grow");
-  const key = localStorage.getItem(KEY);
-  expect(key).toMatch(/^[A-Za-z0-9._:-]{8,80}$/);
   view.unmount();
 
   render(<WritingTaskPage />);
@@ -52,7 +50,7 @@ it("autosaves the draft with its submission key and restores it after a reload",
   expect(screen.getByLabelText("Your answer")).toHaveValue("Cities grow");
   expect(screen.getByText("Your saved draft was restored.")).toBeInTheDocument();
   expect(screen.getByText("2 / 250 words")).toBeInTheDocument();
-  expect(localStorage.getItem(KEY)).toBe(key);
+  localStorage.setItem(KEY, JSON.stringify({ key: "stale-key-1", text: "Cities grow" }));
 
   fireEvent.click(screen.getByRole("button", { name: /Discard draft/ }));
   expect(screen.getByLabelText("Your answer")).toHaveValue("");
@@ -68,9 +66,9 @@ it("submits the essay, opens its result and clears the draft and key", async () 
   await act(async () => {});
   fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "  An essay about cities.  " } });
   await act(async () => { await vi.advanceTimersByTimeAsync(500); });
-  const key = localStorage.getItem(KEY);
   await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Submit" })); });
-  expect(api.submitWriting).toHaveBeenCalledWith(3, "An essay about cities.", key);
+  expect(api.submitWriting).toHaveBeenCalledWith(3, "An essay about cities.", expect.stringMatching(/^[A-Za-z0-9._:-]{8,80}$/));
+  expect(JSON.parse(localStorage.getItem(KEY) ?? "null")).toMatchObject({ text: "An essay about cities." });
   // The review overlay stays up for a moment before the result opens.
   expect(screen.getByRole("status", { name: /reviewing your writing/i })).toBeInTheDocument();
   expect(push).not.toHaveBeenCalled();
@@ -80,7 +78,22 @@ it("submits the essay, opens its result and clears the draft and key", async () 
   expect(localStorage.getItem(KEY)).toBeNull();
 });
 
-it("reuses the same submission key for a retry, also after a reload", async () => {
+it("sends a new submission key when the essay was edited after a failed submit", async () => {
+  vi.mocked(api.listWritingSubmissions).mockResolvedValue([]);
+  render(<WritingTaskPage />);
+  fireEvent.change(await screen.findByLabelText("Your answer"), { target: { value: "An essay about cities." } });
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Submit" })); });
+  fireEvent.change(screen.getByLabelText("Your answer"), { target: { value: "An essay about cities, improved." } });
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Submit" })); });
+  // Unchanged again: the second key is reused, not the first.
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Submit" })); });
+  const calls = vi.mocked(api.submitWriting).mock.calls;
+  expect(calls.map((call) => call[1])).toEqual(["An essay about cities.", "An essay about cities, improved.", "An essay about cities, improved."]);
+  expect(calls[1][2]).not.toBe(calls[0][2]);
+  expect(calls[2][2]).toBe(calls[1][2]);
+});
+
+it("reuses the same submission key for an unchanged retry, also after a reload", async () => {
   vi.mocked(api.listWritingSubmissions).mockResolvedValue([]);
   const view = render(<WritingTaskPage />);
   fireEvent.change(await screen.findByLabelText("Your answer"), { target: { value: "An essay about cities." } });
