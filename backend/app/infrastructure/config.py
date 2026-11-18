@@ -91,7 +91,6 @@ class Settings(BaseSettings):
 
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
-    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/auth/google/callback"
     FRONTEND_URL: str = "http://localhost:3000"
 
     AI_PROVIDER: str = "mock"  # mock | claude | gemini | qwen
@@ -113,9 +112,7 @@ class Settings(BaseSettings):
     # entirely; negative = unlimited (dev).
     FREE_WRITING_SUBMISSIONS: int = 2
     FREE_SPEAKING_SUBMISSIONS: int = 2
-    # Legacy setting accepted for deployment compatibility, but no longer grants access.
-    QUOTA_EXEMPT_USERS: str = ""
-    # Immutable IDs replace username exemptions; renaming cannot grant free AI.
+    # Immutable user IDs (usernames can be renamed, so they never grant free AI).
     QUOTA_EXEMPT_USER_IDS: str = ""
     # Shared per-user daily budget (app timezone day) includes failed attempts
     # and vocabulary generation.
@@ -143,7 +140,9 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
-    model_config = SettingsConfigDict(env_file=".env")
+    # extra="ignore": a key left in a local .env after its setting was removed
+    # (or one meant for another tool) must not stop the app from starting.
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     # --- Qwen (self-hosted, OpenAI-compatible API; AI_PROVIDER=qwen) ---------
     # Base URL including /v1, e.g. http://localhost:11434/v1 (Ollama) or

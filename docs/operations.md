@@ -45,7 +45,7 @@ Render (backend), as set in `render.yaml`; secrets are `sync: false` and must be
 | `MAX_CONCURRENT_GRADINGS` | Simultaneous model calls (default 8) |
 | `SPEAKING_ENABLED` | `false`: Speaking is closed on the server until it launches |
 | `STORAGE_BACKEND` | `database`: avatars and audio are stored in PostgreSQL (`stored_files`), because the container disk is ephemeral |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` (secrets) | Google sign-in. `GOOGLE_REDIRECT_URI` must equal the callback registered in Google Cloud |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (secrets) | Google sign-in. The callback registered in Google Cloud is the frontend's `/auth/google/callback` on an origin from `FRONTEND_URL` / `CORS_ORIGINS` |
 | `SENTRY_DSN` (secret) | Optional error tracking; inactive until `sentry-sdk` is installed, see Monitoring |
 | `LOG_LEVEL` | `INFO` |
 

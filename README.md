@@ -108,7 +108,7 @@ Main variables (full list: `backend/.env.example`, `render.yaml`, [docs/operatio
 | `AI_PROVIDER` | backend | `mock`, `claude`, `gemini` or `qwen` (self-hosted, `QWEN_*` variables, see [docs/qwen.md](docs/qwen.md)) |
 | `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FAST_MODEL` | backend | Gemini key; examiner model; cheaper model for coach text and rewrites |
 | `FREE_WRITING_SUBMISSIONS`, `FREE_SPEAKING_SUBMISSIONS`, `AI_DAILY_ATTEMPTS`, `AI_GLOBAL_DAILY_ATTEMPTS` | backend | Free-tier quota, per-user and global daily AI budget |
-| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` | backend | Google sign-in (the button also needs `NEXT_PUBLIC_GOOGLE_CLIENT_ID` in the frontend build) |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | backend | Google sign-in (the button also needs `NEXT_PUBLIC_GOOGLE_CLIENT_ID` in the frontend build) |
 | `STORAGE_BACKEND`, `SPEAKING_ENABLED` | backend | Avatars and audio storage (`database` or `local`); server-side Speaking gate |
 | `APP_TIMEZONE` | backend | IANA tz for quota day, streaks, daily plan (default `Asia/Almaty`) |
 | `SENTRY_DSN`, `LOG_LEVEL` | backend | Optional error tracking; log level |
@@ -133,7 +133,7 @@ Step-by-step procedures (deploy, rollback, backups, env vars): [docs/operations.
 - [ ] `NEXT_PUBLIC_API_URL` (Vercel) points at the public API origin
 - [ ] `APP_ENV=production`
 - [ ] `AI_PROVIDER=gemini` **and** `GEMINI_API_KEY` set (the API refuses to start in production if grading would fall back to mock)
-- [ ] Google sign-in: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` on Render and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` on Vercel
+- [ ] Google sign-in: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` on Render and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` on Vercel
 - [ ] Content imported and validated (see Tests below)
 - [ ] A recent database backup exists (`scripts/backup_prod.sh`; there is no scheduled backup yet)
 
