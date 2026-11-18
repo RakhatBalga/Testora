@@ -9,6 +9,7 @@ model behind an OpenAI-compatible API** that the backend calls with
 |---|---|
 | `ollama/Modelfile` | Mac (Ollama): Qwen3 with a context window large enough for the examiner prompt |
 | `vllm/docker-compose.yml` | Rented NVIDIA GPU: vLLM OpenAI-compatible server with an API key |
+| `modal/serve_qwen.py` | Modal: Qwen3-8B on vLLM with an API key, scales to zero when idle, also serves fine-tuned adapters |
 | `smoke_test.py` | Sends one real grading request through the production pipeline and prints the result |
 
 Quick check after starting a server:

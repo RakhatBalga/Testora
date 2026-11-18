@@ -112,6 +112,29 @@ Backend: `QWEN_MODEL=testora-qwen` (the served name), `QWEN_API_KEY=$VLLM_API_KE
 Check model ids on Hugging Face before renting; the `-2507` instruct models
 do not think at all, which is fine for grading.
 
+### On Modal (serverless GPU)
+
+`ai/modal/serve_qwen.py` runs the same vLLM server for **`Qwen/Qwen3-8B`** (bf16, 16k context,
+prefix caching) on Modal. It is the setup planned for the E1 baseline and for fine-tuning: the
+model is measured on the same full-precision weights that are trained, not on a quantised local copy.
+
+```bash
+uvx modal setup                                                  # log in once
+uvx modal secret create testora-vllm VLLM_API_KEY=$(openssl rand -hex 24)
+TESTORA_GPU=A10G uvx modal deploy ai/modal/serve_qwen.py         # choose the GPU by price and time
+uvx modal app stop testora-qwen-serve                            # stop
+```
+
+Backend / E1: `QWEN_BASE_URL=https://<workspace>--testora-qwen-serve-serve.modal.run/v1`,
+`QWEN_MODEL=testora-qwen`, `QWEN_API_KEY=<VLLM_API_KEY>`, `QWEN_TIMEOUT_SECONDS=600`.
+
+- The container holds a GPU only while it is up: it stops 5 minutes after the last request and
+  starts again on the next one. A cold start takes a few minutes (weights are cached on a volume),
+  so the first request needs the long timeout.
+- Trained LoRA adapters placed in the `testora-runs` volume under `adapters/<name>/` are served as
+  `testora-qwen-<name>` next to the base model.
+- Status: written and import-checked against Modal 1.6; **not deployed or measured yet**.
+
 ## 3. How Render reaches the model
 
 Render's servers cannot see `localhost` on the Mac. You need a **public HTTPS
