@@ -6,6 +6,7 @@ from app.infrastructure.logging import set_user_id
 from app.infrastructure.ratelimit import RateLimiter
 from app.infrastructure.security import JWTError, decode_access_token
 from app.infrastructure.database import SessionLocal
+from app.application import accounts
 from app.domain.models.user import User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -33,7 +34,7 @@ def get_current_user(
     except (JWTError, ValueError, TypeError):
         raise credentials_exception
 
-    user = db.get(User, user_id)
+    user = accounts.get_user(db, user_id)
     if user is None or (user.token_version or 0) != token_version:
         raise credentials_exception
     set_user_id(user.id)

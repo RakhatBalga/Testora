@@ -1,5 +1,5 @@
 import pytest
-from fastapi import HTTPException
+from app.application.errors import ApplicationError as HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Index
 
-from app.infrastructure.database import Base
-from app.infrastructure.time import utcnow
+from app.domain.models.base import Base
+from app.domain.clock import utcnow
 
 
 class Mistake(Base):

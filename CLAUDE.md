@@ -33,7 +33,9 @@ aggregation over stored data; the LLM is called only at grading time.
 - `domain/`: SQLAlchemy models and pure scoring/band logic.
 - `application/`: use-case services (writing, speaking, attempts, accounts, google_auth, quota, ai_gate,
   mistakes, analytics/, learning/, listening/, ...).
-- `api/`: thin FastAPI routers, dependencies, Pydantic schemas.
+  It does not import FastAPI or a concrete AI provider: it raises `application/errors.py` types (mapped to
+  HTTP in `api/errors.py`) and reaches graders through `application/ports.py`, bound in `app/bootstrap.py`.
+- `api/`: thin FastAPI routers (no ORM queries), dependencies, Pydantic schemas.
 - `infrastructure/`: database, config, security, rate limiting, storage, logging, error tracking and
   `ai/` (graders, prompts, schemas). `ai/base.py` = `Feedback` + `MistakeItem`; `ai/factory.py` picks the provider.
 - `backend/content_tools/`: content importer and validators (`python -m content_tools.importer`,

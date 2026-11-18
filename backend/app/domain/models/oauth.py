@@ -1,6 +1,6 @@
 from sqlalchemy import Boolean, Column, DateTime, String
 
-from app.infrastructure.database import Base
+from app.domain.models.base import Base
 
 
 class OAuthFlow(Base):

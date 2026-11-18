@@ -85,7 +85,7 @@ def test_update_preserves_attempts_question_ids_and_in_progress_sessions(db):
     assert [item["id"] for item in list_listening_tests(db=db, current_user=user)] == [new.id]
     assert is_catalog_test(new) and not is_catalog_test(old)
     # Superseded versions stay reviewable but cannot accept new submissions.
-    from fastapi import HTTPException
+    from app.application.errors import ApplicationError as HTTPException
 
     with pytest.raises(HTTPException) as exc:
         submit_listening(

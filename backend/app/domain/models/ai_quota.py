@@ -1,5 +1,5 @@
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Integer, String, false, func
-from app.infrastructure.database import Base
+from app.domain.models.base import Base
 
 
 class AIQuotaBucket(Base):

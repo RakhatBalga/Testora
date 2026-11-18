@@ -23,7 +23,7 @@ def list_tasks(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(WritingTask).order_by(WritingTask.task_type).all()
+    return writing_service.list_tasks(db)
 
 
 @router.get("/tasks/{task_id}", response_model=WritingTaskOut)
@@ -32,7 +32,7 @@ def get_task(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    task = db.query(WritingTask).filter(WritingTask.id == task_id).first()
+    task = writing_service.get_task(db, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
@@ -58,7 +58,7 @@ def submit(
 ):
     # Plain `def`: FastAPI runs it in the threadpool, so the synchronous DB work
     # and the blocking grader never stall the event loop.
-    task = db.query(WritingTask).filter(WritingTask.id == payload.task_id).first()
+    task = writing_service.get_task(db, payload.task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     submission = writing_service.submit_writing(

@@ -1,5 +1,7 @@
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy.orm import sessionmaker
+
+from app.domain.models.base import Base  # noqa: F401 - the models' base, re-exported next to the engine
 from app.infrastructure.config import settings
 
 _connect_args: dict = {}
@@ -36,7 +38,3 @@ if settings.DATABASE_URL.startswith("postgresql"):
 
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-class Base(DeclarativeBase):
-    pass

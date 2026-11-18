@@ -5,7 +5,7 @@ import os
 import tempfile
 from datetime import timedelta
 
-from fastapi import HTTPException
+from app.application.errors import Forbidden, UnsupportedMedia
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,7 @@ from app.application.mistakes import record_mistakes
 from app.application.quota import enforce_free_quota, reconcile_stale_reservations, reserve_ai_call
 from app.domain.models.speaking import SpeakingSubmission, SpeakingTask
 from app.domain.models.user import User
-from app.infrastructure.ai import get_speaking_grader
+from app.application.ports import get_speaking_grader
 from app.infrastructure.config import settings
 from app.infrastructure.storage import get_storage, storage_for_key
 from app.infrastructure.storage.sniff import sniff_audio
@@ -39,8 +39,7 @@ def speaking_enabled() -> bool:
 
 def require_speaking_enabled() -> None:
     if not speaking_enabled():
-        raise HTTPException(
-            status_code=403,
+        raise Forbidden(
             detail={
                 "code": "speaking_disabled",
                 "message": "Speaking assessment is not available yet.",
@@ -55,7 +54,7 @@ def task_questions(task: SpeakingTask) -> list[str]:
 def detect_audio_type(data: bytes) -> str:
     content_type = sniff_audio(data[:16])
     if content_type is None:
-        raise HTTPException(status_code=415, detail="Unsupported audio format. Use WebM, OGG, MP3, WAV or M4A.")
+        raise UnsupportedMedia(detail="Unsupported audio format. Use WebM, OGG, MP3, WAV or M4A.")
     return content_type
 
 
@@ -96,6 +95,34 @@ def _mark_failed(db: Session, key: str) -> None:
     if row is not None and row.feedback is None and row.band is None:
         row.feedback = _failure_feedback(GRADING_FAILED_SUMMARY)
         db.commit()
+
+
+def list_tasks(db: Session) -> list[SpeakingTask]:
+    return db.query(SpeakingTask).order_by(SpeakingTask.part, SpeakingTask.id).all()
+
+
+def get_task(db: Session, task_id: int) -> SpeakingTask | None:
+    return db.query(SpeakingTask).filter(SpeakingTask.id == task_id).first()
+
+
+def get_owned_submission(db: Session, user_id: int, submission_id: int) -> SpeakingSubmission | None:
+    return (
+        db.query(SpeakingSubmission)
+        .filter(
+            SpeakingSubmission.id == submission_id,
+            SpeakingSubmission.user_id == user_id,
+        )
+        .first()
+    )
+
+
+def list_submissions(db: Session, user_id: int) -> list[SpeakingSubmission]:
+    return (
+        db.query(SpeakingSubmission)
+        .filter(SpeakingSubmission.user_id == user_id)
+        .order_by(SpeakingSubmission.created_at.desc())
+        .all()
+    )
 
 
 def submit_speaking(db: Session, user: User, task: SpeakingTask, audio: bytes) -> SpeakingSubmission:

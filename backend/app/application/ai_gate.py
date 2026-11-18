@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from typing import Callable, TypeVar
 
-from fastapi import HTTPException
+from app.application.errors import ApplicationError, ServiceUnavailable
 
 from app.infrastructure.config import settings
 
@@ -27,8 +27,8 @@ _admission = threading.BoundedSemaphore(settings.MAX_CONCURRENT_GRADINGS * 2)
 _executor = ThreadPoolExecutor(max_workers=settings.MAX_CONCURRENT_GRADINGS, thread_name_prefix="grading")
 
 
-def _busy() -> HTTPException:
-    return HTTPException(503, "Grading is busy right now. Please try again in a minute.", headers={"Retry-After": "30"})
+def _busy() -> ApplicationError:
+    return ServiceUnavailable("Grading is busy right now. Please try again in a minute.", headers={"Retry-After": "30"})
 
 
 @contextmanager

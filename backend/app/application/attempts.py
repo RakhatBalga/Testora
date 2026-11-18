@@ -5,7 +5,7 @@ from app.domain.publication import is_published
 from datetime import timedelta
 from typing import Callable
 
-from fastapi import HTTPException
+from app.application.errors import Conflict, NotFound
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -134,10 +134,9 @@ def save_graded_attempt(
 def submit_reading(db: Session, user: User, payload) -> dict:
     test = db.query(Test).filter(Test.id == payload.test_id).first()
     if not test or not is_published(test):
-        raise HTTPException(status_code=404, detail="Test not found")
+        raise NotFound(detail="Test not found")
     if test.test_type == "listening" and (test.content_metadata or {}).get("published") is True:
-        raise HTTPException(
-            status_code=409,
+        raise Conflict(
             detail="Use the versioned Listening submission endpoint for this test",
         )
     questions = (
@@ -231,5 +230,5 @@ def list_attempts(db: Session, user: User) -> list[dict]:
 def get_attempt_result(db: Session, user: User, attempt_id: int) -> dict:
     attempt = db.query(Attempt).filter(Attempt.id == attempt_id, Attempt.user_id == user.id).first()
     if not attempt:
-        raise HTTPException(status_code=404, detail="Attempt not found")
+        raise NotFound(detail="Attempt not found")
     return attempt_result(attempt)

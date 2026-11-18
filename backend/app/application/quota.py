@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 import uuid
 
-from fastapi import HTTPException
+from app.application.errors import ApplicationError, Conflict, Forbidden, ServiceUnavailable, TooManyRequests
 from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -20,13 +20,19 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.domain.models.ai_quota import AIGlobalBudget, AIQuotaBucket, AIReservation
+from app.domain.models.speaking import SpeakingSubmission
+from app.domain.models.writing import WritingSubmission
 from app.infrastructure.config import settings
 from app.infrastructure.time import local_midnight_after_now, local_today, utcnow
 
 
+# The submission tables that consume lifetime free reviews, and their budget kind.
+_KIND_BY_MODEL = {WritingSubmission: "writing", SpeakingSubmission: "speaking"}
+
+
 def _consumed_count(db: Session, model, user_id: int) -> int:
     q = db.query(model).filter(model.user_id == user_id)
-    if hasattr(model, "status"):
+    if _kind(model) == "writing":
         # Only really graded essays count. Failed gradings are free, pre-check
         # rejections (Band 0, no AI call) are free, and a pending row is the
         # in-flight request itself, which its own reservation already charges.
@@ -37,7 +43,7 @@ def _consumed_count(db: Session, model, user_id: int) -> int:
 
 
 def _kind(model) -> str:
-    return "writing" if hasattr(model, "status") else "speaking"
+    return _KIND_BY_MODEL[model]
 
 
 def _exempt(user, limit: int) -> bool:
@@ -60,10 +66,9 @@ def enforce_free_quota(db: Session, model, user, limit: int, skill: str) -> None
         raise _quota_error(skill, limit)
 
 
-def _quota_error(kind: str, limit: int) -> HTTPException:
+def _quota_error(kind: str, limit: int) -> ApplicationError:
     if kind == "global":
-        return HTTPException(
-            503,
+        return ServiceUnavailable(
             {
                 "code": "ai_global_budget_exhausted",
                 "message": "AI reviews are paused for today because the daily capacity is used up. "
@@ -75,8 +80,7 @@ def _quota_error(kind: str, limit: int) -> HTTPException:
     if kind == "attempts":
         reset = local_midnight_after_now()
         now = datetime.now(reset.tzinfo)
-        return HTTPException(
-            429,
+        return TooManyRequests(
             {
                 "code": "ai_daily_limit",
                 "message": "Daily AI limit reached. This limit covers reviews and vocabulary, including failed attempts.",
@@ -84,8 +88,7 @@ def _quota_error(kind: str, limit: int) -> HTTPException:
             },
             headers={"Retry-After": str(max(1, int((reset - now).total_seconds())))},
         )
-    return HTTPException(
-        403,
+    return Forbidden(
         {
             "code": "ai_free_reviews_exhausted",
             "message": f"You've used your {limit} free {kind} reviews. This allowance does not reset daily.",
@@ -225,7 +228,7 @@ def reserve_ai_call(db: Session, user, kind: str, *, model=None, limit: int = -1
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(409, "This AI request is already in progress.")
+        raise Conflict("This AI request is already in progress.")
     except BaseException:
         db.rollback()
         raise

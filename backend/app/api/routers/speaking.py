@@ -38,7 +38,7 @@ def list_tasks(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(SpeakingTask).order_by(SpeakingTask.part, SpeakingTask.id).all()
+    return speaking_service.list_tasks(db)
 
 
 @router.get("/tasks/{task_id}", response_model=SpeakingTaskOut)
@@ -47,7 +47,7 @@ def get_task(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    task = db.query(SpeakingTask).filter(SpeakingTask.id == task_id).first()
+    task = speaking_service.get_task(db, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
@@ -75,7 +75,7 @@ def submit(
 ):
     # Gate first: a disabled feature must not even read the upload.
     speaking_service.require_speaking_enabled()
-    task = db.query(SpeakingTask).filter(SpeakingTask.id == task_id).first()
+    task = speaking_service.get_task(db, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     data = read_capped(audio, settings.MAX_AUDIO_UPLOAD_MB, "Audio")
@@ -107,14 +107,7 @@ def get_audio(
         bearer = authorization[7:]
     user = _resolve_media_user(bearer, db)
 
-    submission = (
-        db.query(SpeakingSubmission)
-        .filter(
-            SpeakingSubmission.id == submission_id,
-            SpeakingSubmission.user_id == user.id,
-        )
-        .first()
-    )
+    submission = speaking_service.get_owned_submission(db, user.id, submission_id)
     if not submission or not submission.audio_url:
         raise HTTPException(status_code=404, detail="Recording not found")
     blob = storage_for_key(submission.audio_url).load(db, submission.audio_url)
@@ -133,12 +126,7 @@ def list_submissions(
     current_user: User = Depends(get_current_user),
 ):
     speaking_service.reconcile_stale_speaking(db, current_user.id)
-    submissions = (
-        db.query(SpeakingSubmission)
-        .filter(SpeakingSubmission.user_id == current_user.id)
-        .order_by(SpeakingSubmission.created_at.desc())
-        .all()
-    )
+    submissions = speaking_service.list_submissions(db, current_user.id)
     return [
         {
             "id": s.id,
@@ -159,14 +147,7 @@ def get_submission(
     current_user: User = Depends(get_current_user),
 ):
     speaking_service.reconcile_stale_speaking(db, current_user.id)
-    submission = (
-        db.query(SpeakingSubmission)
-        .filter(
-            SpeakingSubmission.id == submission_id,
-            SpeakingSubmission.user_id == current_user.id,
-        )
-        .first()
-    )
+    submission = speaking_service.get_owned_submission(db, current_user.id, submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
     return _to_out(submission, submission.task)

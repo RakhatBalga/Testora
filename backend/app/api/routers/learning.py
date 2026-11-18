@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.infrastructure.time import utcnow
 from app.api.dependencies import get_current_user, get_db, user_rate_limit
 from app.api.schemas.analytics import Payload
 from app.api.schemas.learning import DiagnosticStartIn, MistakeStatusIn, PlanStatusIn
@@ -10,15 +9,16 @@ from app.application.learning import (
     diagnostic_state,
     get_weekly_plan,
     list_notebook,
+    plan_item_explanation,
+    record_skipped_diagnostic,
     refresh_diagnostic,
+    reset_weekly_plan,
     set_mistake_status,
     set_plan_status,
     start_diagnostic,
 )
 from app.application.learning.dashboard import dashboard_summary
-from app.domain.models.learning import DiagnosticSession, StudyPlanItem
 from app.domain.models.user import User
-from app.application.learning.study_plan import week_start
 
 router = APIRouter()
 
@@ -80,16 +80,7 @@ def skip_diagnostic(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    session = DiagnosticSession(
-        user_id=current_user.id,
-        status="skipped",
-        skills=[],
-        completed_at=utcnow(),
-    )
-    db.add(session)
-    db.commit()
-    db.refresh(session)
-    return diagnostic_state(db, current_user.id)
+    return record_skipped_diagnostic(db, current_user.id)
 
 
 @router.get("/study-plan", response_model=Payload)
@@ -115,12 +106,7 @@ def reset_study_plan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    db.query(StudyPlanItem).filter(
-        StudyPlanItem.user_id == current_user.id,
-        StudyPlanItem.week_start == week_start(),
-    ).delete(synchronize_session=False)
-    db.commit()
-    return get_weekly_plan(db, current_user, recalculate=True)
+    return reset_weekly_plan(db, current_user)
 
 
 @router.patch("/study-plan/{item_id}", response_model=Payload)
@@ -142,15 +128,10 @@ def explain_plan_item(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    item = db.query(StudyPlanItem).filter(StudyPlanItem.id == item_id, StudyPlanItem.user_id == current_user.id).first()
-    if not item:
+    item = plan_item_explanation(db, current_user.id, item_id)
+    if item is None:
         raise HTTPException(status_code=404, detail="Study plan item not found")
-    return {
-        "id": item.id,
-        "title": item.title,
-        "reason": item.reason,
-        "source": {"type": item.source_type, "ref": item.source_ref},
-    }
+    return item
 
 
 @router.get("/mistakes", response_model=Payload)

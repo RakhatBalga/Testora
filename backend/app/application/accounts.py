@@ -1,10 +1,11 @@
 """Account use cases: registration, login, profile, avatar, logout."""
 
 import bcrypt
-from fastapi import HTTPException
+from app.application.errors import AuthenticationFailed, InvalidRequest, ValidationFailed
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.application.learning.study_plan import get_weekly_plan
 from app.domain.models.user import User
 from app.infrastructure.security import create_access_token
 from app.infrastructure.storage import DB_PREFIX, get_storage, storage_for_key
@@ -14,9 +15,13 @@ DB_AVATAR_URL_PREFIX = "/auth/avatars/"
 LOCAL_AVATAR_URL_PREFIX = "/static/avatars/"
 
 
+def get_user(db: Session, user_id: int) -> User | None:
+    return db.get(User, user_id)
+
+
 def register(db: Session, username: str, password: str, target_band: float) -> None:
     if db.query(User).filter(User.username == username).first():
-        raise HTTPException(status_code=400, detail="Username already taken")
+        raise InvalidRequest(detail="Username already taken")
     hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
     db.add(User(username=username, password=hashed.decode("utf-8"), target_band=target_band))
     try:
@@ -25,7 +30,7 @@ def register(db: Session, username: str, password: str, target_band: float) -> N
         # Two concurrent registrations of the same username race past the check
         # above; the unique constraint catches it: clean 400, not 500.
         db.rollback()
-        raise HTTPException(status_code=400, detail="Username already taken")
+        raise InvalidRequest(detail="Username already taken")
 
 
 def login(db: Session, username: str, password: str) -> str:
@@ -33,7 +38,7 @@ def login(db: Session, username: str, password: str) -> str:
     # bcrypt reads at most 72 bytes; truncating explicitly keeps accounts created
     # before the byte check working on bcrypt versions that would raise instead.
     if not user or not bcrypt.checkpw(password.encode("utf-8")[:72], user.password.encode("utf-8")):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise AuthenticationFailed(detail="Invalid credentials")
     return create_access_token(user.id, user.token_version or 0)
 
 
@@ -46,13 +51,13 @@ def logout(db: Session, user: User) -> None:
 def change_username(db: Session, user: User, username: str) -> str:
     taken = db.query(User).filter(User.username == username, User.id != user.id).first()
     if taken:
-        raise HTTPException(status_code=400, detail="Username already taken")
+        raise InvalidRequest(detail="Username already taken")
     user.username = username
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="Username already taken")
+        raise InvalidRequest(detail="Username already taken")
     return create_access_token(user.id, user.token_version or 0)
 
 
@@ -68,19 +73,17 @@ _PLAN_FIELDS = {
 
 def update_profile(db: Session, user: User, fields: dict) -> User:
     if "target_band" in fields and fields["target_band"] is None:
-        raise HTTPException(status_code=422, detail="Target band cannot be empty")
+        raise ValidationFailed(detail="Target band cannot be empty")
     target = fields.get("target_band", user.target_band)
     current = fields.get("current_level", user.current_level)
     if current is not None and target < current:
-        raise HTTPException(status_code=422, detail="Target band must be greater than or equal to current level")
+        raise ValidationFailed(detail="Target band must be greater than or equal to current level")
     for field, value in fields.items():
         setattr(user, field, value)
     if "current_level" in fields:
         user.current_level_source = "self_reported" if fields["current_level"] else None
     db.add(user)
     if fields.keys() & _PLAN_FIELDS:
-        from app.application.learning.study_plan import get_weekly_plan
-
         get_weekly_plan(db, user, recalculate=True)
     else:
         db.commit()
@@ -107,7 +110,7 @@ def _remove_avatar(db: Session, avatar: str | None) -> None:
 def set_avatar(db: Session, user: User, data: bytes) -> User:
     content_type = sniff_image(data[:16])
     if content_type is None:
-        raise HTTPException(status_code=400, detail="Avatar must be a JPG, PNG, WEBP, or GIF image.")
+        raise InvalidRequest(detail="Avatar must be a JPG, PNG, WEBP, or GIF image.")
     storage = get_storage()
     key = storage.save(db, kind="avatar", owner_id=user.id, data=data, content_type=content_type)
     previous = user.avatar
