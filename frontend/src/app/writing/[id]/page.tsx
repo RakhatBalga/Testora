@@ -3,11 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Loader2, Lock, Sparkles, Trash2 } from "lucide-react";
-import { api, FreeQuota, WritingTask } from "@/shared/api";
+import { api, ApiError, FreeQuota, isNetworkError, WritingTask } from "@/shared/api";
 import { useAuth, useRequireAuth } from "@/shared/auth";
 import { formatClockSeconds, useExamTimer } from "@/shared/lib";
 import { Badge, Button, Card, ErrorState, Skeleton } from "@/shared/ui";
-import { WritingTaskVisual } from "@/features/writing-task";
+import { findSubmittedWriting, WritingTaskVisual, type SubmitAttempt } from "@/features/writing-task";
 import { routes } from "@/shared/config";
 
 // Count words the way an IELTS examiner does, matching the backend's
@@ -50,6 +50,12 @@ export default function WritingTaskPage() {
   const [draftRecovered, setDraftRecovered] = useState(false);
   const submitLock = useRef(false);
   const [quota, setQuota] = useState<FreeQuota | null>(null);
+  // Submissions for this task that existed before submitting, to tell a new one apart.
+  const knownIds = useRef<Set<number> | null>(null);
+  // A submit ended without an answer and the follow-up check failed too: the
+  // essay may or may not be on the server, so submitting again stays blocked.
+  const [unconfirmed, setUnconfirmed] = useState<SubmitAttempt | null>(null);
+  const [checking, setChecking] = useState(false);
   const draftKey = `testora.writing.draft.${username ?? "anonymous"}.${taskId}`;
 
   useEffect(() => {
@@ -69,6 +75,14 @@ export default function WritingTaskPage() {
     // Quota is informational — if the call fails we just skip the banner
     // (the backend still enforces the limit on submit).
     api.getWritingQuota().then(setQuota).catch(() => setQuota(null));
+    api
+      .listWritingSubmissions()
+      .then((list) => {
+        // A snapshot that arrives after a submit started could already contain it.
+        if (submitLock.current) return;
+        knownIds.current = new Set(list.filter((item) => item.task_id === taskId).map((item) => item.id));
+      })
+      .catch(() => {});
   }, [token, taskId, draftKey]);
 
   useEffect(() => {
@@ -96,28 +110,69 @@ export default function WritingTaskPage() {
   const quotaExhausted = quota !== null && !quota.exempt && quota.remaining <= 0;
   const lastFreeReview = quota !== null && !quota.exempt && quota.remaining === 1;
 
+  const openResult = (submissionId: number) => {
+    localStorage.removeItem(draftKey);
+    clearTimer();
+    router.push(routes.writing.result(submissionId));
+  };
+
+  /**
+   * The submit request ended without a usable answer. The server may still be
+   * grading it, so look the essay up instead of inviting a second submit:
+   * open its result page if it exists, allow a retry only if it does not.
+   */
+  const recoverSubmission = async (attempt: SubmitAttempt, notReceived: string) => {
+    try {
+      const found = findSubmittedWriting(await api.listWritingSubmissions(), attempt);
+      if (found) {
+        openResult(found.id);
+        return;
+      }
+      setUnconfirmed(null);
+      setError(notReceived);
+    } catch {
+      setUnconfirmed(attempt);
+      setError(
+        "We could not confirm whether your essay was received. Your draft is saved on this device. Check the status before submitting again, so the same essay is not reviewed twice.",
+      );
+    }
+    submitLock.current = false;
+    setSubmitting(false);
+  };
+
   const handleSubmit = async () => {
-    if (!task || submitting || submitLock.current || answer.trim() === "") return;
+    if (!task || submitting || submitLock.current || unconfirmed || answer.trim() === "") return;
     submitLock.current = true;
     setSubmitting(true);
     setError("");
+    const startedAt = Date.now();
     try {
-      const startedAt = Date.now();
       const submission = await api.submitWriting(task.id, answer.trim());
-      localStorage.removeItem(draftKey);
-      clearTimer();
       const elapsed = Date.now() - startedAt;
       if (elapsed < MIN_REVIEW_DISPLAY_MS) {
         await new Promise((resolve) => {
           window.setTimeout(resolve, MIN_REVIEW_DISPLAY_MS - elapsed);
         });
       }
-      router.push(routes.writing.result(submission.id));
+      openResult(submission.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Submit failed");
+      const message = err instanceof Error ? err.message : "Submit failed";
+      // No answer (timeout, dropped connection) or "already being graded".
+      if (isNetworkError(err) || (err instanceof ApiError && err.status === 409)) {
+        await recoverSubmission({ taskId: task.id, knownIds: knownIds.current, startedAt }, message);
+        return;
+      }
+      setError(message);
       submitLock.current = false;
       setSubmitting(false);
     }
+  };
+
+  const checkStatus = async () => {
+    if (!unconfirmed || checking) return;
+    setChecking(true);
+    await recoverSubmission(unconfirmed, "Your essay was not received. Your draft is still here, so you can submit it again.");
+    setChecking(false);
   };
 
   if (!ready || !token) return null;
@@ -212,7 +267,15 @@ export default function WritingTaskPage() {
       )}
 
       {error && (
-        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+          <span>{error}</span>
+          {unconfirmed && (
+            <Button size="sm" variant="secondary" onClick={checkStatus} disabled={checking}>
+              {checking && <Loader2 className="h-4 w-4 animate-spin" />}
+              Check submission status
+            </Button>
+          )}
+        </div>
       )}
 
       {draftRecovered && (
@@ -276,7 +339,7 @@ export default function WritingTaskPage() {
           </p>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || answer.trim() === "" || quotaExhausted}
+            disabled={submitting || answer.trim() === "" || quotaExhausted || unconfirmed !== null}
             size="lg"
             className="sm:min-w-36"
           >
