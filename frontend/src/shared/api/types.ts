@@ -502,30 +502,9 @@ export type BandTrajectoryResult = {
   has_data: boolean;
 };
 
-export type WeeklyWeakest = {
-  has_data: boolean;
-  skill: "writing" | "speaking" | "reading" | "listening" | null;
-  band: number | null;
-  attempts: number;
-  days: number;
-};
-
 export type Streak = {
   current_streak: number;
   active_today: boolean;
-};
-
-export type BlockerHistoryPoint = {
-  label: string;
-  blocker: string;
-  skill: string;
-  changed: boolean;
-};
-
-export type BlockerHistory = {
-  has_data: boolean;
-  history: BlockerHistoryPoint[];
-  note: string | null;
 };
 
 export type DailyPlanTask = {
@@ -542,39 +521,6 @@ export type DailyPlan = {
   generated_for: string;
   has_data: boolean;
   plan: DailyPlanTask[];
-};
-
-export type ProgressCriterion = {
-  name: string;
-  from: number;
-  to: number;
-  delta: number;
-  direction: "up" | "down" | "none";
-};
-
-export type ProgressMistakeItem = {
-  category: string;
-  label: string;
-  from: number;
-  to: number;
-};
-
-export type ProgressImpact = {
-  skill: string;
-  supported: boolean;
-  found?: boolean;
-  has_previous: boolean;
-  previous?: { submission_id: number; band: number | null; created_at: string | null };
-  current?: { submission_id: number; band: number | null; created_at: string | null };
-  band_delta?: number | null;
-  criteria?: ProgressCriterion[];
-  mistakes?: {
-    resolved: ProgressMistakeItem[];
-    improved: ProgressMistakeItem[];
-    worsened: ProgressMistakeItem[];
-    new: ProgressMistakeItem[];
-  };
-  blocker?: { from: string | null; to: string | null; changed: boolean };
 };
 
 /* ----------------------------- History ---------------------------------- */

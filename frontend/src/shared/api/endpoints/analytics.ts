@@ -1,5 +1,5 @@
 import { request, queryString } from "../http";
-import type { BandGapResult, BandTrajectoryResult, Blocker, BlockerHistory, DailyPlan, ProgressImpact, Recommendation, RecurringMistake, Streak, Weakness, WeeklyWeakest } from "../types";
+import type { BandGapResult, BandTrajectoryResult, Blocker, DailyPlan, Recommendation, RecurringMistake, Streak, Weakness } from "../types";
 
 export const analyticsApi = {
   getWeaknesses: (limit = 6) =>
@@ -13,15 +13,8 @@ export const analyticsApi = {
 
   getBandTrajectory: () => request<BandTrajectoryResult>("/analytics/band-trajectory"),
 
-  getWeeklyWeakest: () => request<WeeklyWeakest>("/analytics/weekly-weakest"),
-
-  getProgressImpact: (skill: "writing" | "speaking", submissionId: number) =>
-    request<ProgressImpact>(`/analytics/progress-impact?skill=${skill}&submission_id=${submissionId}`),
-
   getDailyPlan: (target?: number, limit = 3) =>
     request<DailyPlan>(`/analytics/daily-plan${queryString({ target, limit })}`),
-
-  getBlockerHistory: () => request<BlockerHistory>("/analytics/blocker-history"),
 
   getStreak: () => request<Streak>("/analytics/streak"),
 

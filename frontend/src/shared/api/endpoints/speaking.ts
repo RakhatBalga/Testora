@@ -1,9 +1,7 @@
 import { request, requestForm, requestFormWithProgress, audioFilename } from "../http";
-import type { FreeQuota, SpeakingSubmission, SpeakingSubmissionSummary, SpeakingTask } from "../types";
+import type { SpeakingSubmission, SpeakingSubmissionSummary, SpeakingTask } from "../types";
 
 export const speakingApi = {
-  getSpeakingQuota: () => request<FreeQuota>("/speaking/quota"),
-
   listSpeakingTasks: () => request<SpeakingTask[]>("/speaking/tasks"),
 
   getSpeakingTask: (id: number) => request<SpeakingTask>(`/speaking/tasks/${id}`),
