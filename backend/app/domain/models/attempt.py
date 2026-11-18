@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Float, JSON, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
-from app.infrastructure.database import Base
-from app.infrastructure.time import utcnow
+from app.domain.models.base import Base
+from app.domain.clock import utcnow
 
 
 class Attempt(Base):

@@ -9,6 +9,7 @@ CIS/MENA users and streaks break around local midnight.
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
+from app.domain.clock import utcnow  # noqa: F401 - re-exported beside the local-day helpers
 from app.infrastructure.config import settings
 
 
@@ -28,11 +29,6 @@ def to_local_date(dt: datetime) -> date:
 
 def local_today() -> date:
     return datetime.now(app_tz()).date()
-
-
-def utcnow() -> datetime:
-    """Naive UTC "now" matching how timestamps are stored (replaces utcnow())."""
-    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 def local_midnight_after_now() -> datetime:

@@ -1,6 +1,6 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, LargeBinary, String
-from app.infrastructure.database import Base
-from app.infrastructure.time import utcnow
+from app.domain.models.base import Base
+from app.domain.clock import utcnow
 
 
 class StoredFile(Base):
