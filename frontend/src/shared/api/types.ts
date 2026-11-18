@@ -59,6 +59,8 @@ export type AnswerResult = {
   is_correct: boolean;
   marked_for_review: boolean;
   explanation?: string | null;
+  /** Reading: evidence arrives with the result; the test itself hides it until submitted. */
+  evidence?: EvidenceSpan[] | null;
 };
 
 export type BreakdownItem = {

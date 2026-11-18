@@ -57,7 +57,7 @@ export function ReadingReviewSplit({ result, groups, onRetake }: Props) {
     () => groups.find((g) => g.questions.some((q) => q.id === active?.id)) ?? groups[0],
     [groups, active]
   );
-  const activeSpans = active?.evidence ?? [];
+  const activeSpans = (active && (byId.get(active.id)?.evidence ?? active.evidence)) || [];
 
   const leftRef = useRef<HTMLDivElement>(null);
   const activeIndex = visible.findIndex((question) => question.id === active?.id);
@@ -182,7 +182,7 @@ function ReviewCard({
   const userAnswer = answer?.user_answer?.trim() ?? "";
   const answered = userAnswer !== "";
   const correct = !!answer?.is_correct;
-  const location = evidenceLocation(question.evidence);
+  const location = evidenceLocation(answer?.evidence ?? question.evidence);
 
   const StatusIcon = !answered ? CircleDashed : correct ? CheckCircle2 : XCircle;
   const statusColor = !answered
