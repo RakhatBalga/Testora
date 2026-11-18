@@ -117,8 +117,16 @@ def test_adapter_mock_and_unavailable_provider(monkeypatch):
 def test_cli_mock_run_end_to_end(tmp_path):
     ds, cache = tmp_path / "d.jsonl", tmp_path / "c.jsonl"
     write_essays(ds, make_essays(6, split="test"))
-    code = main(["--dataset", str(ds), "--split", "test", "--provider", "mock", "--cache", str(cache), "--runs", "2"])
-    assert code == 0
+    base = ["--dataset", str(ds), "--split", "test", "--provider", "mock", "--cache", str(cache), "--runs", "2"]
+    assert main(base) == 0
     records = load_cache(cache)
     assert len(records) == 12 and all(r["ok"] for r in records.values())
-    assert {r["model"] for r in records.values()} == {"rules-v1"}
+    # Recorded values are the mock grader's own, not free labels.
+    from app.infrastructure.ai.mock import MOCK_METHOD_VERSION, MOCK_MODEL
+
+    assert {r["model"] for r in records.values()} == {MOCK_MODEL}
+    assert {r["seed"] for r in records.values()} == {None}
+    assert all(r["prompt_version"].startswith(MOCK_METHOD_VERSION) for r in records.values())
+    for extra in (["--seed", "5"], ["--model", "gemini-2.5-flash"], ["--examiner-version", "v1"]):
+        with pytest.raises(SystemExit, match="cannot start the run"):
+            main([*base, *extra])

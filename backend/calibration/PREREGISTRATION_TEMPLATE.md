@@ -12,20 +12,31 @@ refuses to score `test` or `gold` without it and lists every deviation in the re
 
 ## Frozen items
 
-- Prompt version (sha256 of prompts.py + schemas.py, 12 chars): see block
+- Examiner prompt version (`v1` or `v2`) and its cache key
+  (`examiner-<v>+<prompt fingerprint>+src.<hash of prompts.py + schemas.py>`): see block
 - Model(s) and provider(s), including Qwen quantisation / server build: see block
-- Temperature, seed policy, runs per essay (primary prediction = run 0): ______
+- Seed: the effective value recorded by the collector (see block; `null` = none sent)
+- Temperature, runs per essay (primary prediction = run 0): ______
 - Datasets, licences, split fingerprints (from the split manifest): see block
 - Test set is touched once. No prompt, threshold or model change after seeing it.
 
 ## Hypotheses and thresholds (docs/09, E1)
 
 - Primary system: see block (`primary_system`)
-- QWK (overall, half-band bins) >= 0.60, and the lower 95% bootstrap bound reported
+- QWK (overall, half-band bins) >= 0.60, and its lower 95% bootstrap bound >= 0.60
+  (`qwk_ci_lower_min`)
+- QWK >= 0.50 on each of the four criteria
 - MAE <= 0.50; within +-0.5 band >= 70%
 - Coverage of the primary system >= 95% of the split (failures count against it)
-- Compared against: constant mean, constant mode, rule-based mock, Ridge, GBM
-- Human-human QWK/MAE on the gold set is the ceiling row
+- Run-to-run stability: mean within-essay SD of the overall band over >= 5 runs <= 0.25
+- Cap-case hit rate >= 90% of the essays labelled with `expected_caps`
+- Lower MAE and higher QWK than every baseline: constant mean, constant mode,
+  rule-based mock, Ridge, GBM
+- A check whose inputs are missing is reported as not evaluable; the result is then
+  incomplete, not passed
+- Rater 2 vs rater 1 QWK/MAE on the gold set is reported as the level of human
+  agreement. It is scored against the other rater, not against the final label, so it
+  is not like-for-like with the system rows
 
 ## Analysis plan
 

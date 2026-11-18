@@ -10,13 +10,18 @@ Schema `writing-essay.v1` (one JSON object per line, UTF-8 JSONL):
     criteria      optional {"task","coherence","lexical","grammar"} -> band
                   (task = Task Response for Task 2, Task Achievement for Task 1)
     rater_scores  optional list of {"rater_id", "overall", "criteria"?} - every
-                  human mark; used for the human-human ceiling row
+                  human mark; used for the rater-vs-rater agreement row
     raters        rater ids (derived from rater_scores when empty)
     source        where the essay came from (required, never "")
     licence       reuse terms ("unknown" is allowed but is reported)
     split         dev | train | test | gold
     label_kind    exact | range | adjudicated (range = only a window is known;
                   overall is the window midpoint, label_min/label_max the window)
+    expected_caps optional human label for cap cases: the examiner findings that
+                  must be reported for this essay (no_overview, no_key_comparisons,
+                  fabricated_data, off_topic, unclear_position, partial_answer).
+                  [] = labelled as a clean essay (no cap finding expected);
+                  absent/null = not labelled, excluded from the cap-case hit rate
     prompt_id     group key for prompt-grouped splitting (hash of normalised prompt)
     text_hash     sha256 of the normalised text (cache key / dedup key)
 
@@ -47,6 +52,17 @@ SCHEMA_VERSION = "writing-essay.v1"
 MANIFEST_VERSION = "writing-split-manifest.v1"
 CRITERIA = ("task", "coherence", "lexical", "grammar")
 SPLITS = ("dev", "train", "test", "gold")
+# Cap findings an essay can be labelled with: the examiner findings that trigger a
+# cap in app.domain.grading.normalize_writing (see ml.writing_stats.CAP_FINDINGS).
+EXPECTED_CAPS = (
+    "no_overview",
+    "no_key_comparisons",
+    "fabricated_data",
+    "off_topic",
+    "unclear_position",
+    "partial_answer",
+)
+_TASK_CAPS = {1: EXPECTED_CAPS[:3], 2: EXPECTED_CAPS[3:]}
 
 # Display names used by app.infrastructure.ai.schemas -> canonical keys.
 _CRITERION_ALIASES = (
@@ -125,6 +141,7 @@ class Essay(Record):
     label_kind: Literal["exact", "range", "adjudicated"] = "exact"
     label_min: float | None = Field(default=None, ge=0, le=9)
     label_max: float | None = Field(default=None, ge=0, le=9)
+    expected_caps: list[str] | None = None
     prompt_id: str = ""
     text_hash: str = ""
     notes: str | None = None
@@ -158,6 +175,11 @@ class Essay(Record):
             self.raters = [r.rater_id for r in self.rater_scores]
         if self.label_kind == "range" and (self.label_min is None or self.label_max is None):
             raise ValueError("range labels need label_min and label_max")
+        if self.expected_caps is not None:
+            unknown = sorted(set(self.expected_caps) - set(_TASK_CAPS[self.task_type]))
+            if unknown:
+                raise ValueError(f"expected_caps not valid for Task {self.task_type}: {unknown}")
+            self.expected_caps = sorted(set(self.expected_caps))
         return self
 
 
@@ -227,6 +249,7 @@ def load_calibration_bank(
                 source=row.get("source") or source,
                 licence=licence,
                 split="dev",
+                expected_caps=row.get("expected_caps"),
                 notes=row.get("notes"),
             )
         )
@@ -338,7 +361,8 @@ def load_gold(
     """Double-marked gold set.
 
     Input JSONL rows: id, task_type, prompt, text, ratings=[{rater_id, overall,
-    criteria?}, ...] (>= 2 raters), optional adjudicated={overall, criteria?}.
+    criteria?}, ...] (>= 2 raters), optional adjudicated={overall, criteria?},
+    optional expected_caps=[...] (cap-case label, see the module docstring).
     The label is the adjudicated mark when given, else the mean of the raters
     rounded to a half band. Disagreements > 1.0 band without adjudication are
     rejected: the owner must adjudicate them first (docs/09).
@@ -378,6 +402,7 @@ def load_gold(
                 licence=row.get("licence") or licence,
                 split="gold",
                 label_kind=kind,
+                expected_caps=row.get("expected_caps"),
                 notes=row.get("notes"),
             )
         )

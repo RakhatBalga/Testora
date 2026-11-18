@@ -136,3 +136,42 @@ def test_build_dataset_end_to_end_and_overwrite_protection(tmp_path):
     with pytest.raises(FileExistsError):
         build_dataset(bank=BANK, public=[], gold=None, out=out, manifest=manifest)
     write_essays(out, read_essays(out), overwrite=True)
+
+
+def test_expected_caps_label_is_optional_and_validated():
+
+    base = dict(id="x", task_type=2, prompt="p", text="some essay text", overall=6.0, source="s")
+    assert Essay(**base).expected_caps is None  # unlabelled by default: old files stay valid
+    assert Essay(**base, expected_caps=[]).expected_caps == []
+    assert Essay(**base, expected_caps=["unclear_position", "off_topic", "off_topic"]).expected_caps == [
+        "off_topic",
+        "unclear_position",
+    ]
+    with pytest.raises(ValueError):
+        Essay(**base, expected_caps=["made_up_cap"])
+    with pytest.raises(ValueError):  # Task 1 findings do not exist for a Task 2 essay
+        Essay(**base, expected_caps=["no_overview"])
+    assert Essay(**{**base, "task_type": 1}, expected_caps=["no_overview"]).expected_caps == ["no_overview"]
+    assert Essay.model_validate_json(Essay(**base, expected_caps=["off_topic"]).model_dump_json()).expected_caps == [
+        "off_topic"
+    ]
+
+
+def test_gold_loader_carries_expected_caps(tmp_path):
+    from ml.writing_data import load_gold
+
+    ratings = [{"rater_id": "T1", "overall": 4.0}, {"rater_id": "T2", "overall": 4.5}]
+    rows = [
+        {
+            "id": "g1",
+            "task_type": 2,
+            "prompt": "p",
+            "text": "essay one",
+            "ratings": ratings,
+            "expected_caps": ["off_topic"],
+        },
+        {"id": "g2", "task_type": 2, "prompt": "p", "text": "essay two", "ratings": ratings},
+    ]
+    path = tmp_path / "gold.jsonl"
+    path.write_text("\n".join(json.dumps(r) for r in rows))
+    assert [e.expected_caps for e in load_gold(path)] == [["off_topic"], None]

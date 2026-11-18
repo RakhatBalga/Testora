@@ -155,7 +155,8 @@ def test_primary_is_matched_by_stable_id_when_display_name_gains_a_suffix(tmp_pa
     assert first.name not in {s.name for s in systems}  # name became gem:m@v1
     report = ev.evaluate(essays, systems, n_boot=30)
     verdict = ev.threshold_verdict(prereg, report)
-    assert verdict["primary_id"] == first.id and verdict["qwk_point_ok"] and verdict["all_ok"]
+    assert verdict["primary_id"] == first.id and verdict["checks"]["qwk_point"]["status"] == "pass"
+    assert verdict["failed"] == []
     deviations = ev.check_protocol(prereg, report, "test")
     assert any("gem:m@v2" in d and "not pre-registered" in d for d in deviations)
 
@@ -206,7 +207,8 @@ def test_selective_failures_fail_the_coverage_threshold(tmp_path, test_set):
     block = next(b for b in report["systems"] if b["id"] == system.id)
     assert block["coverage"]["rate"] < 0.95 and block["own_overall"]["n"] == block["coverage"]["covered"]
     verdict = ev.threshold_verdict(_prereg(system), report)
-    assert verdict["coverage_ok"] is False and verdict["all_ok"] is False
+    assert verdict["checks"]["coverage"]["status"] == "fail" and "coverage" in verdict["failed"]
+    assert verdict["result"] == "fail" and verdict["all_ok"] is False
     assert verdict["coverage"]["expected"] == 30
 
 
@@ -281,3 +283,101 @@ def test_stability_aligns_runs_by_index_when_some_runs_fail(tmp_path):
     assert stability["n_essays"] == 0 and stability["n_incomplete"] == 6
     assert stability["mean_pairwise_qwk"] is not None  # pairs use essays that have both runs
     assert ws.stability({"a": {0: 6.0, 2: 6.5}, "b": {0: 6.0, 2: 6.0}, "c": {0: 7.0, 2: 7.0}})["n_essays"] == 3
+
+
+# --- 9. pre-registered verdict covers every docs/09 threshold ------------------------------------------
+
+
+def _verdict_report(tmp_path, *, runs=5, noise=(0,), with_caps=True, criteria=True, extra_baselines=True):
+    """A primary LLM system plus the baselines docs/09 lists, on synthetic essays."""
+    essays = make_essays(30, n_prompts=6, seed=11, split="test", prefix="t", with_criteria=True)
+    if with_caps:
+        essays = [e.model_copy(update={"expected_caps": ["off_topic"] if i < 5 else []}) for i, e in enumerate(essays)]
+    labels = {e.text: e.overall for e in essays}
+    capped = {e.text for e in essays[:5]}
+    calls = iter(range(10**6))
+
+    class Llm:
+        def grade(self, *, task_type, prompt, text, min_words):
+            band = min(9, max(0, labels[text] + noise[next(calls) % len(noise)]))
+            crit = {"Task Response": band, "Coherence & Cohesion": band, "Lexical Resource": band}
+            crit["Grammatical Range & Accuracy"] = band
+            fb = Feedback(band=band, criteria=crit if criteria else {}, summary="s")
+            fb.flags = {"off_topic": text in capped, "position_clear": True, "all_parts_addressed": True}
+            return fb
+
+    cache = tmp_path / "v.jsonl"
+    collect(essays, Llm(), provider="gem", model="m", prompt_version="v1", cache_path=cache, runs=runs)
+    if extra_baselines:
+        collect(
+            essays,
+            Grader(labels, lambda y, s: 6.0),
+            provider="mock",
+            model="rules",
+            prompt_version="r",
+            cache_path=cache,
+        )
+    systems = systems_of(cache, essays)
+    if extra_baselines:
+        trained = ev.System("ridge", "trained")
+        trained.pred["overall"] = {e.id: min(9, e.overall + 1.0) for e in essays}
+        systems.append(trained)
+    report = ev.evaluate(essays, systems, n_boot=100)
+    primary = next(s for s in systems if s.detail.get("provider") == "gem")
+    return ev.threshold_verdict({"primary_id": primary.id}, report), report
+
+
+def test_verdict_passes_only_when_every_promised_threshold_is_met(tmp_path):
+    verdict, _ = _verdict_report(tmp_path)
+    assert set(verdict["checks"]) == {
+        "coverage",
+        "qwk_point",
+        "qwk_ci_lower",
+        "mae",
+        "within_0_5",
+        "criterion_qwk",
+        "run_sd",
+        "cap_hit_rate",
+        "beats_baselines",
+    }
+    assert all(c["status"] == "pass" for c in verdict["checks"].values()), verdict["checks"]
+    assert verdict["result"] == "pass" and verdict["all_ok"] is True
+    assert verdict["thresholds"]["criterion_qwk_min"] == 0.5 and verdict["thresholds"]["run_sd_max"] == 0.25
+    assert verdict["thresholds"]["cap_hit_rate_min"] == 0.9
+
+
+def test_missing_inputs_are_not_evaluable_and_never_a_pass(tmp_path):
+    verdict, report = _verdict_report(tmp_path, runs=1, with_caps=False, criteria=False, extra_baselines=False)
+    checks = verdict["checks"]
+    for name in ("criterion_qwk", "run_sd", "cap_hit_rate", "beats_baselines"):
+        assert checks[name]["status"] == "not_evaluable" and checks[name]["reason"], name
+    assert "rules" in checks["beats_baselines"]["reason"] and "trained" in checks["beats_baselines"]["reason"]
+    assert verdict["result"] == "incomplete" and verdict["all_ok"] is False
+    md = ev.render_markdown(report, {"split": "test", "generated_at": "n", "dataset_sha256": "x", "verdict": verdict})
+    assert "| run_sd | NOT EVALUABLE |" in md and "Overall result: **INCOMPLETE**" in md
+    # Without a bootstrap there is no CI: the lower-bound check is open, not passed.
+    for b in report["systems"]:
+        b["targets"].get("overall", {}).pop("ci95", None)
+    no_ci = ev.threshold_verdict({"primary_id": verdict["primary_id"]}, report)
+    assert no_ci["checks"]["qwk_ci_lower"]["status"] == "not_evaluable"
+
+
+def test_ci_lower_bound_unstable_runs_and_lost_baselines_fail_the_verdict(tmp_path):
+    # Runs disagree by a full band: accurate on average per run, but not stable.
+    verdict, _ = _verdict_report(tmp_path, noise=(0, 1.0, -1.0, 0.5, -0.5, 1.0, -1.0))
+    assert verdict["checks"]["run_sd"]["status"] == "fail" and verdict["checks"]["run_sd"]["value"] > 0.25
+    assert verdict["all_ok"] is False
+    # The CI lower bound is part of the verdict.
+    _, report = _verdict_report(tmp_path / "b")
+    primary = verdict["primary_id"]
+    high_bar = ev.threshold_verdict({"primary_id": primary, "thresholds": {"qwk_ci_lower_min": 1.01}}, report)
+    assert high_bar["checks"]["qwk_point"]["status"] == "pass"
+    assert high_bar["checks"]["qwk_ci_lower"]["status"] == "fail" and high_bar["all_ok"] is False
+    # A baseline that is as good as the primary means the primary did not beat it.
+    for b in report["systems"]:
+        if b["name"] == "ridge":
+            b["targets"]["overall"]["mae"] = 0.0
+    lost = ev.threshold_verdict({"primary_id": primary}, report)
+    assert (
+        lost["checks"]["beats_baselines"]["status"] == "fail" and "ridge" in lost["checks"]["beats_baselines"]["reason"]
+    )

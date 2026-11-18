@@ -119,10 +119,16 @@ def reliability_bins(labels: list[int], probabilities: list[float], bins: int = 
     ]
 
 
+# Float slack for "within tolerance" checks, shared with ml.writing_stats: a
+# difference of 0.5 computed from continuous predictions can come out as
+# 0.5000000001 and must still count as within half a band.
+TOLERANCE_EPS = 1e-9
+
+
 def band_agreement(actual: list[float], predicted: list[float], tolerance: float = 0.5) -> float:
     pairs = _pairs(actual, predicted)
     if not math.isfinite(tolerance) or tolerance < 0:
         raise ValueError("Tolerance must be finite and nonnegative")
     if any(not 0 <= v <= 9 for pair in pairs for v in pair):
         raise ValueError("Expected bands in [0, 9]")
-    return sum(abs(a - p) <= tolerance for a, p in pairs) / len(pairs)
+    return sum(abs(a - p) <= tolerance + TOLERANCE_EPS for a, p in pairs) / len(pairs)
