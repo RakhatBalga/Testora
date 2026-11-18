@@ -21,7 +21,16 @@ import {
   ReadingTimer,
   ReadingReviewSplit,
 } from "@/features/reading-session";
-import { buildGroups, examStorageKey, flattenQuestions, isAnswered, type AnswerMap } from "@/entities/test";
+import {
+  buildGroups,
+  clearExamSubmissionKey,
+  consumeRetakeFlag,
+  examStorageKey,
+  examSubmissionKey,
+  flattenQuestions,
+  isAnswered,
+  type AnswerMap,
+} from "@/entities/test";
 
 type Tab = "passage" | "questions";
 
@@ -46,6 +55,8 @@ export default function ReadingPage() {
   // The clock may start only after we know this visit is a live attempt, not a
   // review of a finished one (?attempt=, or a stored result still loading).
   const [liveAttempt, setLiveAttempt] = useState(false);
+  // The clock ran out with nothing answered: no attempt is filed.
+  const [timeUp, setTimeUp] = useState(false);
 
   const passageScrollRef = useRef<HTMLDivElement>(null);
   const questionsScrollRef = useRef<HTMLDivElement>(null);
@@ -72,8 +83,11 @@ export default function ReadingPage() {
         answer: answers[q.id] ?? null,
       }));
       const elapsed = Math.max(0, test.duration_minutes * 60 - (remainingRef.current ?? test.duration_minutes * 60));
-      const res = await api.submit(test.id, payload, elapsed);
+      // One key per attempt: a retry after a timeout or reload returns the
+      // attempt the server already saved instead of creating a second one.
+      const res = await api.submit(test.id, payload, elapsed, examSubmissionKey(storeKey));
       localStorage.setItem(`${storeKey}-result`, String(res.id));
+      clearExamSubmissionKey(storeKey);
       localStorage.removeItem(`${storeKey}-answers`);
       localStorage.removeItem(`${storeKey}-updated`);
       clearTimerRef.current?.();
@@ -88,17 +102,25 @@ export default function ReadingPage() {
     }
   }, [test, flat, answers, storeKey]);
 
+  // Time is up: submit what was answered. With nothing answered there is no
+  // attempt worth saving, so show the time-up state and offer a restart.
+  const handleExpire = () => {
+    if (answeredCount === 0) setTimeUp(true);
+    else void handleSubmit();
+  };
+
   // The clock starts only once the real duration is known and no result is
   // being reviewed. A deadline that passed while away submits the saved
   // answers; with nothing saved it restarts instead of filing an empty attempt.
   const { remaining, paused, pause, resume, clear: clearTimer } = useExamTimer(
     storeKey,
     test && liveAttempt && !result ? test.duration_minutes * 60 : null,
-    handleSubmit,
+    handleExpire,
     {
       shouldSubmitStale: () => {
         try {
-          return Object.keys(JSON.parse(localStorage.getItem(`${storeKey}-answers`) ?? "{}")).length > 0;
+          const saved: AnswerMap = JSON.parse(localStorage.getItem(`${storeKey}-answers`) ?? "{}");
+          return Object.values(saved).some(isAnswered);
         } catch {
           return false;
         }
@@ -140,8 +162,12 @@ export default function ReadingPage() {
           return;
         }
         // "Retake" from a result page: forget the stored result and start fresh.
-        if (query.get("retake") === "1") localStorage.removeItem(`${storeKey}-result`);
-        const savedResult = requestedResult || localStorage.getItem(`${storeKey}-result`);
+        // The flag is dropped from the URL, so a later reload keeps the new result.
+        if (consumeRetakeFlag()) {
+          localStorage.removeItem(`${storeKey}-result`);
+          clearExamSubmissionKey(storeKey);
+        }
+        const savedResult = localStorage.getItem(`${storeKey}-result`);
         if (savedResult) {
           try {
             const attempt = await api.getAttempt(Number(savedResult));
@@ -149,10 +175,10 @@ export default function ReadingPage() {
               setResult(attempt);
             }
           } catch {
-            if (!requestedResult) localStorage.removeItem(`${storeKey}-result`);
+            localStorage.removeItem(`${storeKey}-result`);
           }
         }
-        if (!cancelled && !requestedResult) setLiveAttempt(true);
+        if (!cancelled) setLiveAttempt(true);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load test");
       } finally {
@@ -200,6 +226,7 @@ export default function ReadingPage() {
     localStorage.removeItem(`${storeKey}-result`);
     localStorage.removeItem(`${storeKey}-answers`);
     localStorage.removeItem(`${storeKey}-updated`);
+    clearExamSubmissionKey(storeKey);
     clearTimer();
     setResult(null);
     setAnswers({});
@@ -230,6 +257,20 @@ export default function ReadingPage() {
   // ---- Review mode (split-screen with passage evidence highlighting) ----
   if (result) {
     return <ReadingReviewSplit result={result} groups={groups} onRetake={retake} />;
+  }
+
+  if (timeUp) {
+    return (
+      <Card className="p-8 text-center">
+        <h1 className="text-xl font-bold text-slate-900">Time is up</h1>
+        <p className="mt-2 text-sm text-slate-500">
+          No answers were entered, so nothing was submitted and this attempt is not in your history.
+        </p>
+        <Button className="mt-5" onClick={retake}>
+          Restart test
+        </Button>
+      </Card>
+    );
   }
 
   // ---- Exam mode: full-bleed 95vw breakout, bounded to the viewport so only

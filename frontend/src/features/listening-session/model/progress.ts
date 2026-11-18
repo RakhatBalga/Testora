@@ -30,6 +30,23 @@ export function restoreProgress(key: string, saved: ListeningProgress | null): L
   return saved?.status === "in_progress" ? saved : null;
 }
 
+/**
+ * Saved progress for every test in the library. Each test is looked up on its
+ * own, and a failed lookup only costs that card its server copy: it falls back
+ * to the local draft (or "not started") instead of failing the whole page.
+ */
+export async function loadLibraryProgress(
+  tests: { id: number; content_version: string }[],
+  fetchSaved: (id: number, contentVersion: string) => Promise<ListeningProgress | null>,
+): Promise<Record<number, ListeningProgress | null>> {
+  const settled = await Promise.allSettled(tests.map((test) => fetchSaved(test.id, test.content_version)));
+  return Object.fromEntries(tests.map((test, index) => {
+    const result = settled[index];
+    return [test.id, restoreProgress(listeningSessionKey(test.id, test.content_version),
+      result.status === "fulfilled" ? result.value : null)];
+  }));
+}
+
 /** Keep a local recovery copy immediately; serialize network writes so older
  * snapshots cannot finish after newer ones or after submission. */
 export function createProgressWriter(

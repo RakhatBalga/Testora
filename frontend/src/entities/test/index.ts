@@ -19,7 +19,12 @@ export {
   type TestStatus,
 } from "./model/library";
 export { examHref } from "./model/routes";
-export { examStorageKey } from "./model/storage";
+export {
+  clearExamSubmissionKey,
+  consumeRetakeFlag,
+  examStorageKey,
+  examSubmissionKey,
+} from "./model/storage";
 export { ContinueCard } from "./ui/ContinueCard";
 export { RecentActivity } from "./ui/RecentActivity";
 export { TestCard } from "./ui/TestCard";

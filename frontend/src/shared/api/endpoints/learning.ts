@@ -1,22 +1,8 @@
 import { request, queryString } from "../http";
-import type { DiagnosticState, LearningDashboard, NotebookPage, StudyPlan, StudyPlanItem } from "../types";
+import type { LearningDashboard, NotebookPage, StudyPlan, StudyPlanItem } from "../types";
 
 export const learningApi = {
   getLearningDashboard: () => request<LearningDashboard>("/learning/dashboard"),
-
-  getDiagnostic: () => request<DiagnosticState>("/learning/diagnostic"),
-
-  startDiagnostic: (skills: ("writing" | "reading")[]) =>
-    request<DiagnosticState>("/learning/diagnostic/start", {
-      method: "POST",
-      body: JSON.stringify({ skills }),
-    }),
-
-  refreshDiagnostic: () => request<DiagnosticState>("/learning/diagnostic/refresh", { method: "POST" }),
-
-  acceptDiagnosticLevel: () => request<DiagnosticState>("/learning/diagnostic/accept-level", { method: "POST" }),
-
-  skipDiagnostic: () => request<DiagnosticState>("/learning/diagnostic/skip", { method: "POST" }),
 
   getStudyPlan: () => request<StudyPlan>("/learning/study-plan"),
 

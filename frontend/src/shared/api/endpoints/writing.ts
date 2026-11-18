@@ -14,10 +14,12 @@ export const writingApi = {
 
   getWritingQuota: () => request<FreeQuota>("/writing/quota"),
 
-  submitWriting: (task_id: number, text: string) =>
+  /** `submission_key` makes a repeated submit return the first submission. A
+   *  server that predates the field ignores it, so callers keep a fallback. */
+  submitWriting: (task_id: number, text: string, submission_key?: string) =>
     request<WritingSubmission>("/writing/submit", {
       method: "POST",
-      body: JSON.stringify({ task_id, text }),
+      body: JSON.stringify({ task_id, text, submission_key }),
     }, { timeoutMs: WRITING_GRADING_TIMEOUT_MS }),
 
   listWritingSubmissions: () =>

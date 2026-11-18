@@ -11,7 +11,14 @@ import { historyApi } from "./endpoints/history";
 export { mediaUrl } from "./config";
 export { ApiError, NetworkError, isNetworkError } from "./errors";
 export { fetchAuthenticatedMedia, warmUpServer } from "./http";
-export { getStoredAuthToken, getStoredUsername, storeAuth, clearStoredAuth } from "./token";
+export {
+  SESSION_HINT_CLASS,
+  SESSION_HINT_SCRIPT,
+  getStoredAuthToken,
+  getStoredUsername,
+  storeAuth,
+  clearStoredAuth,
+} from "./token";
 export * from "./types";
 
 export const api = {

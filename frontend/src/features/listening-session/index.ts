@@ -6,6 +6,7 @@ export { SubmitConfirm } from "./ui/SubmitConfirm";
 export {
   createProgressWriter,
   listeningSessionKey,
+  loadLibraryProgress,
   readDraft,
   restoreProgress,
   type ProgressInput,

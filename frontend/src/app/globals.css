@@ -355,3 +355,9 @@ body {
 ::highlight(hl-text-blue) {
   color: #1d4ed8;
 }
+
+/* A signed-in tab is marked before first paint (see SESSION_HINT_SCRIPT), so
+   the prerendered public landing on `/` does not flash before the dashboard. */
+html.has-session [data-public-landing] {
+  display: none;
+}

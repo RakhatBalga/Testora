@@ -9,11 +9,12 @@ export const testsApi = {
   submit: (
     test_id: number,
     answers: { question_id: number; answer: AnswerValue; marked_for_review?: boolean }[],
-    duration_seconds?: number
+    duration_seconds?: number,
+    submission_key?: string
   ) =>
     request<AttemptResult>("/results/submit", {
       method: "POST",
-      body: JSON.stringify({ test_id, answers, duration_seconds }),
+      body: JSON.stringify({ test_id, answers, duration_seconds, submission_key }),
     }),
 
   listAttempts: () => request<AttemptSummary[]>("/results"),

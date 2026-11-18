@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { UserCheck, X, KeyRound, ArrowRight } from "lucide-react";
+import { UserCheck, X, ArrowRight } from "lucide-react";
 import { routes } from "@/shared/config";
 
 export default function AccountExistsModal({
@@ -45,7 +45,7 @@ export default function AccountExistsModal({
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
           We found an account associated with this username. Sign in to continue your IELTS
-          preparation, or reset your password if you&apos;ve forgotten it.
+          preparation, or choose a different username to create a new account.
         </p>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -59,17 +59,11 @@ export default function AccountExistsModal({
           </button>
           <button
             type="button"
-            onClick={() => router.push(routes.login())}
+            onClick={onClose}
             className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-[var(--border)] text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-slate-50"
           >
-            <KeyRound className="h-4 w-4" />
-            Reset Password
+            Use another username
           </button>
-        </div>
-
-        <div className="mt-5 rounded-2xl bg-slate-50 px-4 py-3 text-center">
-          <p className="text-sm font-medium text-[var(--text-primary)]">Forgot your password?</p>
-          <p className="text-xs text-[var(--text-secondary)]">Reset it in less than a minute.</p>
         </div>
       </div>
     </div>
