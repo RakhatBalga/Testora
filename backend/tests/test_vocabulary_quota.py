@@ -28,13 +28,15 @@ def db(monkeypatch):
     engine.dispose()
 
 
-def test_cached_enrichment_is_free_but_force_uses_daily_budget(db):
+def test_cached_enrichment_is_free_but_a_new_word_uses_daily_budget(db):
     user = db.get(User, 1)
+    db.add(SavedWord(id=2, user_id=1, word="beta"))
+    db.commit()
     first = vocabulary.enrich_word(db, user=user, word_id=1)
     assert first.enrichment
     assert vocabulary.enrich_word(db, user=user, word_id=1).enrichment == first.enrichment
     with pytest.raises(HTTPException) as error:
-        vocabulary.enrich_word(db, user=user, word_id=1, force=True)
+        vocabulary.enrich_word(db, user=user, word_id=2)
     assert error.value.status_code == 429
     assert db.query(AIQuotaBucket).one().used == 1
 

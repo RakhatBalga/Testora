@@ -21,6 +21,18 @@ _DUPLICATE_WINDOW = timedelta(seconds=90)
 _save_lock = threading.Lock()
 
 
+def review_evidence(question: Question, test_type: str) -> list[dict] | None:
+    """Passage spans that support the answer; only ever sent with a result."""
+    if test_type != "reading":
+        return None
+    spans = [
+        {"paragraph": span["paragraph"], "text": span["text"]}
+        for span in (question.evidence or [])
+        if isinstance(span, dict) and isinstance(span.get("paragraph"), int) and isinstance(span.get("text"), str)
+    ]
+    return spans or None
+
+
 def accuracy(correct: int, total: int) -> int:
     return round(correct / total * 100) if total else 0
 
@@ -149,8 +161,10 @@ def submit_reading(db: Session, user: User, payload) -> dict:
     )
     if not created:
         return attempt_result(attempt)
+    by_id = {question.id: question for question in questions}
     for item in graded:
         item["marked_for_review"] = bool(review_map.get(item["question_id"], False))
+        item["evidence"] = review_evidence(by_id[item["question_id"]], test.test_type)
     return {**_attempt_header(attempt), "answers": graded}
 
 
@@ -173,6 +187,7 @@ def _attempt_header(attempt: Attempt) -> dict:
 
 
 def attempt_result(attempt: Attempt) -> dict:
+    test_type = attempt.test.test_type
     answers = [
         {
             "question_id": record.question_id,
@@ -183,6 +198,7 @@ def attempt_result(attempt: Attempt) -> dict:
             "is_correct": record.is_correct,
             "marked_for_review": bool(record.marked_for_review),
             "explanation": record.question.explanation,
+            "evidence": review_evidence(record.question, test_type),
         }
         for record in attempt.answers
     ]

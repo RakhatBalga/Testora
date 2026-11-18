@@ -144,7 +144,21 @@ class RateLimiter:
             self._hits[key] = recent
 
     async def __call__(self, request: Request) -> None:
-        self.check(f"{self._client_ip(request)}:{request.url.path}")
+        resolved = self._client_ip(request)
+        try:
+            self.check(f"{resolved}:{request.url.path}")
+        except HTTPException:
+            # Shows which address the bucket is keyed on. If `peer` is a proxy and
+            # `bucket_ip` equals it, every client behind that proxy shares one
+            # bucket: add the peer's range to TRUSTED_PROXY_CIDRS.
+            logger.info(
+                "Rate limited %s: bucket_ip=%s peer=%s X-Forwarded-For=%r",
+                request.url.path,
+                resolved,
+                request.client.host if request.client else "unknown",
+                request.headers.get("x-forwarded-for"),
+            )
+            raise
 
 
 # 10 auth attempts per IP per minute is generous for humans, painful for bots.

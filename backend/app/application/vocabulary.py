@@ -11,6 +11,7 @@ on-demand, date-keyed generation, mirroring the weekly study plan.
 from datetime import date
 from fastapi import HTTPException
 
+from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -122,18 +123,18 @@ def set_training(db: Session, *, user_id: int, word_id: int, training: bool) -> 
     return row
 
 
-def enrich_word(db: Session, *, user: User, word_id: int, force: bool = False) -> SavedWord | None:
+def enrich_word(db: Session, *, user: User, word_id: int) -> SavedWord | None:
     """Fill in meaning/synonyms/alternatives/translation via the AI coach, cached
     on the row. Returns the (possibly unchanged) word, or None if not found."""
     row = db.query(SavedWord).filter(SavedWord.id == word_id, SavedWord.user_id == user.id).first()
     if not row:
         return None
-    if row.enrichment and not force:
+    if row.enrichment:
         return row
 
     with grading_admission(), reserve_ai_call(db, user, "vocabulary", resource=f"word:{row.id}") as reservation:
         db.refresh(row)
-        if row.enrichment and not force:
+        if row.enrichment:
             return row
         coach = get_vocabulary_coach()
         info = run_graded(
@@ -151,6 +152,14 @@ def enrich_word(db: Session, *, user: User, word_id: int, force: bool = False) -
         return row
 
 
+def _quiz_words(db: Session, user_id: int) -> list[SavedWord]:
+    """Most recent training words; without any, the most recent saves."""
+    recent = db.query(SavedWord).filter(SavedWord.user_id == user_id).order_by(SavedWord.created_at.desc())
+    # Nothing explicitly marked for training: fall back to recent saves so the
+    # user still gets practice.
+    return recent.filter(SavedWord.training.is_(True)).limit(QUIZ_WORD_POOL).all() or recent.limit(QUIZ_WORD_POOL).all()
+
+
 def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWordQuiz:
     """Return today's quiz, generating and caching it on first open of the day."""
     existing = (
@@ -158,6 +167,11 @@ def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWordQuiz
     )
     if existing:
         return existing
+    if not _quiz_words(db, user.id):
+        # Nothing saved yet: an empty quiz for the page's empty state, without
+        # an AI call or a daily attempt. Not stored, so saving a word later
+        # today still generates a real quiz.
+        return DailyWordQuiz(user_id=user.id, quiz_date=quiz_date, payload={"questions": []}, completed=False, total=0)
 
     with (
         grading_admission(),
@@ -173,24 +187,7 @@ def get_daily_quiz(db: Session, *, user: User, quiz_date: date) -> DailyWordQuiz
         )
         if existing:
             return existing
-        words = (
-            db.query(SavedWord)
-            .filter(SavedWord.user_id == user.id, SavedWord.training.is_(True))
-            .order_by(SavedWord.created_at.desc())
-            .limit(QUIZ_WORD_POOL)
-            .all()
-        )
-        if not words:
-            # Nothing explicitly marked for training — fall back to recent saves so the
-            # user still gets practice.
-            words = (
-                db.query(SavedWord)
-                .filter(SavedWord.user_id == user.id)
-                .order_by(SavedWord.created_at.desc())
-                .limit(QUIZ_WORD_POOL)
-                .all()
-            )
-
+        words = _quiz_words(db, user.id)
         payload_words = [{"word": w.word, "context": w.context, **(w.enrichment or {})} for w in words]
         quiz = run_graded(
             get_vocabulary_coach().generate_quiz,
@@ -243,6 +240,23 @@ def grade_daily_quiz(db: Session, *, user_id: int, quiz_date: date, answers: lis
         return None
 
     questions = (row.payload or {}).get("questions", [])
+    answers = list(answers)[: len(questions)]
+    # Grade once: only the request that flips `completed` may move word mastery.
+    # A repeat (double click, retry after a timeout) gets the first result back.
+    first = (
+        db.execute(
+            update(DailyWordQuiz)
+            .where(DailyWordQuiz.id == row.id, DailyWordQuiz.completed.is_(False))
+            .values(completed=True)
+            .execution_options(synchronize_session=False)
+        ).rowcount
+        == 1
+    )
+    if not first:
+        db.rollback()
+        db.refresh(row)
+        # Quizzes graded before answers were stored fall back to this request's.
+        answers = (row.payload or {}).get("answers", answers)
     results = []
     correct = 0
     for i, q in enumerate(questions):
@@ -261,6 +275,8 @@ def grade_daily_quiz(db: Session, *, user_id: int, quiz_date: date, answers: lis
                 "explanation": q.get("explanation", ""),
             }
         )
+        if not first:
+            continue
         word_row = db.query(SavedWord).filter(SavedWord.user_id == user_id, SavedWord.word == q.get("word")).first()
         if word_row:
             if is_correct:
@@ -268,8 +284,10 @@ def grade_daily_quiz(db: Session, *, user_id: int, quiz_date: date, answers: lis
             elif word_row.status != "new":
                 word_row.status = "learning"
 
-    row.completed = True
-    row.score = correct
-    row.total = len(questions)
-    db.commit()
+    if first:
+        row.completed = True
+        row.score = correct
+        row.total = len(questions)
+        row.payload = {**(row.payload or {}), "answers": answers}  # reassigned: JSON columns do not track mutation
+        db.commit()
     return {"score": correct, "total": len(questions), "results": results}

@@ -5,6 +5,7 @@ import secrets
 import bcrypt
 import httpx
 from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.application.oauth import consume_flow, start_flow
@@ -14,6 +15,8 @@ from app.infrastructure.security import create_access_token
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
+# Username collisions lost to a parallel sign-up before giving up.
+_CREATE_ATTEMPTS = 5
 
 
 def _require_configured() -> None:
@@ -87,24 +90,38 @@ def sign_in(db: Session, payload) -> dict:
         # Prefer the nickname chosen in the register flow; fall back to the
         # email prefix. Either way, de-collide with a numeric suffix.
         base_username = (payload.username or email.split("@")[0]).strip()
+        dummy_password = bcrypt.hashpw(secrets.token_bytes(32), bcrypt.gensalt()).decode("utf-8")
+        target_band = payload.target_band or 7.5
         username = base_username
         counter = 1
-        while db.query(User).filter(User.username == username).first():
-            username = f"{base_username}{counter}"
-            counter += 1
-
-        dummy_password = bcrypt.hashpw(secrets.token_bytes(32), bcrypt.gensalt()).decode("utf-8")
-        user = User(
-            username=username,
-            password=dummy_password,
-            email=email,
-            google_id=google_id,
-            target_band=payload.target_band or 7.5,
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-        is_new_user = True
+        for _ in range(_CREATE_ATTEMPTS):
+            while db.query(User).filter(User.username == username).first():
+                username = f"{base_username}{counter}"
+                counter += 1
+            user = User(
+                username=username,
+                password=dummy_password,
+                email=email,
+                google_id=google_id,
+                target_band=target_band,
+            )
+            db.add(user)
+            try:
+                db.commit()
+            except IntegrityError:
+                # Lost a race: either this Google account was just created by a
+                # parallel callback (use it), or the username was taken between
+                # the check and the insert (the loop picks the next suffix).
+                db.rollback()
+                user = db.query(User).filter((User.google_id == google_id) | (User.email == email)).first()
+                if user:
+                    break
+                continue
+            db.refresh(user)
+            is_new_user = True
+            break
+        if not user:
+            raise HTTPException(status_code=503, detail="Could not create the account. Please try again.")
 
     return {
         "access_token": create_access_token(user.id, user.token_version or 0),
