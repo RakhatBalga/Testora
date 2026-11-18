@@ -42,11 +42,37 @@ afterEach(() => {
   window.history.replaceState(null, "", "/");
 });
 
+it("submits the answers and shows the review", async () => {
+  vi.mocked(api.submit).mockResolvedValue(attempt(70));
+  render(<ReadingPage />);
+  fireEvent.click(await screen.findByRole("button", { name: "Answer question" }));
+  expect(JSON.parse(localStorage.getItem("reading-ann-4-answers") ?? "{}")).toEqual({ "1": "TRUE" });
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^Submit$/ })); });
+  expect(window.confirm).toHaveBeenCalledWith("Submit this Reading test?");
+  expect(api.submit).toHaveBeenCalledWith(4, [{ question_id: 1, answer: "TRUE" }], expect.any(Number), expect.any(String));
+  expect(screen.getByText("Review of attempt 70")).toBeInTheDocument();
+  expect(localStorage.getItem("reading-ann-4-result")).toBe("70");
+  expect(localStorage.getItem("reading-ann-4-answers")).toBeNull();
+});
+
+it("does not submit when the confirmation is declined", async () => {
+  vi.mocked(window.confirm).mockReturnValue(false);
+  render(<ReadingPage />);
+  await screen.findByRole("button", { name: "Answer question" });
+  fireEvent.click(screen.getByRole("button", { name: /^Submit$/ }));
+  expect(window.confirm).toHaveBeenCalledWith("Submit this Reading test? 1 question is unanswered.");
+  expect(api.submit).not.toHaveBeenCalled();
+});
+
 it("retries a failed submit with the same key, also after a reload", async () => {
   vi.mocked(api.submit).mockRejectedValue(new NetworkError("timeout"));
   const view = render(<ReadingPage />);
   fireEvent.click(await screen.findByRole("button", { name: "Answer question" }));
   await act(async () => { fireEvent.click(screen.getByRole("button", { name: /^Submit$/ })); });
+  // The exam stays on screen with the answers kept and a way to retry.
+  expect(screen.getByRole("alert")).toHaveTextContent(/Your answers are saved on this device/);
+  expect(screen.getByRole("button", { name: "Answer question" })).toBeInTheDocument();
+  expect(JSON.parse(localStorage.getItem("reading-ann-4-answers") ?? "{}")).toEqual({ "1": "TRUE" });
   await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Retry submit" })); });
   view.unmount();
 
