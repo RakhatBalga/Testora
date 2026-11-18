@@ -10,13 +10,23 @@ import math
 import random
 from collections import Counter
 
-from ml.metrics import half_band, mae, qwk
+from ml.metrics import TOLERANCE_EPS, half_band, mae, qwk
 
-TOLERANCE_EPS = 1e-9
 POINT_METRICS = ("qwk", "mae", "rmse", "bias", "exact", "within_0_5", "within_1_0", "pearson", "spearman")
 _CI_FAST = ("qwk", "mae")
 FLAG_REQUIRED_TRUE = ("overview_present", "key_comparisons_present", "all_parts_addressed", "position_clear")
 FLAG_FAILURE_TRUE = ("off_topic", "data_accuracy_issue", "fabricated_data")
+# Examiner finding -> (flag, value that triggers the cap), as applied by
+# app.domain.grading.normalize_writing. The under-length cap is not listed: it is
+# computed from the word count in code, not reported by the model.
+CAP_FINDINGS = {
+    "no_overview": ("overview_present", False),
+    "no_key_comparisons": ("key_comparisons_present", False),
+    "fabricated_data": ("fabricated_data", True),
+    "off_topic": ("off_topic", True),
+    "unclear_position": ("position_clear", False),
+    "partial_answer": ("all_parts_addressed", False),
+}
 
 
 def _clip(values):
@@ -254,8 +264,53 @@ def stability(runs_by_essay: dict[str, dict[int, float] | list[float]]) -> dict 
     }
 
 
+def cap_findings(flags: dict | None) -> set[str] | None:
+    """Cap findings the examiner reported; None when flags are unavailable."""
+    if not flags:
+        return None
+    return {cap for cap, (flag, value) in CAP_FINDINGS.items() if flags.get(flag) is value}
+
+
+def cap_case_stats(expected_by_essay: dict[str, list[str] | None], flags_by_essay: dict[str, dict | None]) -> dict:
+    """Cap-case hit rate against human labels.
+
+    `expected_by_essay`: essay id -> expected cap findings (None = unlabelled,
+    [] = labelled "no cap should fire"). A cap case is a HIT when every expected
+    finding was reported. `hit_rate` is None (not evaluable) when no essay with
+    reported flags carries a non-empty label; it is never inferred from the flags
+    alone. `false_fire_rate` is the share of labelled clean essays on which any
+    cap finding was reported.
+    """
+    n_expected = hits = n_clean = false_fires = no_flags = 0
+    for essay_id, expected in expected_by_essay.items():
+        if expected is None:
+            continue
+        found = cap_findings(flags_by_essay.get(essay_id))
+        if found is None:
+            no_flags += 1
+        elif expected:
+            n_expected += 1
+            hits += set(expected) <= found
+        else:
+            n_clean += 1
+            false_fires += bool(found)
+    return {
+        "n_cap_cases": n_expected,
+        "hits": hits,
+        "hit_rate": hits / n_expected if n_expected else None,
+        "n_clean_cases": n_clean,
+        "false_fires": false_fires,
+        "false_fire_rate": false_fires / n_clean if n_clean else None,
+        "n_labelled_without_flags": no_flags,
+    }
+
+
 def cap_hit(flags: dict | None) -> bool | None:
-    """True if an examiner cap flag fired; None when flags are unavailable."""
+    """True if any examiner cap flag fired; None when flags are unavailable.
+
+    This only says that a flag fired. Without a human label it is not a hit or
+    a miss; see `cap_case_stats` for the labelled hit rate.
+    """
     if not flags:
         return None
     return any(flags.get(f) is False for f in FLAG_REQUIRED_TRUE) or any(

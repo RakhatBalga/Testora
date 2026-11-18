@@ -124,9 +124,14 @@ def test_human_human_ceiling_row():
             )
         )
     report = ev.evaluate(gold, [], n_boot=50)
-    ceiling = block(report, "human vs human (ceiling)")
+    ceiling = block(report, ev.HUMAN_ROW)
     assert ceiling["kind"] == "human" and ceiling["targets"]["overall"]["n"] == 6
     assert ceiling["targets"]["overall"]["qwk"] > 0.7
+    # The row is rater-vs-rater, not rater-vs-final-label: the report must say so.
+    assert "rater 2 vs rater 1" in ceiling["name"] and "ceiling" not in ceiling["name"]
+    assert ceiling["detail"]["comparable_to_system_rows"] is False
+    md = ev.render_markdown(report, {"split": "gold", "generated_at": "now", "dataset_sha256": "x"})
+    assert ev.HUMAN_ROW_NOTE in md and "not like-for-like" in md
 
 
 def test_cap_hit_rate_uses_flags_when_present(tmp_path):
@@ -142,7 +147,38 @@ def test_cap_hit_rate_uses_flags_when_present(tmp_path):
         prompt_version="v",
     )
     report = ev.evaluate(test, ev.systems_from_cache(load_cache(cache), test), n_boot=0)
-    assert block(report, "capped:m")["cap_hit_rate"] == 1.0
+    capped = block(report, "capped:m")
+    assert capped["cap_flag_rate"] == 1.0  # flags fired on every essay ...
+    assert capped["cap_hit_rate"] is None  # ... but without labels that is not a hit rate
+    md = ev.render_markdown(report, {"split": "dev", "generated_at": "now", "dataset_sha256": "x"})
+    assert "| not evaluable | 1.00 |" in md
+
+
+def test_cap_hit_rate_is_scored_against_expected_cap_labels(tmp_path):
+    test = make_essays(10, split="test")
+    # 4 off-topic cap cases, 4 labelled clean essays, 2 unlabelled.
+    expected = [["off_topic"]] * 4 + [[]] * 4 + [None] * 2
+    test = [e.model_copy(update={"expected_caps": x}) for e, x in zip(test, expected)]
+    fires_on = {e.text for e in test[:3]} | {test[4].text}  # 3 of 4 cap cases found, 1 false fire
+
+    class G:
+        def grade(self, *, task_type, prompt, text, min_words):
+            fb = Feedback(band=6.0, criteria={}, summary="s")
+            fb.flags = {"off_topic": text in fires_on, "position_clear": True, "all_parts_addressed": True}
+            return fb
+
+    cache = tmp_path / "c.jsonl"
+    collect(test, G(), cache_path=cache, provider="llm", model="m", prompt_version="v")
+    report = ev.evaluate(test, ev.systems_from_cache(load_cache(cache), test), n_boot=0)
+    stats = block(report, "llm:m")["cap_cases"]
+    assert (stats["n_cap_cases"], stats["hits"], stats["hit_rate"]) == (4, 3, 0.75)
+    assert (stats["n_clean_cases"], stats["false_fires"], stats["false_fire_rate"]) == (4, 1, 0.25)
+    assert block(report, "constant mean")["cap_hit_rate"] is None  # a system without flags is not scored
+    md = ev.render_markdown(report, {"split": "dev", "generated_at": "now", "dataset_sha256": "x"})
+    assert "| 0.75 (3/4) |" in md
+    verdict = ev.threshold_verdict({"primary_id": "llm:m"}, report)
+    assert verdict["checks"]["cap_hit_rate"]["status"] == "fail"
+    assert verdict["checks"]["cap_hit_rate"]["value"] == 0.75
 
 
 def test_cli_protects_test_split_and_checks_prereg(tmp_path, setup):
@@ -176,8 +212,13 @@ def test_cli_protects_test_split_and_checks_prereg(tmp_path, setup):
     assert ev.main([*base, "--prereg", str(prereg), "--out", str(out)]) == 0
     report = json.loads((tmp_path / "rep.json").read_text())
     assert report["meta"]["prereg_sha256"] and report["meta"]["protocol_deviations"] == []
-    assert report["meta"]["verdict"]["qwk_point_ok"] is True
-    assert (tmp_path / "rep.md").read_text().startswith("# E1")
+    verdict = report["meta"]["verdict"]
+    assert verdict["checks"]["qwk_point"]["status"] == "pass"
+    # No mock/trained baseline, 3 runs and no cap labels: open checks keep the result incomplete.
+    assert verdict["result"] == "incomplete" and verdict["all_ok"] is False
+    assert {"run_sd", "cap_hit_rate", "beats_baselines"} <= set(verdict["not_evaluable"])
+    text = (tmp_path / "rep.md").read_text()
+    assert text.startswith("# E1") and "Overall result: **INCOMPLETE**" in text and "NOT EVALUABLE" in text
     # A system outside the frozen protocol is reported as a deviation.
     ev.main([*base[:-3], "--only", "good", "flat", "flaky", "--prereg", str(prereg), "--out", str(tmp_path / "rep2")])
     dev = json.loads((tmp_path / "rep2.json").read_text())["meta"]["protocol_deviations"]
@@ -221,6 +262,6 @@ def test_cli_run_mock_and_trained_bundle_leak_guard(tmp_path):
         == 0
     )
     names = [b["name"] for b in json.loads((tmp_path / "rep.json").read_text())["systems"]]
-    assert {"constant mean", "constant mode", "ridge", "gbm", "mock:rules-v1"} <= set(names)
+    assert {"constant mean", "constant mode", "ridge", "gbm", "mock:rule-based"} <= set(names)
     with pytest.raises(ValueError, match="trained on"):
         ev.main(["--dataset", str(ds), "--split", "train", "--model-bundle", str(bundle), "--n-boot", "10"])

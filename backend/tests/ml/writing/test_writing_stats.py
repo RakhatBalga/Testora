@@ -91,3 +91,29 @@ def test_cap_hit_requires_flags():
     assert ws.cap_hit({"off_topic": False, "position_clear": True}) is False
     assert ws.cap_hit({"off_topic": True}) is True
     assert ws.cap_hit({"overview_present": False}) is True
+
+
+def test_cap_case_stats_need_labels_and_score_every_expected_finding():
+    flags = {
+        "a": {"off_topic": True, "position_clear": False},
+        "b": {"off_topic": True, "position_clear": True},
+        "c": {"off_topic": False, "position_clear": True},
+        "d": {"overview_present": False},
+        "e": None,
+    }
+    assert ws.cap_findings(flags["a"]) == {"off_topic", "unclear_position"}
+    assert ws.cap_findings(flags["d"]) == {"no_overview"} and ws.cap_findings(None) is None
+    # data_accuracy_issue is a diagnostic flag only: no cap is attached to it in the app.
+    assert ws.cap_findings({"data_accuracy_issue": True}) == set()
+    unlabelled = ws.cap_case_stats({k: None for k in flags}, flags)
+    assert unlabelled["hit_rate"] is None and unlabelled["n_cap_cases"] == 0  # not evaluable, not 0 or 1
+    labels = {
+        "a": ["off_topic", "unclear_position"],
+        "b": ["off_topic", "unclear_position"],
+        "c": [],
+        "e": ["off_topic"],
+    }
+    stats = ws.cap_case_stats(labels, flags)
+    assert (stats["n_cap_cases"], stats["hits"], stats["hit_rate"]) == (2, 1, 0.5)  # b reported only one of two
+    assert (stats["n_clean_cases"], stats["false_fire_rate"]) == (1, 0.0)
+    assert stats["n_labelled_without_flags"] == 1

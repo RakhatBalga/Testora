@@ -12,6 +12,8 @@ ceiling when the split has double-marked essays. Predictions of the first run
 (run 0) are the primary result; further runs feed the stability section.
 Failures are never dropped silently: coverage is a column, and metrics use the
 essays covered by every system (n_common) so rows are directly comparable.
+The human row is the exception: it scores one rater against the other, while
+systems are scored against the final label, and it is labelled as such.
 """
 
 import argparse
@@ -29,7 +31,29 @@ from ml.collect_writing import load_cache
 
 REPORT_VERSION = "writing-eval.v1"
 PROTECTED_SPLITS = ("test", "gold")
-DEFAULT_THRESHOLDS = {"qwk_min": 0.6, "mae_max": 0.5, "within_0_5_min": 0.7, "coverage_min": 0.95}
+# docs/09 (E1) success thresholds, plus the coverage floor. `qwk_ci_lower_min` is
+# the bar for the lower 95% bootstrap bound of the overall QWK.
+DEFAULT_THRESHOLDS = {
+    "qwk_min": 0.6,
+    "qwk_ci_lower_min": 0.6,
+    "mae_max": 0.5,
+    "within_0_5_min": 0.7,
+    "coverage_min": 0.95,
+    "criterion_qwk_min": 0.5,
+    "run_sd_max": 0.25,
+    "stability_runs_min": 5,
+    "cap_hit_rate_min": 0.9,
+}
+# Every kind of baseline docs/09 lists: constants, the rule-based mock, trained models.
+BASELINE_KINDS = ("baseline", "rules", "trained")
+PASS, FAIL, NOT_EVALUABLE = "pass", "fail", "not_evaluable"
+HUMAN_ROW = "human: rater 2 vs rater 1"
+HUMAN_ROW_NOTE = (
+    "The human row scores one rater against the other rater on the double-marked essays. System rows are "
+    "scored against the final label (the adjudicated mark, else the mean of the raters), which is less noisy "
+    "than a single rater. The rows are therefore not like-for-like: read the human row as the level of "
+    "agreement between two people, not as a strict upper bound for the systems."
+)
 PREREG_BLOCK = re.compile(r"```json prereg\s*(\{.*?\})\s*```", re.S)
 
 
@@ -51,7 +75,7 @@ class System:
 
 
 def system_id(provider, model, prompt_version, seed) -> str:
-    return f"{provider}|{model}|{prompt_version}|seed{seed}"
+    return f"{provider}|{model}|{prompt_version}|" + ("noseed" if seed is None else f"seed{seed}")
 
 
 def constant_systems(train: list[Essay], fallback: list[Essay], ids: list[str]) -> list[System]:
@@ -78,19 +102,28 @@ def systems_from_cache(records: dict[str, dict], essays: list[Essay], only: set[
     groups: dict[tuple, list[dict]] = defaultdict(list)
     for rec in records.values():
         if rec["essay_hash"] in by_hash and (not only or rec["provider"] in only):
-            groups[(rec["provider"], rec["model"], rec["prompt_version"], rec["seed"])].append(rec)
+            # Runs of one system share a base seed; each run records the seed it sent.
+            base = rec.get("base_seed", rec["seed"])
+            groups[(rec["provider"], rec["model"], rec["prompt_version"], base)].append(rec)
     versions = Counter((p, m) for p, m, _, _ in groups)
     seeds = Counter((p, m, v) for p, m, v, _ in groups)
     systems = []
-    for (provider, model, pv, seed), recs in sorted(groups.items()):
+    for (provider, model, pv, seed), recs in sorted(groups.items(), key=lambda g: tuple(map(str, g[0]))):
         name = f"{provider}:{model}" + (f"@{pv}" if versions[(provider, model)] > 1 else "")
         if seeds[(provider, model, pv)] > 1:
-            name += f"#seed{seed}"
+            name += "#noseed" if seed is None else f"#seed{seed}"
         kind = "rules" if provider == "mock" else "llm"
         s = System(
             name,
             kind,
-            {"provider": provider, "model": model, "prompt_version": pv, "seed": seed},
+            {
+                "provider": provider,
+                "model": model,
+                "prompt_version": pv,
+                "examiner_version": next((r.get("examiner_version") for r in recs if r.get("examiner_version")), None),
+                "seed": seed,
+                "run_seeds": {str(run): s for run, s in sorted({r["run"]: r["seed"] for r in recs}.items())},
+            },
             id=system_id(provider, model, pv, seed),
         )
         per_run: dict[str, dict[int, float]] = defaultdict(dict)
@@ -217,10 +250,17 @@ def evaluate_system(
     block["targets"] = targets
     if s.kind in ("llm", "rules") and s.runs:
         block["stability"] = ws.stability(s.runs)
-    hits = [ws.cap_hit(s.flags.get(i)) for i in common_ids if i in s.flags]
-    hits = [h for h in hits if h is not None]
-    block["cap_hit_rate"] = (sum(hits) / len(hits)) if hits else None
-    block["cap_hit_n"] = len(hits)
+        block["stability"]["run_seeds"] = s.detail.get("run_seeds")
+    # Share of essays on which any cap flag fired: descriptive only, no label involved.
+    fired = [ws.cap_hit(s.flags.get(i)) for i in common_ids if i in s.flags]
+    fired = [h for h in fired if h is not None]
+    block["cap_flag_rate"] = (sum(fired) / len(fired)) if fired else None
+    block["cap_flag_n"] = len(fired)
+    # Hit rate against the human cap-case labels; None (not evaluable) without labels.
+    block["cap_cases"] = ws.cap_case_stats(
+        {i: essays_by_id[i].expected_caps for i in common_ids if i in s.flags}, s.flags
+    )
+    block["cap_hit_rate"] = block["cap_cases"]["hit_rate"]
     return block
 
 
@@ -233,9 +273,13 @@ def human_ceiling(essays: list[Essay]) -> dict | None:
     if len(pairs) < 2:
         return None
     out = {
-        "name": "human vs human (ceiling)",
+        "name": HUMAN_ROW,
         "kind": "human",
-        "detail": {"note": "rater 2 scored against rater 1 (first two raters by id)"},
+        "detail": {
+            "note": "rater 2 scored against rater 1 (first two raters by id)",
+            "reference": "the other rater, not the final label used for the systems",
+            "comparable_to_system_rows": False,
+        },
         "coverage": {"expected": len(pairs), "covered": len(pairs), "failed": 0, "missing": 0, "rate": 1.0},
         "targets": {},
     }
@@ -359,7 +403,7 @@ def check_protocol(
     elif split in PROTECTED_SPLITS:
         deviations.append(f"split {split!r} has no pre-registered fingerprint")
     allowed = {
-        m.get("id") or system_id(m["provider"], m["model"], m["prompt_version"], m.get("seed", 0))
+        m.get("id") or system_id(m["provider"], m["model"], m["prompt_version"], m.get("seed"))
         for m in prereg.get("systems", [])
     }
     for block in report["systems"]:
@@ -371,9 +415,78 @@ def check_protocol(
     return deviations
 
 
+def _check(status, value=None, threshold=None, reason=None) -> dict:
+    out = {"status": status, "value": value, "threshold": threshold}
+    if reason:
+        out["reason"] = reason
+    return out
+
+
+def _bar(value, threshold, *, at_most=False, missing="no value") -> dict:
+    """Pass/fail against a bar; a missing value is not evaluable, never a pass."""
+    if value is None:
+        return _check(NOT_EVALUABLE, None, threshold, missing)
+    ok = value <= threshold if at_most else value >= threshold
+    return _check(PASS if ok else FAIL, value, threshold)
+
+
+def _criterion_check(targets: dict, threshold: float) -> dict:
+    values = {c: (targets.get(c) or {}).get("qwk") for c in CRITERIA}
+    below = [c for c, v in values.items() if v is not None and v < threshold]
+    missing = [c for c, v in values.items() if v is None]
+    if below:
+        return _check(FAIL, values, threshold, "below the bar: " + ", ".join(below))
+    if missing:
+        return _check(NOT_EVALUABLE, values, threshold, "no per-criterion QWK for: " + ", ".join(missing))
+    return _check(PASS, values, threshold)
+
+
+def _stability_check(stability: dict | None, sd_max: float, runs_min: int) -> dict:
+    sd = (stability or {}).get("mean_within_essay_sd")
+    runs = (stability or {}).get("n_runs", 0)
+    if sd is None or runs < runs_min:
+        return _check(
+            NOT_EVALUABLE,
+            sd,
+            sd_max,
+            f"needs >= {runs_min} complete runs on >= 2 essays (found {runs} run(s))",
+        )
+    out = _bar(sd, sd_max, at_most=True)
+    out["n_runs"], out["n_essays"] = runs, stability["n_essays"]
+    out["run_seeds"] = stability.get("run_seeds")
+    return out
+
+
+def _baseline_check(primary: dict, report: dict) -> dict:
+    """The primary must have a lower MAE and a higher QWK than every baseline, on
+    the common essays. Every baseline kind of docs/09 must be present."""
+    mine = primary["targets"]["overall"]
+    rows, lost, undefined = [], [], []
+    for b in report["systems"]:
+        if b["kind"] not in BASELINE_KINDS or b.get("id") == primary["id"] or "overall" not in b["targets"]:
+            continue
+        t = b["targets"]["overall"]
+        rows.append({"name": b["name"], "kind": b["kind"], "mae": t["mae"], "qwk": t["qwk"]})
+        if mine["qwk"] is None or t["qwk"] is None:
+            undefined.append(b["name"])
+        if t["mae"] <= mine["mae"] or (mine["qwk"] is not None and t["qwk"] is not None and t["qwk"] >= mine["qwk"]):
+            lost.append(b["name"])
+    value = {"primary": {"mae": mine["mae"], "qwk": mine["qwk"]}, "baselines": rows}
+    if lost:
+        return _check(FAIL, value, None, "not better on MAE and QWK than: " + ", ".join(lost))
+    absent = [k for k in BASELINE_KINDS if k != primary["kind"] and k not in {r["kind"] for r in rows}]
+    if absent:
+        return _check(NOT_EVALUABLE, value, None, "baseline kinds missing from this evaluation: " + ", ".join(absent))
+    if undefined:
+        return _check(NOT_EVALUABLE, value, None, "QWK undefined for: " + ", ".join(undefined))
+    return _check(PASS, value)
+
+
 def threshold_verdict(prereg: dict, report: dict) -> dict:
-    """Pre-registered pass/fail for the primary system. The primary is matched by
-    its stable id and a missing primary is an error, never a silent skip."""
+    """Pre-registered pass/fail for the primary system against every docs/09 E1
+    threshold. The primary is matched by its stable id and a missing primary is an
+    error, never a silent skip. A check whose inputs are missing is reported as
+    `not_evaluable`; the overall result is then `incomplete`, never `pass`."""
     primary = prereg.get("primary_id") or prereg.get("primary_system")
     if not primary:
         raise ValueError("the pre-registration names no primary system (primary_id)")
@@ -384,23 +497,41 @@ def threshold_verdict(prereg: dict, report: dict) -> dict:
     if "overall" not in block["targets"]:
         raise ValueError(f"primary system {primary!r} has too few scored essays to evaluate")
     t = block["targets"]["overall"]
-    ci = t.get("ci95", {})
-    q_lo = (ci.get("qwk") or {}).get("lo")
     cov = block["coverage"]
-    verdict = {
+    q_lo = ((t.get("ci95") or {}).get("qwk") or {}).get("lo")
+    cap = block.get("cap_cases") or {}
+    checks = {
+        "coverage": _bar(cov["rate"], th["coverage_min"]),
+        "qwk_point": _bar(t["qwk"], th["qwk_min"], missing="QWK is undefined on these essays"),
+        "qwk_ci_lower": _bar(q_lo, th["qwk_ci_lower_min"], missing="no bootstrap CI (run with --n-boot > 0)"),
+        "mae": _bar(t["mae"], th["mae_max"], at_most=True),
+        "within_0_5": _bar(t["within_0_5"], th["within_0_5_min"]),
+        "criterion_qwk": _criterion_check(block["targets"], th["criterion_qwk_min"]),
+        "run_sd": _stability_check(block.get("stability"), th["run_sd_max"], th["stability_runs_min"]),
+        "cap_hit_rate": _bar(
+            cap.get("hit_rate"),
+            th["cap_hit_rate_min"],
+            missing="no essay in this split carries an expected_caps label with a cap case",
+        ),
+        "beats_baselines": _baseline_check(block, report),
+    }
+    if cap.get("n_cap_cases"):
+        checks["cap_hit_rate"]["n_cap_cases"] = cap["n_cap_cases"]
+    failed = [name for name, c in checks.items() if c["status"] == FAIL]
+    open_ = [name for name, c in checks.items() if c["status"] == NOT_EVALUABLE]
+    result = "fail" if failed else "incomplete" if open_ else "pass"
+    return {
         "primary_id": block["id"],
         "primary_system": block["name"],
         "thresholds": th,
         "coverage": {"covered": cov["covered"], "expected": cov["expected"], "rate": cov["rate"]},
         "n_scored_common": t["n"],
-        "coverage_ok": cov["rate"] is not None and cov["rate"] >= th["coverage_min"],
-        "qwk_point_ok": t["qwk"] is not None and t["qwk"] >= th["qwk_min"],
-        "qwk_ci_lower_ok": q_lo is not None and q_lo >= th["qwk_min"],
-        "mae_ok": t["mae"] <= th["mae_max"],
-        "within_0_5_ok": t["within_0_5"] >= th["within_0_5_min"],
+        "checks": checks,
+        "failed": failed,
+        "not_evaluable": open_,
+        "result": result,
+        "all_ok": result == "pass",
     }
-    verdict["all_ok"] = all(verdict[k] for k in ("coverage_ok", "qwk_point_ok", "mae_ok", "within_0_5_ok"))
-    return verdict
 
 
 def render_prereg(
@@ -436,6 +567,46 @@ def _ci(t, name, digits=3):
     )
 
 
+def _cap(stats) -> str:
+    if not stats or stats["hit_rate"] is None:
+        return "not evaluable"
+    return f"{stats['hit_rate']:.2f} ({stats['hits']}/{stats['n_cap_cases']})"
+
+
+def _seeds(detail: dict) -> str:
+    """Seeds really sent, in run order; `none` for a provider that takes no seed."""
+    seeds = list((detail.get("run_seeds") or {"0": detail.get("seed")}).values())
+    if all(x is None for x in seeds):
+        return "none"
+    return ", ".join("none" if x is None else str(x) for x in seeds)
+
+
+def _value(v) -> str:
+    if isinstance(v, dict):
+        if "primary" in v:
+            return "; ".join(f"{r['name']}: MAE {_f(r['mae'])}, QWK {_f(r['qwk'])}" for r in v["baselines"]) or "n/a"
+        return ", ".join(f"{k} {_f(x)}" for k, x in v.items())
+    return _f(v) if isinstance(v, (int, float)) or v is None else str(v)
+
+
+def _verdict_lines(verdict: dict) -> list[str]:
+    words = {PASS: "PASS", FAIL: "FAIL", NOT_EVALUABLE: "NOT EVALUABLE"}
+    lines = [
+        "## Pre-registered thresholds",
+        "",
+        f"Primary system: `{verdict['primary_system']}` (`{verdict['primary_id']}`). "
+        f"Overall result: **{verdict['result'].upper()}**. A check that is not evaluable is not a pass: "
+        "the result stays `incomplete` until its inputs exist.",
+        "",
+        "| Check | Status | Value | Threshold | Note |",
+        "|---|---|---|---|---|",
+    ]
+    for name, c in verdict["checks"].items():
+        th = "n/a" if c["threshold"] is None else c["threshold"]
+        lines.append(f"| {name} | {words[c['status']]} | {_value(c['value'])} | {th} | {c.get('reason', '')} |")
+    return lines + [""]
+
+
 def render_markdown(report: dict, meta: dict) -> str:
     lines = [
         "# E1 Writing accuracy report",
@@ -453,29 +624,53 @@ def render_markdown(report: dict, meta: dict) -> str:
         "",
         "## Overall band (95% bootstrap CI)",
         "",
-        "| System | n | Coverage | QWK | MAE | within 0.5 | within 1.0 | Pearson | Bias | SD pred/label | Mode share | Cap hit |",
-        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "| System | n | Coverage | QWK | MAE | within 0.5 | within 1.0 | Pearson | Bias | SD pred/label | Mode share "
+        "| Cap-case hit rate | Any cap flag |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for b in report["systems"]:
         t = b["targets"].get("overall")
         cov = b["coverage"]
         cov_s = f"{cov['covered']}/{cov['expected']}" + (f" ({cov['failed']} failed)" if cov["failed"] else "")
         if not t:
-            lines.append(f"| {b['name']} | 0 | {cov_s} | | | | | | | | | |")
+            lines.append(f"| {b['name']} | 0 | {cov_s} | | | | | | | | | | |")
             continue
         sdr = f"{_f(t['sd_prediction'], 2)}/{_f(t['sd_label'], 2)}"
         lines.append(
             f"| {b['name']} | {t['n']} | {cov_s} | {_ci(t, 'qwk')} | {_ci(t, 'mae')} | "
             f"{_ci(t, 'within_0_5', 2)} | {_f(t['within_1_0'], 2)} | {_f(t['pearson'])} | "
             f"{_f(t['bias'], 2)} | {sdr} | {_f(t['mode_share'], 2)} @ {t['mode_value']} | "
-            f"{_f(b.get('cap_hit_rate'), 2)} |"
+            f"{_cap(b.get('cap_cases'))} | {_f(b.get('cap_flag_rate'), 2)} |"
         )
     lines += [
         "",
         "A constant predictor has QWK 0 and Pearson n/a but can still have a respectable MAE; "
         "read QWK, SD ratio and mode share together.",
         "",
+        "Cap-case hit rate = share of essays labelled with `expected_caps` on which every expected cap finding "
+        "was reported; `not evaluable` when the split has no such label. `Any cap flag` only counts essays on "
+        "which some cap flag fired and is not a hit rate.",
+        "",
     ]
+    if any(b["kind"] == "human" for b in report["systems"]):
+        lines += [HUMAN_ROW_NOTE, ""]
+    prov = [b for b in report["systems"] if b["kind"] in ("llm", "rules")]
+    if prov:
+        lines += [
+            "## What was measured",
+            "",
+            "Values recorded by the collector for each run; they are the ones in effect, not requested labels.",
+            "",
+            "| System | Provider | Model | Examiner prompt | Prompt version (cache key) | Seed sent, by run |",
+            "|---|---|---|---|---|---|",
+        ]
+        for b in prov:
+            d = b["detail"]
+            lines.append(
+                f"| {b['name']} | {d['provider']} | {d['model']} | {d.get('examiner_version') or 'n/a'} | "
+                f"`{d['prompt_version']}` | {_seeds(d)} |"
+            )
+        lines.append("")
     crit = [b for b in report["systems"] if any(c in b["targets"] for c in CRITERIA)]
     if crit:
         lines += [
@@ -496,16 +691,21 @@ def render_markdown(report: dict, meta: dict) -> str:
         lines += [
             "## Run-to-run stability",
             "",
-            "| System | runs | essays | mean SD | max SD | essays that flip | ICC(2,1) | mean pairwise QWK |",
-            "|---|---|---|---|---|---|---|---|",
+            "Each run sends its own seed (base seed + run index) where the provider takes one, so the spread "
+            "below covers sampling variation across seeds as well as server-side nondeterminism. A provider "
+            "without a seed (`none`) repeats the identical request.",
+            "",
+            "| System | runs | seeds | essays | mean SD | max SD | essays that flip | ICC(2,1) | mean pairwise QWK |",
+            "|---|---|---|---|---|---|---|---|---|",
         ]
         for b in stab:
             s = b["stability"]
+            seeds = _seeds(b["detail"])
             if "icc_2_1" not in s:
-                lines.append(f"| {b['name']} | {s['n_runs']} | {s['n_essays']} | {s['note']} | | | | |")
+                lines.append(f"| {b['name']} | {s['n_runs']} | {seeds} | {s['n_essays']} | {s['note']} | | | | |")
                 continue
             lines.append(
-                f"| {b['name']} | {s['n_runs']} | {s['n_essays']} | {_f(s['mean_within_essay_sd'])} | "
+                f"| {b['name']} | {s['n_runs']} | {seeds} | {s['n_essays']} | {_f(s['mean_within_essay_sd'])} | "
                 f"{_f(s['max_within_essay_sd'])} | {_f(s['pct_essays_any_flip'], 2)} | "
                 f"{_f(s['icc_2_1'])} | {_f(s['mean_pairwise_qwk'])} |"
             )
@@ -526,7 +726,7 @@ def render_markdown(report: dict, meta: dict) -> str:
             )
         lines.append("")
     if meta.get("verdict"):
-        lines += ["## Pre-registered thresholds", "", "```json", json.dumps(meta["verdict"], indent=2), "```", ""]
+        lines += _verdict_lines(meta["verdict"])
     lines += ["## Confusion matrices (rows = human, columns = system)", ""]
     for b in report["systems"]:
         c = (b["targets"].get("overall") or {}).get("confusion")
@@ -600,14 +800,8 @@ def main(argv=None):
         mock_cache = args.mock_cache or (
             Path(str(args.out) + "-mock-cache.jsonl") if args.out else Path("mock-cache.jsonl")
         )
-        collect(
-            essays,
-            graders.make_grader("mock"),
-            provider="mock",
-            model=graders.model_name("mock"),
-            prompt_version=graders.prompt_version(),
-            cache_path=mock_cache,
-        )
+        with graders.experiment_run("mock") as spec:
+            collect(essays, spec.grader, **spec.collect_kwargs(), cache_path=mock_cache)
         records.update(load_cache(mock_cache))
     systems = systems_from_cache(records, essays, set(args.only) if args.only else None)
     if args.model_bundle:
@@ -623,6 +817,7 @@ def main(argv=None):
                 "provider": s.detail["provider"],
                 "model": s.detail["model"],
                 "prompt_version": s.detail["prompt_version"],
+                "examiner_version": s.detail.get("examiner_version"),
                 "seed": s.detail["seed"],
                 "id": s.id,
                 "name": s.name,

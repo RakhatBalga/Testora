@@ -46,6 +46,9 @@ VOCAB_ENRICH_TEMPERATURE = 0.3
 VOCAB_QUIZ_TEMPERATURE = 0.5
 # Passed wherever the API supports it (Gemini, OpenAI-compatible servers).
 # Best-effort determinism only: servers may still vary between runs.
+# This is the default of every seeded transport, so production always sends it.
+# A transport can be constructed with another seed (factory.get_writing_grader(
+# seed=...)); only the E1 research tooling does that.
 GRADING_SEED = 20261026
 
 EXAMINER_MAX_TOKENS = 4096

@@ -3,7 +3,9 @@
     python -m ml.train_writing --dataset essays.jsonl --out-dir ml/artifacts/writing-v1
 
 Trains only on the `train` split (never test/gold). Cross-validation is grouped
-by prompt (GroupKFold), so no prompt appears on both sides of a fold. Out-of-fold
+by prompt (GroupKFold), so no prompt appears on both sides of a fold. The Ridge
+penalty is chosen by an inner GroupKFold over the prompts of the fitting rows, so
+alpha selection never sees a prompt on both sides either. Out-of-fold
 predictions and CV metrics go to training_report.json; the final models (fit on
 the whole train split) go to writing_models.joblib with metadata. Existing
 output is never overwritten (same pattern as ml.train_speaking).
@@ -26,7 +28,24 @@ MIN_CRITERION_ROWS = 30
 BUNDLE_VERSION = "writing-models.v1"
 
 
-def build_pipeline(name: str, seed: int):
+RIDGE_ALPHAS = (0.1, 0.3, 1.0, 3.0, 10.0, 30.0, 100.0)
+INNER_FOLDS = 5
+
+
+def _inner_cv(groups):
+    """Prompt-grouped splits for alpha selection; None (sklearn's leave-one-out)
+    when no groups are given or fewer than two prompts are available."""
+    if groups is None or len(set(groups)) < 2:
+        return None
+    import numpy as np
+    from sklearn.model_selection import GroupKFold
+
+    folds = min(INNER_FOLDS, len(set(groups)))
+    return list(GroupKFold(n_splits=folds).split(np.zeros(len(groups)), groups=list(groups)))
+
+
+def build_pipeline(name: str, seed: int, groups=None):
+    """`groups` = prompt ids of the rows the pipeline will be fit on, in order."""
     from sklearn.decomposition import TruncatedSVD
     from sklearn.ensemble import GradientBoostingRegressor
     from sklearn.feature_extraction.text import TfidfVectorizer
@@ -44,7 +63,7 @@ def build_pipeline(name: str, seed: int):
                 ("tfidf", Pipeline([("t", texts), ("v", tfidf)])),
             ]
         )
-        return Pipeline([("features", union), ("model", RidgeCV(alphas=(0.1, 0.3, 1.0, 3.0, 10.0, 30.0, 100.0)))])
+        return Pipeline([("features", union), ("model", RidgeCV(alphas=RIDGE_ALPHAS, cv=_inner_cv(groups)))])
     if name == "gbm":
         union = FeatureUnion(
             [
@@ -117,9 +136,7 @@ def train(
     import sklearn
     from sklearn.model_selection import GroupKFold
 
-    rows = [e for e in essays if e.split == "train"]
-    if any(e.split in ("test", "gold") for e in rows):
-        raise ValueError("test/gold essays must never be used for training")
+    rows = [e for e in essays if e.split == "train"]  # test, gold and dev rows are never fitted
     groups = [e.prompt_id for e in rows]
     n_groups = len(set(groups))
     if n_groups < 2 or len(rows) < 10:
@@ -135,6 +152,7 @@ def train(
         "n_prompts": n_groups,
         "folds": n_folds,
         "cv": "GroupKFold grouped by prompt_id",
+        "ridge_alpha_cv": f"inner GroupKFold (<= {INNER_FOLDS} folds) grouped by prompt_id",
         "targets": targets,
         "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "dataset_sha256": dataset_sha256,
@@ -162,7 +180,7 @@ def train(
             for i in te:
                 oof["constant_mean"][target][i] = fold_mean
             for name in MODEL_NAMES:
-                pipe = build_pipeline(name, seed)
+                pipe = build_pipeline(name, seed, groups=[groups[i] for i in tr])
                 pipe.fit([X[i] for i in tr], [y[i] for i in tr])
                 preds = _clip(pipe.predict([X[i] for i in te]))
                 for i, p in zip(te, preds):
@@ -186,7 +204,7 @@ def train(
         y = [_label(e, target) for e in rows]
         idx = [i for i, v in enumerate(y) if v is not None]
         for name in MODEL_NAMES:
-            pipe = build_pipeline(name, seed)
+            pipe = build_pipeline(name, seed, groups=[groups[i] for i in idx])
             pipe.fit([X[i] for i in idx], [y[i] for i in idx])
             fitted[name][target] = pipe
     fingerprint = hashlib.sha256("\n".join(sorted(f"{e.id}:{e.text_hash}" for e in rows)).encode()).hexdigest()

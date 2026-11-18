@@ -1,10 +1,18 @@
 """E1 collector: run one grader over a split and cache every raw response.
 
     python -m ml.collect_writing --dataset essays.jsonl --split test \\
-        --provider gemini --runs 5 --cache ml/data/e1-cache.jsonl --rps 0.5
+        --provider gemini --examiner-version v1 --runs 5 \\
+        --cache ml/data/e1-cache.jsonl --rps 0.5
 
 The cache is append-only JSONL; the last record for a key wins. A key is
-(essay text hash, provider, model, prompt_version, seed, run). Successes are never
+(essay text hash, provider, model, prompt_version, seed, run). `seed` is the one
+sent for that run: run r uses base seed + r, so repeated runs (the stability
+protocol) use distinct, recorded seeds; `base_seed` ties the runs to one system.
+`prompt_version`
+names the examiner prompt version (v1 | v2) that graded, so a v1 run and a v2 run
+never share a key. Model, prompt version and seed are the values really in effect
+(ml.graders.experiment_run); an input that cannot be applied is an error, and a
+result whose own provenance disagrees is stored as a failure. Successes are never
 re-requested (resume); failures are stored explicitly (ok=false + reason), retried
 on the next invocation unless --no-retry-failed, and always counted in the
 coverage that evaluate_writing reports. The cache holds essay hashes, not essay
@@ -86,8 +94,9 @@ def collect(
     model: str,
     prompt_version: str,
     cache_path: Path,
+    examiner_version: str | None = None,
     runs: int = 1,
-    seed: int = 0,
+    seed: int | None = None,
     rps: float = 0.0,
     retry_failed: bool = True,
     abort_after: int = 20,
@@ -96,7 +105,13 @@ def collect(
     progress=None,
 ) -> CollectSummary:
     """Grade every essay `runs` times. Run order is run-major so a partial pass
-    still has complete first runs (the primary prediction)."""
+    still has complete first runs (the primary prediction).
+
+    `model`, `prompt_version` and `examiner_version` are recorded as given: pass
+    the effective values from `graders.experiment_run`. `seed` is the base seed:
+    run r is graded with `seed + r`, which is applied to the grader for that call
+    (or the call is refused) and recorded. `seed=None` means no seed is applied.
+    """
     cache_path = Path(cache_path)
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache = load_cache(cache_path)
@@ -108,7 +123,8 @@ def collect(
         for run in range(runs):
             for essay in essays:
                 summary.requested += 1
-                key = cache_key(essay.text_hash, provider, model, prompt_version, seed, run)
+                run_seed = graders.seed_for_run(seed, run)
+                key = cache_key(essay.text_hash, provider, model, prompt_version, run_seed, run)
                 old = cache.get(key)
                 if old is not None and (old["ok"] or not retry_failed):
                     summary.cached_ok += bool(old["ok"])
@@ -121,7 +137,9 @@ def collect(
                     if wait > 0:
                         sleep(wait)
                 last_call = clock()
-                rec = _grade_once(grader, essay, provider, model, prompt_version, seed, run, clock)
+                rec = _grade_once(
+                    grader, essay, provider, model, prompt_version, examiner_version, seed, run_seed, run, clock
+                )
                 out.write(json.dumps(rec, ensure_ascii=False) + "\n")
                 out.flush()
                 cache[key] = rec
@@ -145,7 +163,7 @@ def _count(summary: CollectSummary, reason) -> None:
     summary.failure_reasons[reason] = summary.failure_reasons.get(reason, 0) + 1
 
 
-def _grade_once(grader, essay, provider, model, prompt_version, seed, run, clock) -> dict:
+def _grade_once(grader, essay, provider, model, prompt_version, examiner_version, base_seed, seed, run, clock) -> dict:
     base = {
         "cache_version": CACHE_VERSION,
         "essay_hash": essay.text_hash,
@@ -153,7 +171,9 @@ def _grade_once(grader, essay, provider, model, prompt_version, seed, run, clock
         "provider": provider,
         "model": model,
         "prompt_version": prompt_version,
+        "examiner_version": examiner_version,
         "seed": seed,
+        "base_seed": base_seed,
         "run": run,
         "task_type": essay.task_type,
         "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -168,6 +188,8 @@ def _grade_once(grader, essay, provider, model, prompt_version, seed, run, clock
             min_words=min_words_for(essay.task_type),
             seed=seed,
         )
+    except graders.RunInputError:
+        raise  # a seed that cannot be applied is a protocol error, not a provider failure
     except Exception as exc:  # any provider failure is data, not a crash
         return {
             **base,
@@ -180,11 +202,13 @@ def _grade_once(grader, essay, provider, model, prompt_version, seed, run, clock
             "raw": None,
         }
     latency = round(clock() - started, 3)
-    if getattr(fb, "error", False):
+    mismatch = graders.provenance_mismatch(fb, model=model, prompt_version=prompt_version)
+    if getattr(fb, "error", False) or mismatch:
+        reason = f"provenance mismatch: {mismatch}" if mismatch else f"grader error: {getattr(fb, 'summary', '')}"
         return {
             **base,
             "ok": False,
-            "error": f"grader error: {str(getattr(fb, 'summary', ''))[:100]}",
+            "error": reason[:160],
             "latency": latency,
             "band": None,
             "criteria": {},
@@ -199,6 +223,7 @@ def _grade_once(grader, essay, provider, model, prompt_version, seed, run, clock
         "band": float(fb.band),
         "criteria": canonical_criteria(fb.criteria),
         "flags": _flags(fb),
+        "caps_applied": list(getattr(fb, "caps_applied", None) or []),
         "raw": fb.to_dict() if hasattr(fb, "to_dict") else None,
     }
 
@@ -208,11 +233,25 @@ def main(argv=None):
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--split", required=True, choices=["dev", "train", "test", "gold", "all"])
     parser.add_argument("--provider", required=True, help="mock | gemini | claude | qwen")
-    parser.add_argument("--model", help="model id to record (default: from settings)")
-    parser.add_argument("--prompt-version", help="override the auto prompt hash")
+    parser.add_argument(
+        "--examiner-version",
+        choices=["v1", "v2"],
+        help="examiner prompt version to measure; required for gemini | claude | qwen\n"
+        "(production pins v1, the code default is v2), not used by mock",
+    )
+    parser.add_argument(
+        "--model",
+        help="model to grade with (gemini, qwen; default: from settings).\n"
+        "Refused when it cannot be applied (claude and mock have a fixed model)",
+    )
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--runs", type=int, default=1)
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--seed",
+        type=int,
+        help="base sampling seed for gemini | qwen (default: the engine's GRADING_SEED, as in\n"
+        "production). Run r sends seed + r. Refused for claude and mock, which take no seed",
+    )
     parser.add_argument("--rps", type=float, default=0.0, help="max requests per second (0 = unlimited)")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--no-retry-failed", action="store_true")
@@ -224,29 +263,30 @@ def main(argv=None):
         essays = essays[: args.limit]
     if not essays:
         raise SystemExit("no essays in that split")
-    grader = graders.make_grader(args.provider)
-    model = args.model or graders.model_name(args.provider, grader)
-    version = graders.prompt_version(args.prompt_version)
-    print(
-        f"collecting {len(essays)} essays x {args.runs} runs: provider={args.provider} "
-        f"model={model} prompt_version={version} seed={args.seed}"
-    )
-    summary = collect(
-        essays,
-        grader,
-        provider=args.provider,
-        model=model,
-        prompt_version=version,
-        cache_path=args.cache,
-        runs=args.runs,
-        seed=args.seed,
-        rps=args.rps,
-        retry_failed=not args.no_retry_failed,
-        abort_after=args.abort_after,
-        progress=lambda s, e, run, rec: print(
-            f"  run {run} {e.id}: {'ok band=%s' % rec['band'] if rec['ok'] else 'FAILED ' + rec['error']}"
-        ),
-    )
+    try:
+        with graders.experiment_run(
+            args.provider, examiner=args.examiner_version, model=args.model, seed=args.seed
+        ) as spec:
+            print(
+                f"collecting {len(essays)} essays x {args.runs} runs: provider={spec.provider} model={spec.model} "
+                f"examiner_version={spec.examiner_version} prompt_version={spec.prompt_version} "
+                f"seeds={[graders.seed_for_run(spec.seed, r) for r in range(args.runs)]}"
+            )
+            summary = collect(
+                essays,
+                spec.grader,
+                **spec.collect_kwargs(),
+                cache_path=args.cache,
+                runs=args.runs,
+                rps=args.rps,
+                retry_failed=not args.no_retry_failed,
+                abort_after=args.abort_after,
+                progress=lambda s, e, run, rec: print(
+                    f"  run {run} {e.id}: {'ok band=%s' % rec['band'] if rec['ok'] else 'FAILED ' + rec['error']}"
+                ),
+            )
+    except graders.RunInputError as exc:
+        raise SystemExit(f"cannot start the run: {exc}") from None
     print(json.dumps(summary.as_dict(), indent=2))
     return 1 if summary.aborted or summary.failed else 0
 

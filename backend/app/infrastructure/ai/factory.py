@@ -10,6 +10,15 @@ class ProviderNotConfigured(ValueError):
     """An explicitly requested provider is unknown or missing its settings."""
 
 
+class SeedNotSupported(ValueError):
+    """A sampling seed was requested for a provider that cannot apply one."""
+
+
+# Providers whose API takes a sampling seed. Claude's Messages API has none and
+# the mock grader is deterministic rules.
+SEEDED_PROVIDERS = ("gemini", "qwen")
+
+
 def provider_configured(provider: str) -> bool:
     """True when the provider has the settings it needs to make real calls."""
     p = provider.lower().strip()
@@ -55,8 +64,15 @@ def effective_provider() -> str:
     return _provider()
 
 
-def get_writing_grader(provider: str | None = None) -> WritingGrader:
+def get_writing_grader(provider: str | None = None, *, seed: int | None = None) -> WritingGrader:
+    """`seed=None` (every production caller) keeps the provider default, the fixed
+    engine GRADING_SEED. An explicit seed is sent with every request of the
+    returned grader; a provider that cannot take one raises SeedNotSupported
+    rather than ignoring it."""
     p = _provider(provider)
+    if seed is not None and p not in SEEDED_PROVIDERS:
+        raise SeedNotSupported(f"AI provider {p!r} does not take a sampling seed")
+    seeded = {} if seed is None else {"seed": seed}
     if p == "claude":
         from app.infrastructure.ai.claude import ClaudeWritingGrader
 
@@ -64,11 +80,11 @@ def get_writing_grader(provider: str | None = None) -> WritingGrader:
     if p == "gemini":
         from app.infrastructure.ai.gemini import GeminiWritingGrader
 
-        return GeminiWritingGrader()
+        return GeminiWritingGrader(**seeded)
     if p == "qwen":
         from app.infrastructure.ai.qwen import QwenWritingGrader
 
-        return QwenWritingGrader()
+        return QwenWritingGrader(**seeded)
     return MockWritingGrader()
 
 

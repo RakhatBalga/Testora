@@ -60,3 +60,17 @@ def test_reliability_bins_include_one_and_preserve_empty_groups():
     assert bins[-1]["mean_probability"] == 1
     with pytest.raises(ValueError):
         reliability_bins([1], [0.5], bins=0)
+
+
+def test_band_agreement_uses_the_same_float_tolerance_as_writing_stats():
+    from ml.metrics import TOLERANCE_EPS, band_agreement
+    from ml import writing_stats as ws
+
+    assert ws.TOLERANCE_EPS == TOLERANCE_EPS
+    # A regressor's 8.3 against a human 7.8 is half a band apart, but 8.3 - 7.8 is
+    # 0.5000000000000009 in floating point.
+    assert abs(7.8 - 8.3) > 0.5
+    actual, predicted = [7.8, 6.5, 6.0, 6.0], [8.3, 6.5, 6.5, 7.5]
+    assert band_agreement(actual, predicted) == 0.75
+    assert band_agreement(actual, predicted) == ws.point_metrics(actual, predicted, ("within_0_5",))["within_0_5"]
+    assert band_agreement([6.0], [6.5 + 1e-6]) == 0  # the slack is far below any real band difference

@@ -26,6 +26,9 @@ def main() -> int:
     parser.add_argument("samples", type=Path, help="legacy calibration JSONL")
     parser.add_argument("--provider", default="gemini")
     parser.add_argument("--model")
+    parser.add_argument(
+        "--examiner-version", choices=["v1", "v2"], help="required for gemini | claude | qwen (see ml.collect_writing)"
+    )
     parser.add_argument("--runs", type=int, default=1)
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--cache", type=Path, default=Path("calibration/reports/dev-cache.jsonl"))
@@ -38,6 +41,8 @@ def main() -> int:
         collect = ["--provider", args.provider, "--runs", str(args.runs)]
         if args.model:
             collect += ["--model", args.model]
+        if args.examiner_version:
+            collect += ["--examiner-version", args.examiner_version]
         if args.limit:
             collect += ["--limit", str(args.limit)]
         code = collect_writing.main(base[:4] + collect + base[4:])

@@ -42,8 +42,10 @@ class QwenTransport:
 
     provider = "qwen"
 
-    def __init__(self, client: OpenAICompatClient | None = None):
+    def __init__(self, client: OpenAICompatClient | None = None, seed: int = GRADING_SEED):
         self.client = client or _client()
+        # Sampling seed sent with every request of this transport.
+        self.seed = seed
 
     def model_for(self, role: str) -> str:
         return self.client.model
@@ -56,7 +58,7 @@ class QwenTransport:
                 schema=schema,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                seed=GRADING_SEED,
+                seed=self.seed,
             )
         )
 
@@ -67,14 +69,15 @@ class QwenTransport:
                 user=user,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                seed=GRADING_SEED,
+                seed=self.seed,
             )
         )
 
 
 class QwenWritingGrader(WritingGrader):
-    def __init__(self, transport: QwenTransport | None = None):
-        self.engine = WritingEngine(transport or QwenTransport(), coach_enabled=settings.WRITING_COACH_ENABLED)
+    def __init__(self, transport: QwenTransport | None = None, seed: int = GRADING_SEED):
+        """`seed` applies to the transport built here; a transport passed in keeps its own."""
+        self.engine = WritingEngine(transport or QwenTransport(seed=seed), coach_enabled=settings.WRITING_COACH_ENABLED)
 
     def grade(self, *, task_type: int, prompt: str, text: str, min_words: int) -> Feedback:
         return self.engine.grade(task_type=task_type, prompt=prompt, text=text, min_words=min_words)

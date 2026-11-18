@@ -64,3 +64,18 @@ def test_pipeline_functions_are_picklable_from_a_cli_run():
             if hasattr(t, "func")
         ]
         assert funcs and all(f.__module__ == "ml.writing_features" for f in funcs)
+
+
+def test_ridge_alpha_selection_is_grouped_by_prompt():
+    from ml.train_writing import _inner_cv, build_pipeline
+
+    groups = [f"p{i % 4}" for i in range(20)]
+    splits = _inner_cv(groups)
+    assert len(splits) == 4
+    for train_idx, test_idx in splits:  # no prompt on both sides of an inner fold
+        assert not {groups[i] for i in train_idx} & {groups[i] for i in test_idx}
+    assert len(build_pipeline("ridge", 0, groups=groups).steps[-1][1].cv) == 4
+    assert build_pipeline("ridge", 0).steps[-1][1].cv is None
+    assert _inner_cv(["only"] * 5) is None and _inner_cv(None) is None
+    report = train(make_essays(60, n_prompts=6), folds=3)
+    assert "grouped by prompt_id" in report["ridge_alpha_cv"]
