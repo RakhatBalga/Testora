@@ -15,7 +15,8 @@ refuses to score `test` or `gold` without it and lists every deviation in the re
 - Examiner prompt version (`v1` or `v2`) and its cache key
   (`examiner-<v>+<prompt fingerprint>+src.<hash of prompts.py + schemas.py>`): see block
 - Model(s) and provider(s), including Qwen quantisation / server build: see block
-- Seed: the effective value recorded by the collector (see block; `null` = none sent)
+- Base seed sent to the provider (see block; `null` = the provider takes none).
+  Run r of a repeated collection sends base seed + r
 - Temperature, runs per essay (primary prediction = run 0): ______
 - Datasets, licences, split fingerprints (from the split manifest): see block
 - Test set is touched once. No prompt, threshold or model change after seeing it.
@@ -44,7 +45,8 @@ refuses to score `test` or `gold` without it and lists every deviation in the re
   SD of predictions vs labels, share of the modal prediction, confusion matrix
 - 95% percentile bootstrap, 2000 resamples; paired bootstrap for system differences
 - Failures are reported as coverage; metrics use essays covered by all systems
-- Stability: 5 runs on the gold set; SD, ICC(2,1), pairwise QWK
+- Stability: 5 runs on the gold set with 5 distinct seeds (base seed + run index,
+  listed in the report); SD, ICC(2,1), pairwise QWK
 - Negative results are reported as such
 
 ## Frozen block (do not edit by hand)

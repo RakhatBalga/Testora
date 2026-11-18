@@ -123,11 +123,19 @@ What a run records is what graded, never a requested label:
   `QWEN_MODEL`). The Claude model is fixed in `app/infrastructure/ai/claude.py` and
   the mock is rule-based: for both, a different `--model` is refused, and the
   recorded model is read from the grader.
-- **Seed.** The engine sends a seed fixed in code (`GRADING_SEED`) to Gemini and
-  Qwen; the Claude Messages API takes none. That effective value (or `null`) is
-  recorded. `--seed` is accepted only for a grader that takes a seed and is
-  refused otherwise. Repeated `--runs` therefore measure the provider's own
-  run-to-run variation at a fixed seed.
+- **Seed.** For `gemini` and `qwen` the sampling seed is an input of the grader
+  (`get_writing_grader(provider, seed=...)`) and is sent with every request.
+  Without `--seed` the run uses the engine's fixed `GRADING_SEED`, which is what
+  production sends; `--seed N` sets another base seed. `claude` (the Messages API
+  has no seed) and `mock` (deterministic rules) refuse `--seed` and record `null`.
+- **Stability protocol.** With `--runs K`, run `r` sends `base seed + r` (run 0 =
+  the base seed, so the primary prediction is made at the base seed). Every cache
+  record stores the `seed` it was graded with and the `base_seed` of its system;
+  the report lists the seeds per system in "What was measured" and in the
+  stability table. Stability over K runs therefore covers sampling variation
+  across K distinct seeds plus server-side nondeterminism, not K repeats of one
+  seeded request. For a provider without a seed the K runs repeat the identical
+  request and the report shows `none`.
 - A result whose own provenance (`model`, `prompt_version` stamped by the engine)
   differs from the run's is stored as a failure, not as a grade.
 
