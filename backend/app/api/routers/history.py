@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db, get_current_user
 from app.domain.models.user import User
-from app.application.history import list_history, get_history_item
+from app.application.history import history_page, get_history_item
 from app.application.comparison import compare_history
 from app.api.schemas.analytics import HistoryPageOut, Payload
 
@@ -26,19 +26,7 @@ def history_list(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    items = list_history(db, current_user.id, skill=skill)
-
-    if sort == "oldest":
-        items.sort(key=lambda x: x["created_at"] or "")
-    elif sort == "highest":
-        items.sort(key=lambda x: (x["band"] is None, -(x["band"] or 0)))
-    elif sort == "lowest":
-        items.sort(key=lambda x: (x["band"] is None, x["band"] or 0))
-    # "newest" is the default (already sorted by list_history)
-
-    total = len(items)
-    start = (page - 1) * page_size
-    return {"items": items[start : start + page_size], "total": total, "page": page, "page_size": page_size}
+    return history_page(db, current_user.id, skill, sort, page, page_size)
 
 
 @router.get("/compare", response_model=Payload)
