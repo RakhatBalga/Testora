@@ -24,6 +24,8 @@ class WritingSubmitIn(BaseModel):
     # Bounded to protect memory, AI token cost, and against abuse. A real essay
     # is well under this ceiling; an empty submission is rejected.
     text: str = Field(..., min_length=1, max_length=settings.MAX_WRITING_CHARS)
+    # Optional client-generated key; a repeated key returns the first submission.
+    submission_key: Optional[str] = Field(None, min_length=8, max_length=80, pattern=r"^[A-Za-z0-9._:-]+$")
 
 
 class WritingSubmissionOut(BaseModel):

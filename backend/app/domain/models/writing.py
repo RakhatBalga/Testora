@@ -37,10 +37,14 @@ class WritingSubmission(Base):
     # When the status last changed to "pending"; a pending row older than the
     # grading timeout belongs to a dead worker and is reconciled to "failed".
     status_updated_at = Column(DateTime, nullable=True)
+    # Optional client-generated idempotency key: a repeated key returns this row.
+    submission_key = Column(String, nullable=True)
 
     task = relationship("WritingTask")
 
     __table_args__ = (
         # Analytics constantly filter by user_id and order by created_at.
         Index("ix_writing_submissions_user_created", "user_id", "created_at"),
+        # Rows without a key (NULL) never collide.
+        Index("uq_writing_submission_user_key", "user_id", "submission_key", unique=True),
     )

@@ -61,7 +61,9 @@ def submit(
     task = db.query(WritingTask).filter(WritingTask.id == payload.task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    submission = writing_service.submit_writing(db, current_user, task, payload.text)
+    submission = writing_service.submit_writing(
+        db, current_user, task, payload.text, submission_key=payload.submission_key
+    )
     return _to_out(submission, task)
 
 
