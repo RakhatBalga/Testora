@@ -64,13 +64,10 @@ services:
       - key: AI_DAILY_ATTEMPTS
         value: "20"
       # Google sign-in. Also set NEXT_PUBLIC_GOOGLE_CLIENT_ID in Vercel (same client id).
-      # GOOGLE_REDIRECT_URI must be the exact backend callback registered in Google Cloud,
-      # e.g. https://<api-host>/api/auth/google/callback.
+      # The redirect URI is sent by the frontend and must match FRONTEND_URL/CORS_ORIGINS.
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
-        sync: false
-      - key: GOOGLE_REDIRECT_URI
         sync: false
       - key: SENTRY_DSN
         sync: false

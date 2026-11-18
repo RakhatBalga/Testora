@@ -1,6 +1,8 @@
 """Weakness aggregation engine.
 
-Pure aggregation over the `mistakes` table. No AI. Recent mistakes weigh more
+Pure aggregation over the `mistakes` table (Writing, Speaking) and the wrong
+answers of Reading/Listening attempts (grouped by question type / target
+skill, see `sources.objective_mistakes`). No AI. Recent mistakes weigh more
 (exponential recency decay, 14-day half-life); scores are normalised by how many
 attempts could have surfaced the mistake (opportunities).
 """
@@ -10,7 +12,7 @@ from collections import defaultdict
 from sqlalchemy.orm import Session
 
 from app.domain.models.mistake import Mistake
-from app.application.analytics.sources import opportunities, recent_submission_ids
+from app.application.analytics.sources import objective_mistakes, opportunities, recent_submission_ids
 from app.infrastructure.time import utcnow
 
 HALF_LIFE_DAYS = 14
@@ -38,7 +40,7 @@ def _humanize(subskill: str | None, category: str) -> str:
 
 def compute_weaknesses(db: Session, user_id: int, limit: int = 6) -> list[dict]:
     """Top weaknesses by score = squash( sum(severity * recency_decay) / opportunities )."""
-    mistakes = db.query(Mistake).filter(Mistake.user_id == user_id).all()
+    mistakes = [*db.query(Mistake).filter(Mistake.user_id == user_id).all(), *objective_mistakes(db, user_id)]
     if not mistakes:
         return []
 
@@ -46,7 +48,7 @@ def compute_weaknesses(db: Session, user_id: int, limit: int = 6) -> list[dict]:
     now = utcnow()
     recent_ids = {skill: set(recent_submission_ids(db, user_id, skill, RECURRING_WINDOW)) for skill in _ATTEMPT_NOUN}
 
-    groups: dict[tuple, list[Mistake]] = defaultdict(list)
+    groups: dict[tuple, list] = defaultdict(list)
     for m in mistakes:
         groups[(m.skill, m.category, m.subskill or m.category)].append(m)
 
@@ -106,6 +108,8 @@ def compute_recurring_mistakes(db: Session, user_id: int, limit: int = 6) -> lis
             )
             .all()
         )
+        if skill in ("reading", "listening"):
+            rows = [*rows, *objective_mistakes(db, user_id, skill, recent_ids)]
 
         per_subskill: dict[tuple, set] = defaultdict(set)
         for m in rows:

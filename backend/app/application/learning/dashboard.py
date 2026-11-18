@@ -21,7 +21,7 @@ def _latest_writing(db: Session, user_id: int) -> WritingSubmission | None:
         .filter(
             WritingSubmission.user_id == user_id,
             WritingSubmission.status == "graded",
-            WritingSubmission.band.isnot(None),
+            WritingSubmission.band > 0,  # Band 0 = pre-check rejection, not a graded essay
         )
         .order_by(WritingSubmission.created_at.desc(), WritingSubmission.id.desc())
         .first()

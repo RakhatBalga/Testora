@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import Annotated, List, Optional, Union
 from pydantic import BaseModel, Field
 
+from app.api.schemas.test import EvidenceSpan
+
 # Generous ceilings: a real answer is a word or a short phrase; a real test has
 # at most ~40 questions. They only exist to keep stored JSON/rows bounded.
 MAX_ANSWER_CHARS = 500
@@ -38,6 +40,8 @@ class AnswerResult(BaseModel):
     is_correct: bool
     marked_for_review: bool = False
     explanation: Optional[str] = None
+    # Reading only: where the passage supports the answer (review highlight).
+    evidence: Optional[List[EvidenceSpan]] = None
 
 
 class BreakdownItem(BaseModel):

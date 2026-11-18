@@ -2,6 +2,7 @@
 
 from fastapi import HTTPException
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.application.attempts import save_graded_attempt
@@ -136,31 +137,40 @@ def save_progress(db: Session, user: User, test_id: int, payload) -> ListeningPr
     test = get_published_test(db, test_id)
     if payload.content_version != test.content_version:
         raise HTTPException(status_code=409, detail="Content version changed; restart this test")
-    row = (
-        db.query(ListeningProgress)
-        .filter(
-            ListeningProgress.user_id == user.id,
-            ListeningProgress.test_id == test_id,
-            ListeningProgress.content_version == payload.content_version,
-            ListeningProgress.mode == payload.mode,
+    for attempt in range(2):
+        row = (
+            db.query(ListeningProgress)
+            .filter(
+                ListeningProgress.user_id == user.id,
+                ListeningProgress.test_id == test_id,
+                ListeningProgress.content_version == payload.content_version,
+                ListeningProgress.mode == payload.mode,
+            )
+            .first()
         )
-        .first()
-    )
-    if row is None:
-        row = ListeningProgress(
-            user_id=user.id,
-            test_id=test_id,
-            content_version=payload.content_version,
-            mode=payload.mode,
-        )
-        db.add(row)
-    row.answers = payload.answers
-    row.current_section = payload.current_section
-    row.audio_position = payload.audio_position
-    row.max_audio_position = max(payload.max_audio_position, payload.audio_position)
-    row.status = "in_progress"
-    row.updated_at = utcnow()
-    db.commit()
+        if row is None:
+            row = ListeningProgress(
+                user_id=user.id,
+                test_id=test_id,
+                content_version=payload.content_version,
+                mode=payload.mode,
+            )
+            db.add(row)
+        row.answers = payload.answers
+        row.current_section = payload.current_section
+        row.audio_position = payload.audio_position
+        row.max_audio_position = max(payload.max_audio_position, payload.audio_position)
+        row.status = "in_progress"
+        row.updated_at = utcnow()
+        try:
+            db.commit()
+        except IntegrityError:
+            # Two autosaves created the row at once: update the winner's row instead.
+            db.rollback()
+            if attempt:
+                raise
+            continue
+        break
     db.refresh(row)
     return row
 

@@ -7,10 +7,11 @@ gradings are free.
 
 import logging
 import threading
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.application.ai_gate import grading_admission, run_graded_pair
@@ -34,8 +35,10 @@ logger = logging.getLogger("testora.writing")
 GRADING_FAILED_SUMMARY = "Automatic grading could not be completed. Your free review was not used; please try again."
 INTERRUPTED_SUMMARY = "Grading was interrupted before it finished. Your free review was not used; please retry."
 
-# A repeated identical submit inside this window is the same click, not a new essay.
-_DUPLICATE_WINDOW = timedelta(minutes=2)
+# The same essay sent again this soon after its review finished is a repeated
+# click or a retry after a client timeout (the browser gives up after 7 minutes
+# while the server keeps grading), not a new essay: it gets the existing review.
+_DUPLICATE_WINDOW = timedelta(minutes=10)
 _create_lock = threading.Lock()
 
 
@@ -50,9 +53,15 @@ def _failure_feedback(summary: str) -> dict:
     return {"band": 0.0, "criteria": {}, "summary": summary, "suggestions": ["Try submitting again."]}
 
 
-def reconcile_stale_writing(db: Session, user_id: int | None = None) -> int:
-    """Mark gradings abandoned by a dead worker as failed so they can be retried."""
-    cutoff = utcnow() - timedelta(minutes=settings.grading_stale_minutes)
+def reconcile_stale_writing(db: Session, user_id: int | None = None, *, started_before: datetime | None = None) -> int:
+    """Mark gradings abandoned by a dead worker as failed so they can be retried.
+
+    By default a pending row is dead once it is older than the stale window.
+    `started_before` replaces that cutoff: the startup sweep passes the boot time
+    of this process, because a grading runs inside its request and so cannot
+    outlive the process that started it.
+    """
+    cutoff = started_before or utcnow() - timedelta(minutes=settings.grading_stale_minutes)
     marker = WritingSubmission.status_updated_at
     query = db.query(WritingSubmission).filter(
         WritingSubmission.status == "pending",
@@ -99,7 +108,72 @@ def list_submissions(db: Session, user: User) -> list[WritingSubmission]:
     )
 
 
-def submit_writing(db: Session, user: User, task: WritingTask, text: str) -> WritingSubmission:
+def _find_duplicate(db: Session, user: User, task: WritingTask, text: str, now: datetime) -> WritingSubmission | None:
+    """The submission this request repeats, if any.
+
+    A pending one is returned however old it is (it is still being graded, the
+    client polls it); a graded one only shortly after its review finished.
+    Failed and rejected (Band 0) submissions never match, so they can be resent.
+    """
+    same_essay = db.query(WritingSubmission).filter(
+        WritingSubmission.user_id == user.id,
+        WritingSubmission.task_id == task.id,
+        WritingSubmission.text == text,
+    )
+    pending = same_essay.filter(WritingSubmission.status == "pending").order_by(WritingSubmission.id.desc()).first()
+    if pending is not None:
+        return pending
+    finished_at = func.coalesce(WritingSubmission.status_updated_at, WritingSubmission.created_at)
+    return (
+        same_essay.filter(
+            WritingSubmission.status == "graded",
+            WritingSubmission.band > 0,
+            finished_at > now - _DUPLICATE_WINDOW,
+        )
+        .order_by(WritingSubmission.id.desc())
+        .first()
+    )
+
+
+def find_submission_by_key(db: Session, user_id: int, key: str | None) -> WritingSubmission | None:
+    if not key:
+        return None
+    return (
+        db.query(WritingSubmission)
+        .filter(WritingSubmission.user_id == user_id, WritingSubmission.submission_key == key)
+        .first()
+    )
+
+
+def _insert_submission(db: Session, sub: WritingSubmission) -> tuple[WritingSubmission, bool]:
+    """Store a new submission. Returns (row, created); a key that another request
+    stored first yields that request's row instead of a second one."""
+    user_id, key = sub.user_id, sub.submission_key
+    db.add(sub)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = find_submission_by_key(db, user_id, key)
+        if existing is None:
+            raise
+        return existing, False
+    db.refresh(sub)
+    return sub, True
+
+
+def submit_writing(
+    db: Session, user: User, task: WritingTask, text: str, submission_key: str | None = None
+) -> WritingSubmission:
+    """Grade an essay.
+
+    Idempotent: a repeated `submission_key` returns the first submission whatever
+    its status (pending, graded, failed, rejected) and never charges again.
+    Without a key, an identical essay sent again shortly after is matched by text.
+    """
+    existing = find_submission_by_key(db, user.id, submission_key)
+    if existing is not None:
+        return existing
     precheck = validate_writing_submission(task_type=task.task_type, text=text, min_words=task.min_words)
     now = utcnow()
     if not precheck.valid:
@@ -114,32 +188,21 @@ def submit_writing(db: Session, user: User, task: WritingTask, text: str) -> Wri
             band=0.0,
             status_updated_at=now,
             feedback=zero_band_feedback(task.task_type, precheck).to_dict(),
+            submission_key=submission_key,
         )
-        db.add(sub)
-        db.commit()
-        db.refresh(sub)
-        return sub
+        return _insert_submission(db, sub)[0]
 
     reconcile_stale_writing(db, user.id)
-    enforce_free_quota(db, WritingSubmission, user, settings.FREE_WRITING_SUBMISSIONS, "writing")
 
     with _create_lock:
-        duplicate = (
-            db.query(WritingSubmission)
-            .filter(
-                WritingSubmission.user_id == user.id,
-                WritingSubmission.task_id == task.id,
-                WritingSubmission.text == text,
-                WritingSubmission.status != "failed",
-                WritingSubmission.created_at > now - _DUPLICATE_WINDOW,
-            )
-            .order_by(WritingSubmission.id.desc())
-            .first()
+        # Before the quota check: a resubmit of the essay that took the last free
+        # review must get that review back, not "no free reviews left".
+        duplicate = find_submission_by_key(db, user.id, submission_key) or (
+            None if submission_key else _find_duplicate(db, user, task, text, now)
         )
         if duplicate is not None:
-            if duplicate.status == "pending":
-                raise HTTPException(409, "This essay is already being graded.")
             return duplicate
+        enforce_free_quota(db, WritingSubmission, user, settings.FREE_WRITING_SUBMISSIONS, "writing")
         sub = WritingSubmission(
             user_id=user.id,
             task_id=task.id,
@@ -147,10 +210,11 @@ def submit_writing(db: Session, user: User, task: WritingTask, text: str) -> Wri
             word_count=precheck.word_count,
             status="pending",
             status_updated_at=now,
+            submission_key=submission_key,
         )
-        db.add(sub)
-        db.commit()
-        db.refresh(sub)
+        sub, created = _insert_submission(db, sub)
+        if not created:
+            return sub
     try:
         return _grade_and_persist(db, user, sub, task)
     except HTTPException:

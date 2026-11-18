@@ -34,7 +34,7 @@ def _label(category: str) -> str:
 
 def _get_submission(db: Session, user_id: int, skill: str, submission_id: int):
     model = _MODELS[skill]
-    return db.query(model).filter(model.id == submission_id, model.user_id == user_id, model.band.isnot(None)).first()
+    return db.query(model).filter(model.id == submission_id, model.user_id == user_id, model.band > 0).first()
 
 
 def _previous_submission(db: Session, user_id: int, skill: str, current):

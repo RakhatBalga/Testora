@@ -1,5 +1,7 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI, Request, Response, status
@@ -19,6 +21,7 @@ from app.application.speaking import reconcile_stale_speaking
 from app.application.writing import reconcile_stale_writing
 from app.infrastructure.ai.factory import effective_provider
 from app.infrastructure.ai.qwen import ping_qwen
+from app.infrastructure.time import utcnow
 from app.api.routers import auth, tests, results, writing, speaking, analytics, learning, listening
 from app.api.routers import history, vocabulary
 
@@ -98,14 +101,53 @@ def _reconcile_on_startup() -> None:
         logger.exception("Startup reconciliation failed; it will run lazily per user instead")
 
 
+# How long after boot the previous process may still be finishing requests: on a
+# deploy Render starts the new instance first, then stops the old one (SIGTERM,
+# killed 30 s later). Gradings that began before this boot are orphans after that.
+ORPHAN_SWEEP_DELAY_SECONDS = 120
+
+
+def _reconcile_orphaned_gradings(booted_at: datetime) -> int:
+    """Fail every writing grading that was started before this process booted.
+
+    Grading runs synchronously inside its request, so a row that is still
+    pending from before the boot has no request left to finish it. Without this
+    it would stay "pending" (unretryable, and blocking a resubmit) until the
+    stale window passes. Assumes one API process, as start-render.sh and the
+    Dockerfile run it: with several workers a sibling's live grading would
+    match, so this sweep must go if the app is ever started with --workers.
+    """
+    try:
+        with SessionLocal() as db:
+            orphans = reconcile_stale_writing(db, started_before=booted_at)
+        if orphans:
+            logger.warning(
+                "Startup reconciliation: %s grading(s) orphaned by the previous process marked failed", orphans
+            )
+        return orphans
+    except Exception:  # noqa: BLE001 - the stale-window sweep still covers these rows
+        logger.exception("Orphaned grading reconciliation failed; the stale-window sweep will handle them")
+        return 0
+
+
+async def _sweep_orphans_after_handover(booted_at: datetime) -> None:
+    await asyncio.sleep(ORPHAN_SWEEP_DELAY_SECONDS)
+    await run_in_threadpool(_reconcile_orphaned_gradings, booted_at)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Validate configuration before serving any traffic; either guard raising
     # here aborts startup (fail fast) rather than degrading silently.
     _validate_security_configuration()
     _validate_ai_configuration()
+    booted_at = utcnow()  # no request of this process can have started a grading earlier
     await run_in_threadpool(_reconcile_on_startup)
-    yield
+    orphan_sweep = asyncio.create_task(_sweep_orphans_after_handover(booted_at))
+    try:
+        yield
+    finally:
+        orphan_sweep.cancel()
 
 
 app = FastAPI(

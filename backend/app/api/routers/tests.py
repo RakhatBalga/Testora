@@ -5,6 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db, get_current_user
+from app.domain.models.attempt import Attempt
 from app.domain.models.test import Test, Section, Question
 from app.domain.models.user import User
 from app.api.schemas.test import TestOut, TestDetail
@@ -86,4 +87,16 @@ def get_test(
                 for section in test.sections
             ],
         }
-    return test
+    attempted = (
+        db.query(Attempt.id).filter(Attempt.user_id == current_user.id, Attempt.test_id == test.id).first() is not None
+    )
+    if attempted:
+        # The review highlights evidence; this user has already seen the answers.
+        return test
+    # Before the first submission the evidence spans would point at the answers.
+    # The result payload (`answers[].evidence`) carries them after submitting.
+    detail = TestDetail.model_validate(test)
+    for section in detail.sections:
+        for question in section.questions:
+            question.evidence = None
+    return detail

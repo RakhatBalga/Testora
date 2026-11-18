@@ -89,7 +89,7 @@ def refresh_diagnostic(db: Session, user_id: int) -> dict | None:
             .filter(
                 WritingSubmission.user_id == user_id,
                 WritingSubmission.status == "graded",
-                WritingSubmission.band.isnot(None),
+                WritingSubmission.band > 0,  # Band 0 = pre-check rejection, not a graded essay
                 WritingSubmission.created_at >= session.started_at,
             )
             .order_by(WritingSubmission.created_at.desc(), WritingSubmission.id.desc())

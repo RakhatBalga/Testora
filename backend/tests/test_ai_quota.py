@@ -125,8 +125,8 @@ def test_legacy_zero_band_speaking_consumes_quota(quota_engine):
         assert "resets_at" not in error.value.detail
 
 
-def test_username_exemption_cannot_be_claimed_by_renaming(quota_engine, monkeypatch):
-    monkeypatch.setattr(settings, "QUOTA_EXEMPT_USERS", "student")
+def test_only_listed_user_ids_are_quota_exempt(quota_engine, monkeypatch):
+    monkeypatch.setattr(settings, "QUOTA_EXEMPT_USER_IDS", "99, student")
     with Session(quota_engine) as db:
         with pytest.raises(HTTPException):
             with reserve_ai_call(db, db.get(User, 1), "writing", model=WritingSubmission, limit=0):

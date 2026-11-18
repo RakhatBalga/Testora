@@ -2,6 +2,7 @@ from app.domain.publication import is_published
 import re
 from datetime import date, timedelta
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.application import frontend_routes as routes
@@ -41,7 +42,7 @@ def _writing_signal(db: Session, user_id: int) -> tuple[str | None, float | None
         .filter(
             WritingSubmission.user_id == user_id,
             WritingSubmission.status == "graded",
-            WritingSubmission.band.isnot(None),
+            WritingSubmission.band > 0,  # Band 0 = pre-check rejection, not a graded essay
         )
         .order_by(WritingSubmission.created_at.desc(), WritingSubmission.id.desc())
         .first()
@@ -194,7 +195,7 @@ def _has_new_results(db: Session, user_id: int, items: list[StudyPlanItem]) -> b
         .filter(
             WritingSubmission.user_id == user_id,
             WritingSubmission.status == "graded",
-            WritingSubmission.band.isnot(None),
+            WritingSubmission.band > 0,  # Band 0 = pre-check rejection, not a graded essay
         )
         .order_by(WritingSubmission.created_at.desc())
         .limit(1)
@@ -212,14 +213,18 @@ def _has_new_results(db: Session, user_id: int, items: list[StudyPlanItem]) -> b
     return bool(latest_result and latest_result > plan_updated)
 
 
-def get_weekly_plan(db: Session, user: User, recalculate: bool = False) -> dict:
-    start = week_start()
-    existing = (
+def _week_items(db: Session, user_id: int, start: date) -> list[StudyPlanItem]:
+    return (
         db.query(StudyPlanItem)
-        .filter(StudyPlanItem.user_id == user.id, StudyPlanItem.week_start == start)
+        .filter(StudyPlanItem.user_id == user_id, StudyPlanItem.week_start == start)
         .order_by(StudyPlanItem.scheduled_date, StudyPlanItem.id)
         .all()
     )
+
+
+def get_weekly_plan(db: Session, user: User, recalculate: bool = False) -> dict:
+    start = week_start()
+    existing = _week_items(db, user.id, start)
     if existing and not recalculate and not _has_new_results(db, user.id, existing):
         return _response(existing, start)
 
@@ -249,7 +254,13 @@ def get_weekly_plan(db: Session, user: User, recalculate: bool = False) -> dict:
                 generated.append(item)
             else:
                 db.delete(item)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # A parallel request (the dashboard and the plan page load together)
+        # wrote this week's plan first: serve the plan it stored.
+        db.rollback()
+        return _response(_week_items(db, user.id, start), start)
     for item in generated:
         db.refresh(item)
     generated.sort(key=lambda item: (item.scheduled_date, item.id))

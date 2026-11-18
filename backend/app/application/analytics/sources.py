@@ -4,14 +4,17 @@ Bridges the three submission tables (writing_submissions, speaking_submissions,
 attempts) into a uniform per-skill view for the analytics engines.
 """
 
+from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime
 from statistics import mean
 
 from sqlalchemy.orm import Session
 
 from app.domain.models.writing import WritingSubmission
 from app.domain.models.speaking import SpeakingSubmission
-from app.domain.models.attempt import Attempt
-from app.domain.models.test import Test
+from app.domain.models.attempt import AnswerRecord, Attempt
+from app.domain.models.test import Question, Test
 from app.domain.band import round_ielts as _round_half
 
 SKILLS = ("writing", "speaking", "reading", "listening")
@@ -36,6 +39,82 @@ def graded_writing(db: Session, user_id: int):
 
 def graded_speaking(db: Session, user_id: int):
     return db.query(SpeakingSubmission).filter(SpeakingSubmission.user_id == user_id, SpeakingSubmission.band > 0)
+
+
+@dataclass(frozen=True)
+class ObjectiveMistake:
+    """One weak question group in one Reading/Listening attempt.
+
+    Shaped like a `Mistake` row for the weakness engines. These are derived from
+    `answer_records` at read time, never stored: the notebook lists the same
+    wrong answers one by one, so storing them would count them twice.
+    """
+
+    skill: str
+    category: str
+    subskill: str
+    severity: int
+    submission_id: int
+    created_at: datetime | None
+
+
+def objective_category(skill: str, question_type: str, question_metadata: dict | None) -> str:
+    """The notebook's grouping: question type for Reading, target skill for Listening."""
+    if skill == "listening":
+        return (question_metadata or {}).get("target_skill") or question_type
+    return question_type
+
+
+def _objective_severity(wrong: int, total: int) -> int:
+    """1..3 like graded mistakes: most of the group wrong = 3, a third or more = 2."""
+    share = wrong / total
+    return 3 if share >= 2 / 3 else 2 if share >= 1 / 3 else 1
+
+
+def objective_mistakes(
+    db: Session, user_id: int, skill: str | None = None, attempt_ids: list[int] | None = None
+) -> list[ObjectiveMistake]:
+    """Wrong Reading/Listening answers as one item per (attempt, question group).
+
+    Grouping per attempt keeps the scale comparable with Writing, where a review
+    yields a handful of mistakes: a 40-question test must not outweigh an essay.
+    """
+    query = (
+        db.query(
+            Attempt.id,
+            Attempt.created_at,
+            Test.test_type,
+            Question.question_type,
+            Question.question_metadata,
+            AnswerRecord.is_correct,
+        )
+        .join(Attempt, AnswerRecord.attempt_id == Attempt.id)
+        .join(Question, AnswerRecord.question_id == Question.id)
+        .join(Test, Attempt.test_id == Test.id)
+        .filter(Attempt.user_id == user_id, Test.test_type.in_([skill] if skill else ["reading", "listening"]))
+    )
+    if attempt_ids is not None:
+        query = query.filter(Attempt.id.in_(attempt_ids))
+
+    counts: dict[tuple, list[int]] = defaultdict(lambda: [0, 0])  # [wrong, total]
+    created: dict[int, datetime | None] = {}
+    for attempt_id, created_at, test_type, question_type, metadata, is_correct in query.all():
+        created[attempt_id] = created_at
+        group = counts[(test_type, attempt_id, objective_category(test_type, question_type, metadata))]
+        group[0] += not is_correct
+        group[1] += 1
+    return [
+        ObjectiveMistake(
+            skill=test_type,
+            category=category,
+            subskill=category,
+            severity=_objective_severity(wrong, total),
+            submission_id=attempt_id,
+            created_at=created[attempt_id],
+        )
+        for (test_type, attempt_id, category), (wrong, total) in counts.items()
+        if wrong
+    ]
 
 
 def opportunities(db: Session, user_id: int) -> dict[str, int]:
