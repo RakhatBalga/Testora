@@ -11,7 +11,7 @@ psycopg2-binary==2.9.12
 PyJWT==2.15.1
 # Password hashing. auth.py imports `bcrypt` directly (passlib is unused), so it
 # is a first-class dependency rather than a transitive extra.
-bcrypt==4.0.1
+bcrypt==5.0.0
 python-dotenv==1.2.2
 pydantic==2.13.4
 pydantic-settings==2.14.2
